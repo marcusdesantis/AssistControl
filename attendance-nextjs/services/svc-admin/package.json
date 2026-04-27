@@ -1,0 +1,24 @@
+{
+  "name": "@attendance/svc-admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev":   "next dev -p ${PORT:-3008}",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3008}"
+  },
+  "dependencies": {
+    "@attendance/shared": "workspace:*",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "nodemailer": "^6.9.15",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.16",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.3"
+  }
+}

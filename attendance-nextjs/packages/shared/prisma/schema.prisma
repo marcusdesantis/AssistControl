@@ -1,0 +1,540 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  Admin
+  Supervisor
+  Employee
+}
+
+enum EmployeeStatus {
+  Active
+  Inactive
+  OnLeave
+}
+
+enum AttendanceStatus {
+  Present
+  Late
+  Absent
+  HalfDay
+  Excused
+}
+
+enum ScheduleType {
+  Fixed
+  Flexible
+  Shift
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+}
+
+enum BillingCycle {
+  monthly
+  annual
+}
+
+enum InvoiceStatus {
+  open
+  paid
+  void
+  uncollectible
+}
+
+// ─── Tenant ───────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id                        String    @id @default(uuid())
+  name                      String
+  legalName                 String?
+  taxId                     String?
+  businessLicense           String?
+  logoUrl                   String?
+  logoBase64                String?
+  timeZone                  String    @default("America/Guayaquil")
+  country                   String    @default("MX")
+  isActive                  Boolean   @default(true)
+
+  street                    String?
+  betweenStreets            String?
+  neighborhood              String?
+  city                      String?
+  postalCode                String?
+  municipality              String?
+  state                     String?
+
+  phone1                    String?
+  phone2                    String?
+  fax                       String?
+  email                     String?
+  website                   String?
+
+  employeeCodePrefix        String    @default("EMP-")
+  invitationExpirationHours Int       @default(48)
+  invitationEmails          String?
+
+  checkerKey                String    @default(uuid())
+  checkerRequires2FA        Boolean   @default(false)
+  checkerOtpExpirationMinutes Int     @default(5)
+
+  smtpEnabled               Boolean   @default(false)
+  smtpHost                  String?
+  smtpPort                  Int       @default(587)
+  smtpUsername              String?
+  smtpPassword              String?
+  smtpFromName              String?
+  smtpEnableSsl             Boolean   @default(true)
+
+  stripeCustomerId          String?
+
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime? @updatedAt
+  isDeleted                 Boolean   @default(false)
+
+  users                     User[]
+  employees                 Employee[]
+  departments               Department[]
+  positions                 Position[]
+  schedules                 Schedule[]
+  attendanceRecords         AttendanceRecord[]
+  employeeInvitations       EmployeeInvitation[]
+  checkerOtps               CheckerOtp[]
+  employeeMessages          EmployeeMessage[]
+  subscription              Subscription?
+  invoices                  Invoice[]
+  subscriptionLogs          SubscriptionLog[]
+  paymentMethods            PaymentMethod[]
+  notifications             Notification[]
+}
+
+// ─── User (admin) ─────────────────────────────────────────────────────────────
+
+model User {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  username            String    @unique
+  email               String
+  passwordHash        String
+  role                UserRole  @default(Employee)
+  isActive            Boolean   @default(true)
+  mustChangePassword  Boolean   @default(true)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime? @updatedAt
+  isDeleted           Boolean   @default(false)
+
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+  refreshTokens       RefreshToken[]
+
+  @@index([tenantId])
+}
+
+// ─── RefreshToken ─────────────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// ─── Department ───────────────────────────────────────────────────────────────
+
+model Department {
+  id          String    @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+  isDeleted   Boolean   @default(false)
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  employees   Employee[]
+
+  @@index([tenantId])
+}
+
+// ─── Position ─────────────────────────────────────────────────────────────────
+
+model Position {
+  id          String    @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+  isDeleted   Boolean   @default(false)
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  employees   Employee[]
+
+  @@index([tenantId])
+}
+
+// ─── Schedule ─────────────────────────────────────────────────────────────────
+
+model Schedule {
+  id                   String       @id @default(uuid())
+  tenantId             String
+  name                 String
+  type                 ScheduleType @default(Fixed)
+  lateToleranceMinutes Int          @default(0)
+  requiredHoursPerDay  Float?
+  days                 Json         @default("[]")
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime?    @updatedAt
+  isDeleted            Boolean      @default(false)
+
+  tenant               Tenant       @relation(fields: [tenantId], references: [id])
+  employees            Employee[]
+
+  @@index([tenantId])
+}
+
+// ─── Employee ─────────────────────────────────────────────────────────────────
+
+model Employee {
+  id              String         @id @default(uuid())
+  tenantId        String
+  employeeCode    String
+  firstName       String
+  lastName        String
+  departmentId    String?
+  positionId      String?
+  scheduleId      String?
+  email           String
+  phone           String?
+  hireDate        String
+  status          EmployeeStatus @default(Active)
+
+  pinHash         String?
+  pinDisplay      String?
+
+  username        String         @unique
+  passwordHash    String         @default("")
+  passwordDisplay String         @default("")
+  expoPushToken   String?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime?      @updatedAt
+  isDeleted       Boolean        @default(false)
+
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  department      Department?    @relation(fields: [departmentId], references: [id])
+  position        Position?      @relation(fields: [positionId], references: [id])
+  schedule        Schedule?      @relation(fields: [scheduleId], references: [id])
+  attendanceRecords AttendanceRecord[]
+  messages        EmployeeMessage[]
+
+  @@unique([tenantId, employeeCode])
+  @@index([tenantId])
+  @@index([username])
+}
+
+// ─── AttendanceRecord ─────────────────────────────────────────────────────────
+
+model AttendanceRecord {
+  id             String           @id @default(uuid())
+  tenantId       String
+  employeeId     String
+  date           String
+  checkInTime    DateTime?
+  checkOutTime   DateTime?
+  notes          String?
+  status         AttendanceStatus @default(Present)
+  lateMinutes    Int              @default(0)
+  latitude       Float?
+  longitude      Float?
+  registeredFrom String           @default("Web")
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime?        @updatedAt
+  isDeleted      Boolean          @default(false)
+
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
+  employee       Employee         @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId, date])
+  @@index([employeeId])
+}
+
+// ─── EmployeeInvitation ───────────────────────────────────────────────────────
+
+model EmployeeInvitation {
+  id           String    @id @default(uuid())
+  tenantId     String
+  token        String    @unique
+  sentTo       String
+  assignedCode String?
+  scheduleId   String?
+  expiresAt    DateTime
+  isUsed       Boolean   @default(false)
+  usedAt       DateTime?
+  employeeId   String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
+  isDeleted    Boolean   @default(false)
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([token])
+}
+
+// ─── CheckerOtp ───────────────────────────────────────────────────────────────
+
+model CheckerOtp {
+  id         String    @id @default(uuid())
+  tenantId   String
+  employeeId String
+  code       String
+  expiresAt  DateTime
+  isUsed     Boolean   @default(false)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
+  isDeleted  Boolean   @default(false)
+
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, employeeId, expiresAt])
+}
+
+// ─── EmployeeMessage ──────────────────────────────────────────────────────────
+
+model EmployeeMessage {
+  id          String    @id @default(uuid())
+  tenantId    String
+  employeeId  String
+  senderName  String
+  subject     String
+  body        String
+  isRead      Boolean   @default(false)
+  allowDelete Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+  isDeleted   Boolean   @default(false)
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId, employeeId])
+}
+
+// ─── Plan ─────────────────────────────────────────────────────────────────────
+
+model Plan {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  priceMonthly  Float
+  priceAnnual   Float?
+  maxEmployees  Int?
+  features      Json      @default("[]")
+  capabilities  Json      @default("{}")
+  isActive      Boolean   @default(true)
+  isFree        Boolean   @default(false)
+  isDefault     Boolean   @default(false)
+  sortOrder     Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+
+  subscriptions    Subscription[]
+  subscriptionLogs SubscriptionLog[]
+}
+
+// ─── Subscription ─────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  tenantId             String             @unique
+  planId               String
+  status               SubscriptionStatus @default(trialing)
+  billingCycle         BillingCycle       @default(monthly)
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  trialEndsAt          DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  scheduledPlanId      String?
+  scheduledBillingCycle BillingCycle?
+  notif7SentAt         DateTime?
+  notif3SentAt         DateTime?
+  notif1SentAt         DateTime?
+  notifGraceAt         DateTime?
+  expiryRemindersSent  String             @default("[]")
+  lastPaidPeriodEnd    DateTime?
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime?          @updatedAt
+
+  tenant               Tenant             @relation(fields: [tenantId], references: [id])
+  plan                 Plan               @relation(fields: [planId], references: [id])
+
+  @@index([planId])
+}
+
+// ─── SubscriptionLog ──────────────────────────────────────────────────────────
+
+model SubscriptionLog {
+  id             String   @id @default(uuid())
+  tenantId       String
+  action         String
+  planId         String
+  previousPlanId String?
+  billingCycle   String
+  amountPaid     Float?
+  creditAmount   Float?
+  createdAt      DateTime @default(now())
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  plan           Plan     @relation(fields: [planId], references: [id])
+
+  @@index([tenantId])
+}
+
+// ─── Invoice ──────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id                String        @id @default(uuid())
+  tenantId          String
+  stripeInvoiceId   String?       @unique
+  invoiceNumber     String?
+  planName          String?
+  amount            Float
+  currency          String        @default("usd")
+  status            InvoiceStatus @default(open)
+  billingCycle      BillingCycle  @default(monthly)
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  paidAt            DateTime?
+  invoicePdfUrl     String?
+  hostedInvoiceUrl  String?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime?     @updatedAt
+
+  tenant            Tenant        @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+// ─── PaymentMethod ────────────────────────────────────────────────────────────
+
+model PaymentMethod {
+  id                    String    @id @default(uuid())
+  tenantId              String
+  stripePaymentMethodId String    @unique
+  brand                 String?
+  last4                 String?
+  expMonth              Int?
+  expYear               Int?
+  isDefault             Boolean   @default(false)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime? @updatedAt
+
+  tenant                Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+// ─── PaymentEvent ─────────────────────────────────────────────────────────────
+
+model PaymentEvent {
+  id               String    @id @default(uuid())
+  tenantId         String?
+  stripeEventId    String    @unique
+  type             String
+  payload          Json
+  processedAt      DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([type])
+}
+
+// ─── SuperadminAccount ────────────────────────────────────────────────────────
+
+model SuperadminAccount {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
+}
+
+// ─── SystemSettings (singleton) ───────────────────────────────────────────────
+
+model SystemSettings {
+  id             String   @id @default("system")
+  smtpEnabled    Boolean  @default(false)
+  smtpHost       String?
+  smtpPort       Int      @default(587)
+  smtpUsername   String?
+  smtpPassword   String?
+  smtpFromName   String?
+  smtpFromEmail  String?
+  smtpEnableSsl              Boolean  @default(true)
+  gracePeriodDays            Int      @default(3)
+  expiryReminderEnabled      Boolean  @default(false)
+  expiryReminderTarget       String   @default("admin")
+  expiryReminderDays         String   @default("[1,2,7,15,30]")
+  updatedAt                  DateTime @updatedAt
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  forAdmin    Boolean  @default(false)
+  forEmployee Boolean  @default(false)
+  employeeId  String?
+  title       String
+  body        String
+  type        String   @default("info")
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, isRead])
+  @@index([forAdmin, isRead])
+  @@index([tenantId, forEmployee, employeeId])
+}

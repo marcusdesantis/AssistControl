@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "AssistControl",
+    "slug": "attendance-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.abisoft.assistcontrol",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Se usa para registrar tu ubicación al marcar entrada/salida.",
+        "NSLocationAlwaysUsageDescription": "Se usa para enviarte recordatorios de asistencia."
+      }
+    },
+    "android": {
+      "package": "com.abisoft.assistcontrol",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Se usa para registrar tu ubicación al marcar asistencia."
+        }
+      ],
+      "expo-notifications",
+      "expo-font",
+      "expo-asset"
+    ],
+    "scheme": "attendance",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}

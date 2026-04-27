@@ -1,0 +1,63 @@
+# ============================================================
+#  Next.js backend — attendance-nextjs
+# ============================================================
+attendance-nextjs/node_modules/
+attendance-nextjs/.next/
+attendance-nextjs/dist/
+attendance-nextjs/build/
+attendance-nextjs/out/
+attendance-nextjs/.turbo/
+attendance-nextjs/.cache/
+attendance-nextjs/.pnpm-store/
+attendance-nextjs/generated/
+attendance-nextjs/.env
+attendance-nextjs/.env.local
+attendance-nextjs/.env.*.local
+
+# ============================================================
+#  React + Vite — attendance-frontend
+# ============================================================
+attendance-frontend/node_modules/
+attendance-frontend/dist/
+attendance-frontend/.vite/
+attendance-frontend/.env
+attendance-frontend/.env.local
+attendance-frontend/.env.*.local
+
+# ============================================================
+#  React Native / Expo — attendance-mobile
+# ============================================================
+attendance-mobile/node_modules/
+attendance-mobile/.expo/
+attendance-mobile/dist/
+attendance-mobile/web-build/
+attendance-mobile/.env
+attendance-mobile/.env.local
+attendance-mobile/.env.*.local
+attendance-mobile/android/
+attendance-mobile/ios/
+attendance-mobile/.metro-health-check*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+google-services.json
+GoogleService-Info.plist
+
+# ============================================================
+#  General
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.pid
+*.seed
+*.pid.lock
+tmp/
+temp/
+
+# Claude (memoria local, no va al repo)
+.claude/

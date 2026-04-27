@@ -1,0 +1,172 @@
+x-service-defaults: &service-defaults
+  restart: always
+  env_file: .env
+  networks:
+    - attendance
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+
+  # ── nginx gateway ─────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/docs:/etc/nginx/docs:ro
+    depends_on:
+      - svc-core
+      - svc-employees
+      - svc-attendance
+      - svc-analytics
+      - svc-mobile
+      - svc-comms
+      - svc-billing
+      - svc-admin
+    <<: *service-defaults
+
+  # ── svc-core  (auth, company, settings) ──────────────────────────────────────
+  svc-core:
+    build:
+      context: .
+      dockerfile: services/svc-core/Dockerfile
+    expose:
+      - "3001"
+    environment:
+      PORT: 3001
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-employees ─────────────────────────────────────────────────────────────
+  svc-employees:
+    build:
+      context: .
+      dockerfile: services/svc-employees/Dockerfile
+    expose:
+      - "3002"
+    environment:
+      PORT: 3002
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-attendance ────────────────────────────────────────────────────────────
+  svc-attendance:
+    build:
+      context: .
+      dockerfile: services/svc-attendance/Dockerfile
+    expose:
+      - "3003"
+    environment:
+      PORT: 3003
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-analytics ─────────────────────────────────────────────────────────────
+  svc-analytics:
+    build:
+      context: .
+      dockerfile: services/svc-analytics/Dockerfile
+    expose:
+      - "3004"
+    environment:
+      PORT: 3004
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-mobile ────────────────────────────────────────────────────────────────
+  svc-mobile:
+    build:
+      context: .
+      dockerfile: services/svc-mobile/Dockerfile
+    expose:
+      - "3005"
+    environment:
+      PORT: 3005
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-comms ─────────────────────────────────────────────────────────────────
+  svc-comms:
+    build:
+      context: .
+      dockerfile: services/svc-comms/Dockerfile
+    expose:
+      - "3006"
+    environment:
+      PORT: 3006
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-billing ───────────────────────────────────────────────────────────────
+  svc-billing:
+    build:
+      context: .
+      dockerfile: services/svc-billing/Dockerfile
+    expose:
+      - "3007"
+    environment:
+      PORT: 3007
+      PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
+      PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
+      APP_URL: ${APP_URL:-http://localhost:80}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-admin ─────────────────────────────────────────────────────────────────
+  svc-admin:
+    build:
+      context: .
+      dockerfile: services/svc-admin/Dockerfile
+    expose:
+      - "3008"
+    environment:
+      PORT: 3008
+      SUPERADMIN_JWT_SECRET: ${SUPERADMIN_JWT_SECRET:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    <<: *service-defaults
+
+networks:
+  attendance:
+    driver: bridge

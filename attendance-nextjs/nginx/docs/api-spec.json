@@ -1,0 +1,1979 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AssistControl API",
+    "description": "API de control de asistencia — 8 microservicios detrás de nginx.\n\n**Autenticación admin**: `Bearer <token>` obtenido en `/api/v1/auth/login`\n\n**Autenticación empleado (mobile)**: `Bearer <token>` obtenido en `/api/v1/mobile/login`\n\n**Autenticación superadmin**: `Bearer <token>` obtenido en `/api/v1/admin/auth/login`\n\n| Servicio | Puerto interno | Rutas |\n|---|---|---|\n| svc-core | 3001 | /auth, /company, /settings, /public, /notifications |\n| svc-employees | 3002 | /employees, /departments, /positions |\n| svc-attendance | 3003 | /attendance, /schedules |\n| svc-analytics | 3004 | /dashboard, /reports |\n| svc-mobile | 3005 | /mobile, /checker |\n| svc-comms | 3006 | /messages |\n| svc-billing | 3007 | /subscription, /plans, /invoices, /payment, /payment-methods |\n| svc-admin | 3008 | /admin/* |",
+    "version": "1.1.0"
+  },
+  "servers": [
+    { "url": "", "description": "Gateway (nginx — mismo origen)" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "AdminBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token de administrador — obtenido en POST /api/v1/auth/login"
+      },
+      "EmployeeBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token de empleado — obtenido en POST /api/v1/mobile/login"
+      },
+      "SuperadminBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token de superadministrador — obtenido en POST /api/v1/admin/auth/login"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success":   { "type": "boolean" },
+          "message":   { "type": "string",  "nullable": true },
+          "data":      { },
+          "errorCode": { "type": "string",  "nullable": true }
+        }
+      },
+      "PagedResult": {
+        "type": "object",
+        "properties": {
+          "items":      { "type": "array", "items": { } },
+          "total":      { "type": "integer" },
+          "page":       { "type": "integer" },
+          "pageSize":   { "type": "integer" },
+          "totalPages": { "type": "integer" }
+        }
+      }
+    }
+  },
+
+  "paths": {
+
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Registrar empresa + admin",
+        "description": "Crea el tenant, el usuario admin y devuelve el JWT.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["companyName","username","email","password"],
+                "properties": {
+                  "companyName": { "type": "string", "example": "Mi Empresa" },
+                  "timeZone":    { "type": "string", "example": "America/Guayaquil" },
+                  "username":    { "type": "string", "example": "admin" },
+                  "email":       { "type": "string", "format": "email", "example": "admin@empresa.com" },
+                  "password":    { "type": "string", "example": "Admin123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — { token, refreshToken, user }" }
+        }
+      }
+    },
+
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Login de administrador",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username","password"],
+                "properties": {
+                  "username": { "type": "string", "example": "admin" },
+                  "password": { "type": "string", "example": "Admin123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — { token, refreshToken, user }" }
+        }
+      }
+    },
+
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Renovar access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
+                  "token": { "type": "string", "description": "Refresh token" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — nuevo access token" } }
+      }
+    },
+
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["🔐 Auth"],
+        "summary": "Datos del admin autenticado",
+        "security": [{ "AdminBearer": [] }],
+        "responses": { "200": { "description": "OK — datos del usuario" } }
+      }
+    },
+
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Cerrar sesión (invalida refresh token)",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "token": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Cambiar contraseña de admin",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword","newPassword","confirmPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string" },
+                  "newPassword":     { "type": "string" },
+                  "confirmPassword": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/auth/verify-password": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Verificar contraseña actual (sin cambiarla)",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": { "password": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { valid: bool }" } }
+      }
+    },
+
+    "/api/v1/company": {
+      "get": {
+        "tags": ["🏢 Empresa"],
+        "summary": "Obtener perfil de empresa",
+        "security": [{ "AdminBearer": [] }],
+        "responses": { "200": { "description": "OK — datos del tenant" } }
+      },
+      "put": {
+        "tags": ["🏢 Empresa"],
+        "summary": "Actualizar perfil de empresa",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name":            { "type": "string" },
+                  "legalName":       { "type": "string", "nullable": true },
+                  "taxId":           { "type": "string", "nullable": true },
+                  "businessLicense": { "type": "string", "nullable": true },
+                  "logoBase64":      { "type": "string", "nullable": true },
+                  "street":          { "type": "string", "nullable": true },
+                  "betweenStreets":  { "type": "string", "nullable": true },
+                  "neighborhood":    { "type": "string", "nullable": true },
+                  "city":            { "type": "string", "nullable": true },
+                  "postalCode":      { "type": "string", "nullable": true },
+                  "municipality":    { "type": "string", "nullable": true },
+                  "state":           { "type": "string", "nullable": true },
+                  "phone1":          { "type": "string", "nullable": true },
+                  "phone2":          { "type": "string", "nullable": true },
+                  "fax":             { "type": "string", "nullable": true },
+                  "email":           { "type": "string", "nullable": true },
+                  "website":         { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/settings": {
+      "get": {
+        "tags": ["⚙️ Configuración"],
+        "summary": "Obtener configuración del tenant",
+        "security": [{ "AdminBearer": [] }],
+        "responses": { "200": { "description": "OK — { employeeCodePrefix, smtpEnabled, checkerKey, ... }" } }
+      },
+      "put": {
+        "tags": ["⚙️ Configuración"],
+        "summary": "Actualizar configuración",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "employeeCodePrefix":          { "type": "string", "example": "EMP-" },
+                  "invitationExpirationHours":   { "type": "integer", "example": 48 },
+                  "invitationEmails":            { "type": "string", "nullable": true },
+                  "smtpEnabled":                 { "type": "boolean" },
+                  "smtpHost":                    { "type": "string", "nullable": true },
+                  "smtpPort":                    { "type": "integer", "example": 587 },
+                  "smtpUsername":                { "type": "string", "nullable": true },
+                  "smtpPassword":                { "type": "string", "nullable": true },
+                  "smtpFromName":                { "type": "string", "nullable": true },
+                  "smtpEnableSsl":               { "type": "boolean" },
+                  "checkerKey":                  { "type": "string" },
+                  "checkerRequires2FA":          { "type": "boolean" },
+                  "checkerOtpExpirationMinutes": { "type": "integer", "example": 5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/settings/checker-key/regenerate": {
+      "post": {
+        "tags": ["⚙️ Configuración"],
+        "summary": "Regenerar checkerKey",
+        "security": [{ "AdminBearer": [] }],
+        "responses": { "200": { "description": "OK — nueva configuración" } }
+      }
+    },
+
+    "/api/v1/settings/invitation/send": {
+      "post": {
+        "tags": ["⚙️ Configuración"],
+        "summary": "Enviar invitación de registro",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assignedCode": { "type": "string", "nullable": true, "example": "EMP-101" },
+                  "scheduleId":   { "type": "string", "nullable": true, "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { token, expiresAt, sentTo }" } }
+      }
+    },
+
+    "/api/v1/notifications": {
+      "get": {
+        "tags": ["🔔 Notificaciones (tenant)"],
+        "summary": "Listar notificaciones del tenant (paginado)",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20, "maximum": 50 } },
+          { "in": "query", "name": "type",     "schema": { "type": "string", "enum": ["info","success","warning","error"] } },
+          { "in": "query", "name": "search",   "schema": { "type": "string", "description": "Busca por título" } },
+          { "in": "query", "name": "dateFrom", "schema": { "type": "string", "example": "2024-01-01" } },
+          { "in": "query", "name": "dateTo",   "schema": { "type": "string", "example": "2024-01-31" } }
+        ],
+        "responses": {
+          "200": { "description": "OK — { items[], total, totalPages, unread }" }
+        }
+      },
+      "patch": {
+        "tags": ["🔔 Notificaciones (tenant)"],
+        "summary": "Marcar notificación(es) como leídas",
+        "description": "Sin `?id=` marca todas las no leídas. Con `?id={id}` marca solo esa.",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "id", "schema": { "type": "string" }, "description": "ID de la notificación (opcional — si se omite, marca todas)" }
+        ],
+        "responses": { "200": { "description": "OK — { ok: true }" } }
+      }
+    },
+
+    "/api/v1/public/invitation/{token}": {
+      "get": {
+        "tags": ["🌐 Público"],
+        "summary": "Info de invitación (para formulario de registro)",
+        "parameters": [
+          { "in": "path", "name": "token", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK — { isValid, companyName, logoBase64, employeeCodePrefix, departments[], positions[], hasSchedule }" }
+        }
+      }
+    },
+
+    "/api/v1/public/register": {
+      "post": {
+        "tags": ["🌐 Público"],
+        "summary": "Auto-registro de empleado via token de invitación",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token","firstName","lastName","email","username","password"],
+                "properties": {
+                  "token":        { "type": "string" },
+                  "firstName":    { "type": "string" },
+                  "lastName":     { "type": "string" },
+                  "email":        { "type": "string", "format": "email" },
+                  "username":     { "type": "string" },
+                  "password":     { "type": "string" },
+                  "phone":        { "type": "string", "nullable": true },
+                  "departmentId": { "type": "string", "nullable": true },
+                  "positionId":   { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { employeeId, employeeCode, pin, username }" } }
+      }
+    },
+
+    "/api/v1/employees": {
+      "get": {
+        "tags": ["👤 Empleados"],
+        "summary": "Listar empleados (paginado)",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",         "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize",     "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "search",       "schema": { "type": "string" } },
+          { "in": "query", "name": "departmentId", "schema": { "type": "string" } },
+          { "in": "query", "name": "status",       "schema": { "type": "string", "enum": ["Active","Inactive","OnLeave"] } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<EmployeeDto>" } }
+      },
+      "post": {
+        "tags": ["👤 Empleados"],
+        "summary": "Crear empleado",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["firstName","lastName","email"],
+                "properties": {
+                  "firstName":    { "type": "string" },
+                  "lastName":     { "type": "string" },
+                  "email":        { "type": "string", "format": "email" },
+                  "phone":        { "type": "string", "nullable": true },
+                  "departmentId": { "type": "string", "nullable": true },
+                  "positionId":   { "type": "string", "nullable": true },
+                  "scheduleId":   { "type": "string", "nullable": true },
+                  "hireDate":     { "type": "string", "example": "2024-01-15" },
+                  "status":       { "type": "string", "enum": ["Active","Inactive","OnLeave"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { employee, generatedPin, generatedPassword }" } }
+      }
+    },
+
+    "/api/v1/employees/{id}": {
+      "get": {
+        "tags": ["👤 Empleados"],
+        "summary": "Obtener empleado por ID",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — EmployeeDto" } }
+      },
+      "put": {
+        "tags": ["👤 Empleados"],
+        "summary": "Actualizar empleado",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName":    { "type": "string" },
+                  "lastName":     { "type": "string" },
+                  "email":        { "type": "string" },
+                  "phone":        { "type": "string", "nullable": true },
+                  "departmentId": { "type": "string", "nullable": true },
+                  "positionId":   { "type": "string", "nullable": true },
+                  "scheduleId":   { "type": "string", "nullable": true },
+                  "hireDate":     { "type": "string" },
+                  "status":       { "type": "string", "enum": ["Active","Inactive","OnLeave"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["👤 Empleados"],
+        "summary": "Eliminar empleado (soft delete)",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/employees/{id}/reset-pin": {
+      "post": {
+        "tags": ["👤 Empleados"],
+        "summary": "Resetear PIN del empleado",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — { pin }" } }
+      }
+    },
+
+    "/api/v1/employees/{id}/reset-password": {
+      "post": {
+        "tags": ["👤 Empleados"],
+        "summary": "Resetear contraseña del empleado (mobile)",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — { password }" } }
+      }
+    },
+
+    "/api/v1/employees/{id}/notify": {
+      "post": {
+        "tags": ["👤 Empleados"],
+        "summary": "Enviar notificación push a un empleado (mobile)",
+        "description": "Crea la notificación en BD con `forEmployee: true` y envía un Expo push token si el empleado lo tiene registrado (fire-and-forget).",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title","body"],
+                "properties": {
+                  "title": { "type": "string", "example": "Recordatorio" },
+                  "body":  { "type": "string", "example": "No olvides marcar tu salida hoy." },
+                  "type":  { "type": "string", "enum": ["info","success","warning","error"], "default": "info" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — notificación creada" } }
+      }
+    },
+
+    "/api/v1/departments": {
+      "get": {
+        "tags": ["🏗️ Departamentos"],
+        "summary": "Listar departamentos",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 10 } },
+          { "in": "query", "name": "search",   "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<{ id, name, description, employeeCount }>" } }
+      },
+      "post": {
+        "tags": ["🏗️ Departamentos"],
+        "summary": "Crear departamento",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name":        { "type": "string" },
+                  "description": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/departments/{id}": {
+      "put": {
+        "tags": ["🏗️ Departamentos"],
+        "summary": "Actualizar departamento",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name":        { "type": "string" },
+                  "description": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["🏗️ Departamentos"],
+        "summary": "Eliminar departamento",
+        "description": "Si tiene empleados, reasigna con `reassignToId`.",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "path",  "name": "id",          "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "reassignToId", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/positions": {
+      "get": {
+        "tags": ["💼 Cargos"],
+        "summary": "Listar cargos",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 10 } },
+          { "in": "query", "name": "search",   "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<{ id, name, description, employeeCount }>" } }
+      },
+      "post": {
+        "tags": ["💼 Cargos"],
+        "summary": "Crear cargo",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name":        { "type": "string" },
+                  "description": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/positions/{id}": {
+      "put": {
+        "tags": ["💼 Cargos"],
+        "summary": "Actualizar cargo",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name":        { "type": "string" },
+                  "description": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["💼 Cargos"],
+        "summary": "Eliminar cargo",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "path",  "name": "id",          "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "reassignToId", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/schedules": {
+      "get": {
+        "tags": ["🕐 Horarios"],
+        "summary": "Listar horarios",
+        "security": [{ "AdminBearer": [] }],
+        "responses": { "200": { "description": "OK — lista de horarios" } }
+      },
+      "post": {
+        "tags": ["🕐 Horarios"],
+        "summary": "Crear horario",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name","type","days"],
+                "properties": {
+                  "name":                 { "type": "string" },
+                  "type":                 { "type": "string", "enum": ["Fixed","Flexible","Shift"] },
+                  "lateToleranceMinutes": { "type": "integer", "default": 0 },
+                  "requiredHoursPerDay":  { "type": "number",  "nullable": true },
+                  "days": {
+                    "type": "array",
+                    "description": "0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "day":        { "type": "integer", "minimum": 0, "maximum": 6 },
+                        "isWorkDay":  { "type": "boolean" },
+                        "entryTime":  { "type": "string", "example": "08:00", "nullable": true },
+                        "exitTime":   { "type": "string", "example": "17:00", "nullable": true },
+                        "lunchStart": { "type": "string", "example": "13:00", "nullable": true },
+                        "lunchEnd":   { "type": "string", "example": "14:00", "nullable": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/schedules/{id}": {
+      "get": {
+        "tags": ["🕐 Horarios"],
+        "summary": "Obtener horario por ID",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "put": {
+        "tags": ["🕐 Horarios"],
+        "summary": "Actualizar horario",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object" } } }
+        },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["🕐 Horarios"],
+        "summary": "Eliminar horario",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/attendance": {
+      "get": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Listado plano por rango de fechas",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "from", "required": true, "schema": { "type": "string" }, "example": "2024-01-01" },
+          { "in": "query", "name": "to",   "required": true, "schema": { "type": "string" }, "example": "2024-01-31" }
+        ],
+        "responses": { "200": { "description": "OK — AttendanceDto[]" } }
+      }
+    },
+
+    "/api/v1/attendance/check-in": {
+      "post": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Registrar entrada (manual/admin)",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["employeeId"],
+                "properties": {
+                  "employeeId":     { "type": "string" },
+                  "notes":          { "type": "string", "nullable": true },
+                  "latitude":       { "type": "number", "nullable": true },
+                  "longitude":      { "type": "number", "nullable": true },
+                  "registeredFrom": { "type": "string", "example": "Web" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — AttendanceDto" } }
+      }
+    },
+
+    "/api/v1/attendance/check-out": {
+      "post": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Registrar salida (manual/admin)",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["employeeId"],
+                "properties": {
+                  "employeeId": { "type": "string" },
+                  "notes":      { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — AttendanceDto" } }
+      }
+    },
+
+    "/api/v1/attendance/{id}": {
+      "put": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Editar registro de asistencia",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "checkInTime":  { "type": "string", "format": "date-time", "nullable": true },
+                  "checkOutTime": { "type": "string", "format": "date-time", "nullable": true },
+                  "notes":        { "type": "string", "nullable": true },
+                  "status":       { "type": "string", "enum": ["Present","Late","Absent","HalfDay","Excused"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — AttendanceDto" } }
+      },
+      "delete": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Eliminar registro de asistencia",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/attendance/day-view": {
+      "get": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Vista de día — todos los empleados con su estado",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "date",      "required": true, "schema": { "type": "string" }, "example": "2024-06-15" },
+          { "in": "query", "name": "page",      "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize",  "schema": { "type": "integer", "default": 50 } },
+          { "in": "query", "name": "search",    "schema": { "type": "string" } },
+          { "in": "query", "name": "department","schema": { "type": "string" } },
+          { "in": "query", "name": "status",    "schema": { "type": "string", "enum": ["Present","Late","Absent","HalfDay","Excused","None"] } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<AttendanceDayRowDto>" } }
+      }
+    },
+
+    "/api/v1/attendance/period-view": {
+      "get": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Vista de período — resumen por empleado",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "from",      "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "to",        "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "page",      "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize",  "schema": { "type": "integer", "default": 50 } },
+          { "in": "query", "name": "search",    "schema": { "type": "string" } },
+          { "in": "query", "name": "department","schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<AttendancePeriodRowDto>" } }
+      }
+    },
+
+    "/api/v1/attendance/by-employee/{employeeId}": {
+      "get": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Historial de asistencia de un empleado",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "path",  "name": "employeeId", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "from",        "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "to",          "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "page",        "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize",    "schema": { "type": "integer", "default": 30 } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<AttendanceDto>" } }
+      }
+    },
+
+    "/api/v1/dashboard/stats": {
+      "get": {
+        "tags": ["📊 Dashboard"],
+        "summary": "Estadísticas del día (presente, tarde, ausente, sin registro)",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — { total, present, late, absent, noRecord, date }" }
+        }
+      }
+    },
+
+    "/api/v1/reports/{reportType}": {
+      "get": {
+        "tags": ["📈 Reportes"],
+        "summary": "Reporte de asistencia paginado",
+        "description": "**reportType**: `general` | `absences` | `lates` | `early-departures` | `halfday`",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "path",  "name": "reportType", "required": true, "schema": { "type": "string", "enum": ["general","absences","lates","early-departures","halfday"] } },
+          { "in": "query", "name": "from",        "required": true, "schema": { "type": "string" }, "example": "2024-01-01" },
+          { "in": "query", "name": "to",          "required": true, "schema": { "type": "string" }, "example": "2024-01-31" },
+          { "in": "query", "name": "page",        "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize",    "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "department",  "schema": { "type": "string" } },
+          { "in": "query", "name": "search",      "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK — PagedResult<AttendanceReportRowDto>" }
+        }
+      }
+    },
+
+    "/api/v1/reports/employee-detail": {
+      "get": {
+        "tags": ["📈 Reportes"],
+        "summary": "Reporte detallado por empleado",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "employeeCode", "required": true, "schema": { "type": "string" }, "example": "EMP-001" },
+          { "in": "query", "name": "from",          "required": true, "schema": { "type": "string" }, "example": "2024-01-01" },
+          { "in": "query", "name": "to",            "required": true, "schema": { "type": "string" }, "example": "2024-01-31" },
+          { "in": "query", "name": "reportType",    "schema": { "type": "string", "enum": ["general","absences","lates","early-departures","halfday"], "default": "general" } }
+        ],
+        "responses": {
+          "200": { "description": "OK — EmployeeDetailReportDto con days[], totales y estadísticas" }
+        }
+      }
+    },
+
+    "/api/v1/subscription": {
+      "get": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Obtener suscripción activa del tenant",
+        "description": "Verifica automáticamente si aplica auto-downgrade por período de gracia vencido.",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — { planId, planName, billingCycle, status, currentPeriodEnd, daysUntilExpiry, inGracePeriod, graceLeft, wasAutoDowngraded }" }
+        }
+      },
+      "post": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Activar plan gratuito",
+        "description": "Solo para planes gratuitos. Los planes de pago requieren el flujo de pago.",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["planId"],
+                "properties": {
+                  "planId":       { "type": "string", "format": "uuid" },
+                  "billingCycle": { "type": "string", "enum": ["monthly","annual"], "default": "monthly" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — suscripción actualizada" } }
+      },
+      "delete": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Cancelar suscripción (baja al plan gratuito)",
+        "security": [{ "AdminBearer": [] }],
+        "responses": { "200": { "description": "OK — suscripción cancelada" } }
+      }
+    },
+
+    "/api/v1/plans": {
+      "get": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Listar planes disponibles (públicos/activos)",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — Plan[] con id, name, description, priceMonthly, priceAnnual, maxEmployees, isFree, features, capabilities" }
+        }
+      }
+    },
+
+    "/api/v1/invoices": {
+      "get": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Listar facturas del tenant",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<InvoiceDto>" } }
+      }
+    },
+
+    "/api/v1/invoices/{invoiceId}/receipt": {
+      "get": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Obtener comprobante HTML de una factura",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "path", "name": "invoiceId", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "HTML del comprobante (text/html)" } }
+      }
+    },
+
+    "/api/v1/payment/proration": {
+      "post": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Calcular prorrateo antes de cambiar de plan",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["planId","billingCycle"],
+                "properties": {
+                  "planId":       { "type": "string", "format": "uuid" },
+                  "billingCycle": { "type": "string", "enum": ["monthly","annual"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — { amountCents, fullPriceCents, creditCents, free, type, scheduledAt? }" }
+        }
+      }
+    },
+
+    "/api/v1/payment/initiate": {
+      "post": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Iniciar proceso de pago (Payphone)",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["planId","billingCycle"],
+                "properties": {
+                  "planId":       { "type": "string", "format": "uuid" },
+                  "billingCycle": { "type": "string", "enum": ["monthly","annual"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — { paymentUrl, transactionId, amountCents, proration }" }
+        }
+      }
+    },
+
+    "/api/v1/payment/confirm": {
+      "post": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Confirmar pago y activar suscripción",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["transactionId"],
+                "properties": {
+                  "transactionId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — suscripción activada + factura generada" } }
+      }
+    },
+
+    "/api/v1/payment/callback": {
+      "get": {
+        "tags": ["💳 Suscripción (tenant)"],
+        "summary": "Callback de retorno desde pasarela de pago",
+        "description": "Redirige al frontend con el resultado del pago en query params.",
+        "parameters": [
+          { "in": "query", "name": "clientTransactionId", "schema": { "type": "string" } },
+          { "in": "query", "name": "transactionStatus",   "schema": { "type": "string" } }
+        ],
+        "responses": { "302": { "description": "Redirección al frontend" } }
+      }
+    },
+
+    "/api/v1/mobile/login": {
+      "post": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Login de empleado en app móvil",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username","password"],
+                "properties": {
+                  "username": { "type": "string", "example": "emp001" },
+                  "password": { "type": "string", "example": "Pass1234!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { token, employeeId, employeeCode, fullName, companyName, ... }" } }
+      }
+    },
+
+    "/api/v1/mobile/profile": {
+      "get": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Perfil del empleado autenticado",
+        "security": [{ "EmployeeBearer": [] }],
+        "responses": { "200": { "description": "OK — { id, employeeCode, firstName, lastName, departmentName, positionName, scheduleName, hasPin }" } }
+      }
+    },
+
+    "/api/v1/mobile/today": {
+      "get": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Registros de hoy del empleado",
+        "security": [{ "EmployeeBearer": [] }],
+        "responses": { "200": { "description": "OK — { date, records[], active, hasEntry }" } }
+      }
+    },
+
+    "/api/v1/mobile/status": {
+      "get": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Estado actual (checkedIn / checkedOut)",
+        "security": [{ "EmployeeBearer": [] }],
+        "responses": { "200": { "description": "OK — { isCheckedIn, isCheckedOut, today }" } }
+      }
+    },
+
+    "/api/v1/mobile/check-in": {
+      "post": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Registrar entrada (mobile)",
+        "security": [{ "EmployeeBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pin"],
+                "properties": {
+                  "pin":       { "type": "string", "example": "1234" },
+                  "otpCode":   { "type": "string", "nullable": true },
+                  "latitude":  { "type": "number", "nullable": true },
+                  "longitude": { "type": "number", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — AttendanceDto" } }
+      }
+    },
+
+    "/api/v1/mobile/check-out": {
+      "post": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Registrar salida (mobile)",
+        "security": [{ "EmployeeBearer": [] }],
+        "responses": { "200": { "description": "OK — AttendanceDto" } }
+      }
+    },
+
+    "/api/v1/mobile/history": {
+      "get": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Historial de asistencia del empleado",
+        "security": [{ "EmployeeBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "from",     "schema": { "type": "string" } },
+          { "in": "query", "name": "to",       "schema": { "type": "string" } },
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "status",   "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK — { items[], total, page, pageSize, hasMore }" } }
+      }
+    },
+
+    "/api/v1/mobile/otp/request": {
+      "post": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Solicitar OTP (cuando el tenant requiere 2FA)",
+        "security": [{ "EmployeeBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pin"],
+                "properties": { "pin": { "type": "string", "example": "1234" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { requires2FA, maskedEmail }" } }
+      }
+    },
+
+    "/api/v1/mobile/push-token": {
+      "put": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Actualizar Expo push token",
+        "security": [{ "EmployeeBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "pushToken": { "type": "string", "nullable": true } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/mobile/notifications": {
+      "get": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Listar notificaciones del empleado (paginado)",
+        "description": "Devuelve notificaciones con `forEmployee: true` dirigidas al empleado autenticado o a todos los empleados del tenant.",
+        "security": [{ "EmployeeBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20, "maximum": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "OK — { items[], total, totalPages, page, pageSize, unread }" }
+        }
+      },
+      "patch": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Marcar notificación(es) del empleado como leídas",
+        "description": "Sin `?id=` marca todas las no leídas del empleado. Con `?id={id}` marca solo esa.",
+        "security": [{ "EmployeeBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "id", "schema": { "type": "string" }, "description": "ID de la notificación (opcional)" }
+        ],
+        "responses": { "200": { "description": "OK — null" } }
+      }
+    },
+
+    "/api/v1/mobile/messages": {
+      "get": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Mensajes del empleado",
+        "security": [{ "EmployeeBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "OK — { items[], total, page, pageSize, hasMore }" } }
+      }
+    },
+
+    "/api/v1/mobile/messages/{id}/read": {
+      "post": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Marcar mensaje como leído",
+        "security": [{ "EmployeeBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/mobile/messages/{id}": {
+      "delete": {
+        "tags": ["📱 Mobile (empleado)"],
+        "summary": "Eliminar mensaje",
+        "security": [{ "EmployeeBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/checker/feed": {
+      "get": {
+        "tags": ["🖥️ Checker (dispositivo)"],
+        "summary": "Feed de asistencia del día",
+        "parameters": [
+          { "in": "query", "name": "checkerKey", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK — AttendanceDto[] del día" } }
+      }
+    },
+
+    "/api/v1/checker/request-otp": {
+      "post": {
+        "tags": ["🖥️ Checker (dispositivo)"],
+        "summary": "Solicitar OTP para verificación en checador",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["checkerKey","employeeCode","pin"],
+                "properties": {
+                  "checkerKey":   { "type": "string" },
+                  "employeeCode": { "type": "string", "example": "EMP-001" },
+                  "pin":          { "type": "string", "example": "1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — email enmascarado del empleado" } }
+      }
+    },
+
+    "/api/v1/checker/check-in": {
+      "post": {
+        "tags": ["🖥️ Checker (dispositivo)"],
+        "summary": "Registrar entrada desde checador físico",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["checkerKey","employeeCode","pin"],
+                "properties": {
+                  "checkerKey":   { "type": "string" },
+                  "employeeCode": { "type": "string", "example": "EMP-001" },
+                  "pin":          { "type": "string", "example": "1234" },
+                  "otpCode":      { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { attendance, employee, pendingMessages[], stats }" } }
+      }
+    },
+
+    "/api/v1/checker/check-out": {
+      "post": {
+        "tags": ["🖥️ Checker (dispositivo)"],
+        "summary": "Registrar salida desde checador físico",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["checkerKey","employeeCode","pin"],
+                "properties": {
+                  "checkerKey":   { "type": "string" },
+                  "employeeCode": { "type": "string" },
+                  "pin":          { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { attendance, employee, pendingMessages[], stats }" } }
+      }
+    },
+
+    "/api/v1/checker/employee-report": {
+      "get": {
+        "tags": ["🖥️ Checker (dispositivo)"],
+        "summary": "Reporte individual de asistencia (para pantalla del checador)",
+        "parameters": [
+          { "in": "query", "name": "checkerKey",  "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "employeeId",  "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "from",         "required": true, "schema": { "type": "string" }, "example": "2024-01-01" },
+          { "in": "query", "name": "to",           "required": true, "schema": { "type": "string" }, "example": "2024-01-31" }
+        ],
+        "responses": { "200": { "description": "OK — reporte con days[], totales, balances y porcentaje de asistencia" } }
+      }
+    },
+
+    "/api/v1/checker/messages/{id}/read": {
+      "post": {
+        "tags": ["🖥️ Checker (dispositivo)"],
+        "summary": "Marcar mensaje como leído desde checador",
+        "parameters": [
+          { "in": "path",  "name": "id",         "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "checkerKey",  "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/messages": {
+      "get": {
+        "tags": ["💬 Mensajes (admin)"],
+        "summary": "Listar todos los mensajes",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",       "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize",   "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "employeeId", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<EmployeeMessageDto>" } }
+      },
+      "post": {
+        "tags": ["💬 Mensajes (admin)"],
+        "summary": "Enviar mensaje a uno o varios empleados",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["forAll","subject","body"],
+                "properties": {
+                  "forAll":      { "type": "boolean" },
+                  "employeeIds": { "type": "array", "items": { "type": "string" } },
+                  "subject":     { "type": "string" },
+                  "body":        { "type": "string" },
+                  "allowDelete": { "type": "boolean", "default": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — número de mensajes enviados" } }
+      }
+    },
+
+    "/api/v1/messages/employee/{employeeId}": {
+      "get": {
+        "tags": ["💬 Mensajes (admin)"],
+        "summary": "Mensajes de un empleado específico",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "path",  "name": "employeeId", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "page",       "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize",   "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<EmployeeMessageDto>" } }
+      }
+    },
+
+    "/api/v1/messages/{id}/read": {
+      "post": {
+        "tags": ["💬 Mensajes (admin)"],
+        "summary": "Marcar mensaje como leído",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/messages/{id}": {
+      "delete": {
+        "tags": ["💬 Mensajes (admin)"],
+        "summary": "Eliminar mensaje",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/admin/auth/login": {
+      "post": {
+        "tags": ["🛡️ Superadmin — Auth"],
+        "summary": "Login de superadministrador",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email","password"],
+                "properties": {
+                  "email":    { "type": "string", "format": "email", "example": "superadmin@assistcontrol.com" },
+                  "password": { "type": "string", "example": "SuperAdmin123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { token, name, email }" } }
+      }
+    },
+
+    "/api/v1/admin/metrics": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Dashboard"],
+        "summary": "Métricas globales del sistema",
+        "security": [{ "SuperadminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — { totalTenants, activeTenants, inactiveTenants, totalEmployees, mrr, arr, recentTenants[] }" }
+        }
+      }
+    },
+
+    "/api/v1/admin/tenants": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Listar todos los tenants (paginado)",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "search",   "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<TenantDto con subscription y _count>" } }
+      },
+      "post": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Crear tenant + admin desde superadmin",
+        "security": [{ "SuperadminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["companyName","timeZone","country","username","email","password"],
+                "properties": {
+                  "companyName": { "type": "string" },
+                  "timeZone":    { "type": "string", "example": "America/Guayaquil" },
+                  "country":     { "type": "string", "example": "EC" },
+                  "username":    { "type": "string" },
+                  "email":       { "type": "string", "format": "email" },
+                  "password":    { "type": "string" },
+                  "planId":      { "type": "string", "format": "uuid", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — tenant creado" } }
+      }
+    },
+
+    "/api/v1/admin/tenants/bulk": {
+      "post": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Acción masiva sobre múltiples tenants (notify o email)",
+        "security": [{ "SuperadminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tenantIds","action","body"],
+                "properties": {
+                  "tenantIds": { "type": "array", "items": { "type": "string" } },
+                  "action":    { "type": "string", "enum": ["notify","email"] },
+                  "title":     { "type": "string", "description": "Para notify" },
+                  "subject":   { "type": "string", "description": "Para email" },
+                  "body":      { "type": "string" },
+                  "type":      { "type": "string", "enum": ["info","success","warning","error"], "description": "Para notify" },
+                  "target":    { "type": "string", "enum": ["admin","company","both"], "description": "Para email" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — { sent: número de acciones realizadas }" } }
+      }
+    },
+
+    "/api/v1/admin/tenants/{id}": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Obtener detalle completo de un tenant",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — TenantDetail con subscription, invoices[], _count" } }
+      },
+      "patch": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Actualizar datos básicos del tenant",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name":      { "type": "string" },
+                  "legalName": { "type": "string", "nullable": true },
+                  "country":   { "type": "string" },
+                  "timeZone":  { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Activar / desactivar tenant (toggle)",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — tenant con isActive actualizado" } }
+      }
+    },
+
+    "/api/v1/admin/tenants/{id}/notify": {
+      "post": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Enviar notificación push a un tenant",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title","body"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "body":  { "type": "string" },
+                  "type":  { "type": "string", "enum": ["info","success","warning","error"], "default": "info" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/admin/tenants/{id}/email": {
+      "post": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Enviar email a un tenant",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["subject","body"],
+                "properties": {
+                  "subject": { "type": "string" },
+                  "body":    { "type": "string" },
+                  "target":  { "type": "string", "enum": ["admin","company","both"], "default": "admin" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/admin/subscriptions": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Suscripciones"],
+        "summary": "Listar todas las suscripciones (paginado)",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "search",   "schema": { "type": "string", "description": "Busca por nombre de empresa o plan" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<SubscriptionDto con tenant y plan>" } }
+      }
+    },
+
+    "/api/v1/admin/subscriptions/{tenantId}": {
+      "patch": {
+        "tags": ["🛡️ Superadmin — Suscripciones"],
+        "summary": "Cambiar plan de un tenant",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "tenantId", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["planId","billingCycle"],
+                "properties": {
+                  "planId":       { "type": "string", "format": "uuid" },
+                  "billingCycle": { "type": "string", "enum": ["monthly","annual"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — suscripción actualizada" } }
+      }
+    },
+
+    "/api/v1/admin/subscriptions/{tenantId}/dates": {
+      "patch": {
+        "tags": ["🛡️ Superadmin — Suscripciones"],
+        "summary": "Actualizar fechas de período de suscripción",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "tenantId", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPeriodStart": { "type": "string", "format": "date-time", "nullable": true },
+                  "currentPeriodEnd":   { "type": "string", "format": "date-time", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — suscripción con fechas actualizadas" } }
+      }
+    },
+
+    "/api/v1/admin/subscriptions/{tenantId}/history": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Suscripciones"],
+        "summary": "Historial de cambios de suscripción de un tenant",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "path",  "name": "tenantId", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "search",   "schema": { "type": "string", "description": "Busca por nombre de plan actual o anterior" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<SubscriptionLogEntry>" } }
+      }
+    },
+
+    "/api/v1/admin/plans": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Planes"],
+        "summary": "Listar todos los planes (incluyendo inactivos)",
+        "security": [{ "SuperadminBearer": [] }],
+        "responses": { "200": { "description": "OK — Plan[] con capabilities completas" } }
+      },
+      "post": {
+        "tags": ["🛡️ Superadmin — Planes"],
+        "summary": "Crear nuevo plan",
+        "security": [{ "SuperadminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name","priceMonthly"],
+                "properties": {
+                  "name":          { "type": "string" },
+                  "description":   { "type": "string" },
+                  "priceMonthly":  { "type": "number" },
+                  "priceAnnual":   { "type": "number", "nullable": true },
+                  "maxEmployees":  { "type": "integer", "nullable": true },
+                  "isFree":        { "type": "boolean", "default": false },
+                  "isDefault":     { "type": "boolean", "default": false },
+                  "isActive":      { "type": "boolean", "default": true },
+                  "sortOrder":     { "type": "integer", "default": 0 },
+                  "features":      { "type": "array", "items": { "type": "string" } },
+                  "capabilities":  { "type": "object", "description": "{ employees, attendance, checker, mobileApp, schedules, organization, messages, reports, settings } — cada uno { enabled, limit? }" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — plan creado" } }
+      }
+    },
+
+    "/api/v1/admin/plans/{id}": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Planes"],
+        "summary": "Listar tenants suscritos a un plan",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — [{ tenantId, tenant: { name } }]" } }
+      },
+      "patch": {
+        "tags": ["🛡️ Superadmin — Planes"],
+        "summary": "Actualizar plan",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — plan actualizado" } }
+      },
+      "delete": {
+        "tags": ["🛡️ Superadmin — Planes"],
+        "summary": "Eliminar plan (reasigna tenants si se indica)",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "path",  "name": "id",           "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "reassignTo",    "schema": { "type": "string", "description": "ID del plan al que reasignar los tenants" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+
+    "/api/v1/admin/invoices": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Facturación"],
+        "summary": "Listar todas las facturas del sistema (paginado)",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } },
+          { "in": "query", "name": "search",   "schema": { "type": "string", "description": "Busca por empresa, plan o N° comprobante" } }
+        ],
+        "responses": { "200": { "description": "OK — PagedResult<SysInvoice con tenant>" } }
+      }
+    },
+
+    "/api/v1/admin/invoices/receipt": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Facturación"],
+        "summary": "Obtener comprobante HTML de una factura",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "invoiceId", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "HTML del comprobante (text/html)" } }
+      }
+    },
+
+    "/api/v1/admin/settings": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Configuración"],
+        "summary": "Obtener configuración global del sistema",
+        "security": [{ "SuperadminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — { smtpEnabled, smtpHost, smtpPort, smtpUsername, smtpFromName, smtpFromEmail, smtpEnableSsl, gracePeriodDays, expiryReminderEnabled, expiryReminderTarget, expiryReminderDays }" }
+        }
+      },
+      "patch": {
+        "tags": ["🛡️ Superadmin — Configuración"],
+        "summary": "Actualizar configuración global del sistema",
+        "security": [{ "SuperadminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "smtpEnabled":             { "type": "boolean" },
+                  "smtpHost":                { "type": "string", "nullable": true },
+                  "smtpPort":                { "type": "integer", "example": 587 },
+                  "smtpUsername":            { "type": "string", "nullable": true },
+                  "smtpPassword":            { "type": "string", "nullable": true },
+                  "smtpFromName":            { "type": "string", "nullable": true },
+                  "smtpFromEmail":           { "type": "string", "format": "email", "nullable": true },
+                  "smtpEnableSsl":           { "type": "boolean" },
+                  "gracePeriodDays":         { "type": "integer", "minimum": 0, "maximum": 30 },
+                  "expiryReminderEnabled":   { "type": "boolean" },
+                  "expiryReminderTarget":    { "type": "string", "enum": ["admin","company","both"] },
+                  "expiryReminderDays":      { "type": "string", "description": "JSON array de días, ej: \"[1,2,7,15,30]\"" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — configuración actualizada" } }
+      }
+    },
+
+    "/api/v1/admin/notifications": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Notificaciones"],
+        "summary": "Listar notificaciones del superadmin (paginado)",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "page",     "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20, "maximum": 50 } },
+          { "in": "query", "name": "type",     "schema": { "type": "string", "enum": ["info","success","warning","error"] } },
+          { "in": "query", "name": "search",   "schema": { "type": "string" } },
+          { "in": "query", "name": "dateFrom", "schema": { "type": "string", "example": "2024-01-01" } },
+          { "in": "query", "name": "dateTo",   "schema": { "type": "string", "example": "2024-01-31" } }
+        ],
+        "responses": { "200": { "description": "OK — { items[], total, totalPages, unread }" } }
+      },
+      "patch": {
+        "tags": ["🛡️ Superadmin — Notificaciones"],
+        "summary": "Marcar notificación(es) del superadmin como leídas",
+        "description": "Sin `?id=` marca todas. Con `?id={id}` marca solo esa.",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "id", "schema": { "type": "string" }, "description": "ID de la notificación (opcional)" }
+        ],
+        "responses": { "200": { "description": "OK — { ok: true }" } }
+      }
+    },
+
+    "/api/v1/admin/notifications/{id}": {
+      "patch": {
+        "tags": ["🛡️ Superadmin — Notificaciones"],
+        "summary": "Marcar una notificación específica del superadmin como leída",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — { ok: true }" } }
+      }
+    },
+
+    "/health": {
+      "get": {
+        "tags": ["❤️ Health"],
+        "summary": "Health check del gateway nginx",
+        "responses": { "200": { "description": "{ status: 'ok' }" } }
+      }
+    }
+  },
+
+  "tags": [
+    { "name": "🔐 Auth",                          "description": "Autenticación y usuarios admin — **svc-core** (:3001)" },
+    { "name": "🏢 Empresa",                       "description": "Perfil de empresa — **svc-core** (:3001)" },
+    { "name": "⚙️ Configuración",                 "description": "Ajustes del tenant, SMTP, checker, invitaciones — **svc-core** (:3001)" },
+    { "name": "🔔 Notificaciones (tenant)",        "description": "Notificaciones para el admin del tenant — **svc-core** (:3001)" },
+    { "name": "🌐 Público",                       "description": "Endpoints sin autenticación (invitaciones) — **svc-core** (:3001)" },
+    { "name": "👤 Empleados",                     "description": "CRUD de empleados — **svc-employees** (:3002)" },
+    { "name": "🏗️ Departamentos",                 "description": "CRUD de departamentos — **svc-employees** (:3002)" },
+    { "name": "💼 Cargos",                        "description": "CRUD de cargos/posiciones — **svc-employees** (:3002)" },
+    { "name": "🕐 Horarios",                      "description": "CRUD de horarios — **svc-attendance** (:3003)" },
+    { "name": "📋 Asistencia (admin)",             "description": "Gestión admin de asistencia, vistas día/período — **svc-attendance** (:3003)" },
+    { "name": "📊 Dashboard",                     "description": "Estadísticas en tiempo real — **svc-analytics** (:3004)" },
+    { "name": "📈 Reportes",                      "description": "Reportes por tipo y por empleado — **svc-analytics** (:3004)" },
+    { "name": "📱 Mobile (empleado)",             "description": "App móvil del empleado — **svc-mobile** (:3005)" },
+    { "name": "🖥️ Checker (dispositivo)",         "description": "Dispositivo checador físico — **svc-mobile** (:3005)" },
+    { "name": "💬 Mensajes (admin)",              "description": "Mensajería interna — **svc-comms** (:3006)" },
+    { "name": "💳 Suscripción (tenant)",          "description": "Planes, suscripción, pagos y facturas del tenant — **svc-billing** (:3007)" },
+    { "name": "🛡️ Superadmin — Auth",            "description": "Autenticación del superadministrador — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Dashboard",       "description": "Métricas globales del sistema — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Tenants",         "description": "Gestión de empresas/tenants — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Suscripciones",   "description": "Gestión de suscripciones e historial — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Planes",          "description": "CRUD de planes del sistema — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Facturación",     "description": "Comprobantes y facturas globales — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Configuración",   "description": "Configuración global: SMTP, gracia, recordatorios — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Notificaciones", "description": "Notificaciones del superadmin (forAdmin=true) — **svc-admin** (:3008)" },
+    { "name": "❤️ Health",                        "description": "Healthchecks" }
+  ]
+}
