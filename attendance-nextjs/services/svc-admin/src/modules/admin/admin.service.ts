@@ -1,5 +1,22 @@
 import { prisma, hashPassword } from '@attendance/shared'
 import { v4 as uuidv4 } from 'uuid'
+import nodemailer from 'nodemailer'
+
+// ─── System email (usa SMTP del sistema, no del tenant) ───────────────────────
+
+async function sendSystemEmail(to: string, subject: string, html: string) {
+  const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } })
+  if (!settings?.smtpEnabled || !settings.smtpHost || !settings.smtpUsername || !settings.smtpPassword) return
+  const secure = settings.smtpPort === 465
+  const transporter = nodemailer.createTransport({
+    host: settings.smtpHost, port: settings.smtpPort, secure,
+    auth: { user: settings.smtpUsername, pass: settings.smtpPassword },
+  })
+  await transporter.sendMail({
+    from: `"${settings.smtpFromName ?? 'AssistControl'}" <${settings.smtpUsername}>`,
+    to, subject, html,
+  }).catch(e => console.error('[sendSystemEmail]', e))
+}
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -30,6 +47,9 @@ export async function createTenant(data: {
 
   const existingEmail = await prisma.user.findFirst({ where: { email: data.email.toLowerCase() } })
   if (existingEmail) throw { code: 'EMAIL_TAKEN', message: 'El correo ya está registrado.' }
+
+  const existingCompany = await prisma.tenant.findFirst({ where: { name: { equals: data.companyName.trim(), mode: 'insensitive' }, isDeleted: false } })
+  if (existingCompany) throw { code: 'COMPANY_NAME_TAKEN', message: 'Ya existe una empresa con ese nombre.' }
 
   let planId = data.planId
   if (!planId) {
@@ -73,6 +93,7 @@ export async function listTenants(page: number, pageSize: number, search?: strin
       select: {
         id: true, name: true, legalName: true, country: true,
         timeZone: true, isActive: true, isDeleted: true, createdAt: true,
+        selfRegistered: true, pendingApproval: true,
         subscription: { select: { status: true, plan: { select: { name: true } }, currentPeriodEnd: true } },
         _count: { select: { employees: true } },
       },
@@ -234,21 +255,80 @@ export async function getSystemSettings() {
 }
 
 export async function updateSystemSettings(data: Partial<{
-  smtpEnabled:     boolean
-  smtpHost:        string | null
-  smtpPort:        number
-  smtpUsername:    string | null
-  smtpPassword:    string | null
-  smtpFromName:    string | null
-  gracePeriodDays: number
-  smtpFromEmail: string | null
-  smtpEnableSsl: boolean
+  smtpEnabled:           boolean
+  smtpHost:              string | null
+  smtpPort:              number
+  smtpUsername:          string | null
+  smtpPassword:          string | null
+  smtpFromName:          string | null
+  gracePeriodDays:       number
+  smtpFromEmail:         string | null
+  smtpEnableSsl:         boolean
+  expiryReminderEnabled: boolean
+  expiryReminderTarget:  string
+  expiryReminderDays:    string
+  requireApproval:       boolean
+  termsOfUse:            string | null
+  privacyPolicy:         string | null
 }>) {
+  if (data.requireApproval === false) {
+    await prisma.tenant.updateMany({
+      where: { pendingApproval: true },
+      data:  { pendingApproval: false, isActive: true },
+    })
+  }
   return prisma.systemSettings.upsert({
     where:  { id: 'system' },
     create: { id: 'system', ...data },
     update: data,
   })
+}
+
+export async function approveTenant(id: string) {
+  const tenant = await prisma.tenant.update({
+    where: { id },
+    data:  { pendingApproval: false, isActive: true },
+    select: { id: true, name: true },
+  })
+
+  const adminUser = await prisma.user.findFirst({
+    where: { tenantId: id, isDeleted: false },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, email: true },
+  })
+
+  await prisma.notification.create({
+    data: {
+      tenantId: id,
+      forAdmin: false,
+      title: '¡Tu empresa ha sido aprobada!',
+      body:  `La empresa "${tenant.name}" ha sido verificada y aprobada. Ya puedes iniciar sesión y comenzar a usar AssistControl.`,
+      type:  'success',
+    },
+  })
+
+  if (adminUser?.email) {
+    const html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f8fafc;border-radius:12px">
+        <div style="background:#fff;border-radius:10px;padding:32px;border:1px solid #e2e8f0">
+          <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px">¡Empresa aprobada! 🎉</h2>
+          <p style="color:#475569;font-size:14px;margin:0 0 20px">
+            Hola, te informamos que la empresa <strong>${tenant.name}</strong> ha sido verificada y aprobada por el administrador del sistema.
+          </p>
+          <p style="color:#475569;font-size:14px;margin:0 0 24px">
+            Ya puedes iniciar sesión en AssistControl y comenzar a gestionar la asistencia de tu equipo.
+          </p>
+          <a href="${process.env.APP_URL ?? 'http://localhost:5173'}/login"
+            style="display:inline-block;background:#1e40af;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600">
+            Iniciar sesión
+          </a>
+          <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">AssistControl · Sistema de Control de Asistencia</p>
+        </div>
+      </div>`
+    await sendSystemEmail(adminUser.email, '✅ Tu empresa ha sido aprobada — AssistControl', html)
+  }
+
+  return tenant
 }
 
 // ─── Users (sys) ─────────────────────────────────────────────────────────────

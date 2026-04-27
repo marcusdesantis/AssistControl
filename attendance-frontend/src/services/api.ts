@@ -69,10 +69,10 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Login retorna 401 con errorCode cuando el tenant/usuario está inactivo — no intentar refresh
+    // Login retorna 401 con errorCode cuando el tenant/usuario está inactivo o pendiente — no intentar refresh
     if (error.response?.status === 401) {
       const errCode = error.response?.data?.errorCode ?? error.response?.data?.code
-      if (errCode === 'TENANT_INACTIVE' || errCode === 'USER_INACTIVE') {
+      if (errCode === 'TENANT_INACTIVE' || errCode === 'USER_INACTIVE' || errCode === 'TENANT_PENDING') {
         error._handled = true
         return Promise.reject(error)
       }

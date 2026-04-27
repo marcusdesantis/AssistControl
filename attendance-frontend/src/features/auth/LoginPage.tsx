@@ -5,9 +5,10 @@ const _loginNotice = (() => {
   if (v) localStorage.removeItem('login_notice')
   return v
 })()
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Clock, Eye, EyeOff, LogIn, AlertCircle, Lock, UserX } from 'lucide-react'
+import { Clock, Eye, EyeOff, LogIn, AlertCircle, Lock, UserX, ClipboardCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { authService } from './authService'
 import { useAuthStore } from '@/store/authStore'
 
@@ -19,11 +20,15 @@ interface LoginForm {
 export default function LoginPage() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const [showPassword, setShowPassword] = useState(false)
+
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [deactivatedModal,     setDeactivatedModal]     = useState(false)
   const [userDeactivatedModal, setUserDeactivatedModal] = useState(_loginNotice === 'user_inactive')
+  const [pendingModal,         setPendingModal]         = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>()
 
@@ -45,6 +50,8 @@ export default function LoginPage() {
         setDeactivatedModal(true)
       else if (code === 'USER_INACTIVE')
         setUserDeactivatedModal(true)
+      else if (code === 'TENANT_PENDING')
+        setPendingModal(true)
       else
         setError('No se pudo conectar con el servidor. Verifica que el backend esté corriendo.')
     } finally {
@@ -67,6 +74,26 @@ export default function LoginPage() {
           className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-sm transition-colors"
         >
           Volver al login
+        </button>
+      </div>
+    </div>
+  )
+
+  if (pendingModal) return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center">
+        <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <ClipboardCheck className="w-7 h-7 text-amber-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Empresa en validación</h2>
+        <p className="text-gray-500 text-sm mb-6">
+          Tu empresa está siendo revisada por el administrador del sistema. Te notificaremos cuando sea aprobada y puedas iniciar sesión.
+        </p>
+        <button
+          onClick={() => setPendingModal(false)}
+          className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-sm transition-colors"
+        >
+          Entendido
         </button>
       </div>
     </div>
@@ -177,7 +204,13 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-primary-300 text-xs mt-6">
+        <p className="text-center text-primary-200 text-sm mt-5">
+          ¿Aún no tienes cuenta?{' '}
+          <Link to="/sign-up" className="text-white font-semibold hover:underline">
+            Regístrate gratis
+          </Link>
+        </p>
+        <p className="text-center text-primary-300 text-xs mt-3">
           Sistema de AssistControl · v1.0
         </p>
       </div>

@@ -14,7 +14,9 @@ import ReportsPage     from '@/features/reports/ReportsPage'
 import CompanyPage     from '@/features/company/CompanyPage'
 import OrganizationPage from '@/features/organization/OrganizationPage'
 import SettingsPage       from '@/features/settings/SettingsPage'
-import RegisterPage       from '@/features/settings/RegisterPage'
+import RegisterPage          from '@/features/settings/RegisterPage'
+import RegisterCompanyPage  from '@/features/auth/RegisterCompanyPage'
+import LegalPage            from '@/features/auth/LegalPage'
 import NotificationsPage   from '@/features/notifications/NotificationsPage'
 // ── Sys (superadmin) ──────────────────────────────────────────────────────────
 import SysLoginPage         from '@/features/sys/SysLoginPage'
@@ -31,7 +33,10 @@ import SysSettingsPage      from '@/features/sys/pages/SysSettingsPage'
 import SysUsersPage         from '@/features/sys/pages/SysUsersPage'
 
 export const router = createBrowserRouter([
-  { path: '/login',            element: <LoginPage />,           errorElement: <ErrorPage /> },
+  { path: '/login',            element: <LoginPage />,                          errorElement: <ErrorPage /> },
+  { path: '/sign-up',          element: <RegisterCompanyPage />,                errorElement: <ErrorPage /> },
+  { path: '/terms',            element: <LegalPage type="terms" />,             errorElement: <ErrorPage /> },
+  { path: '/privacy',          element: <LegalPage type="privacy" />,           errorElement: <ErrorPage /> },
   { path: '/change-password',  element: <ChangePasswordPage />,  errorElement: <ErrorPage /> },
   { path: '/checker',          element: <CheckerPage />,         errorElement: <ErrorPage /> },
   { path: '/register/:token',  element: <RegisterPage />,        errorElement: <ErrorPage /> },

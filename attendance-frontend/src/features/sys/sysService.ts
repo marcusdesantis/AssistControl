@@ -38,6 +38,7 @@ export const sysMetricsService = {
 export interface SysTenant {
   id: string; name: string; legalName?: string; country: string
   timeZone: string; isActive: boolean; isDeleted: boolean; createdAt: string
+  selfRegistered: boolean; pendingApproval: boolean
   subscription?: { status: string; plan: { name: string }; currentPeriodEnd?: string }
   _count?: { employees: number }
 }
@@ -88,6 +89,10 @@ export const sysTenantsService = {
   },
   toggle: async (id: string) => {
     const res = await sysApi.post<ApiResponse<SysTenant>>(`/tenants/${id}`)
+    return res.data.data!
+  },
+  approve: async (id: string) => {
+    const res = await sysApi.post<ApiResponse<{ ok: boolean }>>(`/tenants/${id}/approve`)
     return res.data.data!
   },
 }
@@ -167,6 +172,9 @@ export interface SystemSettings {
   expiryReminderEnabled:    boolean
   expiryReminderTarget:     'admin' | 'company' | 'both'
   expiryReminderDays:       string
+  requireApproval:          boolean
+  termsOfUse:               string | null
+  privacyPolicy:            string | null
 }
 
 export const sysSettingsService = {

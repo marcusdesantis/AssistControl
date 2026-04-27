@@ -19,18 +19,36 @@ function accessExpiresAt(): Date {
 
 // ─── Register new tenant + admin ──────────────────────────────────────────────
 export async function registerTenant(dto: RegisterDto) {
-  const existing = await prisma.user.findFirst({ where: { username: dto.username.toLowerCase() } })
-  if (existing) throw { code: 'USERNAME_TAKEN', message: 'El nombre de usuario ya está en uso.' }
+  const existingUser = await prisma.user.findFirst({ where: { username: dto.username.toLowerCase() } })
+  if (existingUser) throw { code: 'USERNAME_TAKEN', message: 'El nombre de usuario ya está en uso.' }
+
+  const existingEmail = await prisma.user.findFirst({ where: { email: dto.email.toLowerCase() } })
+  if (existingEmail) throw { code: 'EMAIL_TAKEN', message: 'El correo electrónico ya está registrado.' }
+
+  const existingCompany = await prisma.tenant.findFirst({ where: { name: { equals: dto.companyName.trim(), mode: 'insensitive' }, isDeleted: false } })
+  if (existingCompany) throw { code: 'COMPANY_NAME_TAKEN', message: 'Ya existe una empresa con ese nombre.' }
+
+  const [defaultPlan, settings] = await Promise.all([
+    prisma.plan.findFirst({ where: { isDefault: true, isActive: true } }),
+    prisma.systemSettings.findUnique({ where: { id: 'system' } }),
+  ])
+  if (!defaultPlan) throw { code: 'NO_DEFAULT_PLAN', message: 'No hay un plan por defecto configurado.' }
+
+  const requireApproval = settings?.requireApproval ?? false
 
   const tenant = await prisma.tenant.create({
     data: {
-      name:       dto.companyName.trim(),
-      timeZone:   dto.timeZone,
-      checkerKey: uuidv4(),
+      name:            dto.companyName.trim(),
+      timeZone:        dto.timeZone,
+      country:         dto.country,
+      checkerKey:      uuidv4(),
+      selfRegistered:  true,
+      pendingApproval: requireApproval,
+      isActive:        !requireApproval,
     },
   })
 
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       tenantId:          tenant.id,
       username:          dto.username.toLowerCase().trim(),
@@ -41,19 +59,22 @@ export async function registerTenant(dto: RegisterDto) {
     },
   })
 
-  const accessToken   = signAdmin({ sub: user.id, tenantId: tenant.id, role: user.role, username: user.username })
-  const refreshString = uuidv4()
-  await prisma.refreshToken.create({
-    data: { userId: user.id, token: refreshString, expiresAt: refreshExpiresAt() },
+  await prisma.subscription.create({
+    data: { tenantId: tenant.id, planId: defaultPlan.id, billingCycle: 'monthly', status: 'active' },
   })
 
-  return {
-    accessToken,
-    refreshToken: refreshString,
-    expiresAt:    accessExpiresAt(),
-    user: { id: user.id, username: user.username, email: user.email, role: user.role, tenantId: tenant.id, mustChangePassword: user.mustChangePassword },
-    capabilities: DEFAULT_CAPABILITIES,
-  }
+  await prisma.notification.create({
+    data: {
+      forAdmin: true,
+      title:    'Nueva empresa registrada',
+      body:     requireApproval
+        ? `La empresa "${dto.companyName.trim()}" se registró y está pendiente de aprobación.`
+        : `La empresa "${dto.companyName.trim()}" se registró exitosamente en el sistema.`,
+      type: requireApproval ? 'warning' : 'info',
+    },
+  })
+
+  return { registered: true, pendingApproval: requireApproval }
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -68,7 +89,9 @@ export async function login(dto: LoginDto) {
   if (!user.isActive)
     throw { code: 'USER_INACTIVE', message: 'Tu usuario ha sido desactivado. Contacta al administrador.' }
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { isActive: true, timeZone: true, country: true } })
+  const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { isActive: true, pendingApproval: true, timeZone: true, country: true } })
+  if (tenant?.pendingApproval)
+    throw { code: 'TENANT_PENDING', message: 'Tu empresa está en proceso de validación. El administrador del sistema la aprobará pronto.' }
   if (!tenant?.isActive)
     throw { code: 'TENANT_INACTIVE', message: 'Tu empresa ha sido desactivada. Contacta al administrador del sistema.' }
 

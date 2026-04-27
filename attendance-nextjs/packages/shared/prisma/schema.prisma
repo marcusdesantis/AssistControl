@@ -101,6 +101,9 @@ model Tenant {
 
   stripeCustomerId          String?
 
+  selfRegistered            Boolean   @default(false)
+  pendingApproval           Boolean   @default(false)
+
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime? @updatedAt
   isDeleted                 Boolean   @default(false)
@@ -515,6 +518,9 @@ model SystemSettings {
   expiryReminderEnabled      Boolean  @default(false)
   expiryReminderTarget       String   @default("admin")
   expiryReminderDays         String   @default("[1,2,7,15,30]")
+  requireApproval            Boolean  @default(false)
+  termsOfUse                 String?
+  privacyPolicy              String?
   updatedAt                  DateTime @updatedAt
 }
 

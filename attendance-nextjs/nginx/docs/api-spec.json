@@ -57,8 +57,8 @@
     "/api/v1/auth/register": {
       "post": {
         "tags": ["🔐 Auth"],
-        "summary": "Registrar empresa + admin",
-        "description": "Crea el tenant, el usuario admin y devuelve el JWT.",
+        "summary": "Auto-registro de empresa desde /sign-up",
+        "description": "Crea el tenant con auto-detección de zona horaria y país desde el navegador. Asigna el plan gratuito por defecto. Si `requireApproval` está activo en SystemSettings, el tenant queda en `pendingApproval=true` e `isActive=false` hasta ser aprobado por el superadmin. No devuelve JWT — el usuario debe hacer login por separado.",
         "requestBody": {
           "required": true,
           "content": {
@@ -67,18 +67,20 @@
                 "type": "object",
                 "required": ["companyName","username","email","password"],
                 "properties": {
-                  "companyName": { "type": "string", "example": "Mi Empresa" },
-                  "timeZone":    { "type": "string", "example": "America/Guayaquil" },
+                  "companyName": { "type": "string", "example": "Mi Empresa S.A." },
+                  "timeZone":    { "type": "string", "example": "America/Guayaquil", "description": "Auto-detectado del navegador con Intl.DateTimeFormat()" },
+                  "country":     { "type": "string", "example": "EC", "description": "Código ISO 2 letras, auto-detectado de navigator.language" },
                   "username":    { "type": "string", "example": "admin" },
                   "email":       { "type": "string", "format": "email", "example": "admin@empresa.com" },
-                  "password":    { "type": "string", "example": "Admin123!" }
+                  "password":    { "type": "string", "minLength": 6, "example": "Admin123!" }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "OK — { token, refreshToken, user }" }
+          "200": { "description": "OK — `{ registered: true, pendingApproval: boolean }`. Si `pendingApproval=true` el tenant espera aprobación del superadmin." },
+          "400": { "description": "Error de validación — códigos: `USERNAME_TAKEN`, `EMAIL_TAKEN`, `COMPANY_NAME_TAKEN`, `NO_DEFAULT_PLAN`" }
         }
       }
     },
@@ -103,7 +105,8 @@
           }
         },
         "responses": {
-          "200": { "description": "OK — { token, refreshToken, user }" }
+          "200": { "description": "OK — `{ accessToken, refreshToken, user, capabilities }`" },
+          "401": { "description": "Credenciales inválidas o tenant/usuario inactivo — `errorCode`: `TENANT_INACTIVE` | `USER_INACTIVE` | `TENANT_PENDING` (empresa registrada en /sign-up pendiente de aprobación manual)" }
         }
       }
     },
@@ -348,6 +351,28 @@
           { "in": "query", "name": "id", "schema": { "type": "string" }, "description": "ID de la notificación (opcional — si se omite, marca todas)" }
         ],
         "responses": { "200": { "description": "OK — { ok: true }" } }
+      }
+    },
+
+    "/api/v1/public/plans": {
+      "get": {
+        "tags": ["🌐 Público"],
+        "summary": "Obtener info del plan gratuito por defecto",
+        "description": "Devuelve los datos del plan marcado como `isDefault=true`. Usado en la página de registro para mostrar dinámicamente el límite de empleados gratuito.",
+        "responses": {
+          "200": { "description": "OK — `{ name, maxEmployees, priceMonthly }`" }
+        }
+      }
+    },
+
+    "/api/v1/public/legal": {
+      "get": {
+        "tags": ["🌐 Público"],
+        "summary": "Obtener documentos legales del sistema",
+        "description": "Devuelve los Términos de uso y la Política de privacidad configurados en SystemSettings. Si no hay texto personalizado guardado, retorna el texto por defecto de AssistControl. Usado en las páginas públicas `/terms` y `/privacy`.",
+        "responses": {
+          "200": { "description": "OK — `{ termsOfUse: string, privacyPolicy: string }`" }
+        }
       }
     },
 
@@ -1533,7 +1558,7 @@
           { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } },
           { "in": "query", "name": "search",   "schema": { "type": "string" } }
         ],
-        "responses": { "200": { "description": "OK — PagedResult<TenantDto con subscription y _count>" } }
+        "responses": { "200": { "description": "OK — PagedResult<TenantDto> con campos: `id, name, legalName, country, timeZone, isActive, isDeleted, selfRegistered, pendingApproval, createdAt, subscription{ status, plan{ name }, currentPeriodEnd }, _count{ employees }`" } }
       },
       "post": {
         "tags": ["🛡️ Superadmin — Tenants"],
@@ -1629,6 +1654,20 @@
         "security": [{ "SuperadminBearer": [] }],
         "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
         "responses": { "200": { "description": "OK — tenant con isActive actualizado" } }
+      }
+    },
+
+    "/api/v1/admin/tenants/{id}/approve": {
+      "post": {
+        "tags": ["🛡️ Superadmin — Tenants"],
+        "summary": "Aprobar empresa pendiente de validación",
+        "description": "Activa un tenant que estaba en `pendingApproval=true` (registrado desde /sign-up con aprobación manual requerida). Establece `pendingApproval=false` e `isActive=true`. Envía automáticamente: (1) notificación interna al admin de la empresa y (2) correo de aprobación via SMTP del sistema si está configurado.",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" }, "description": "ID del tenant a aprobar" }],
+        "responses": {
+          "200": { "description": "OK — `{ ok: true }`. Notificación y correo enviados al admin de la empresa." },
+          "404": { "description": "Tenant no encontrado" }
+        }
       }
     },
 
@@ -1868,7 +1907,7 @@
         "summary": "Obtener configuración global del sistema",
         "security": [{ "SuperadminBearer": [] }],
         "responses": {
-          "200": { "description": "OK — { smtpEnabled, smtpHost, smtpPort, smtpUsername, smtpFromName, smtpFromEmail, smtpEnableSsl, gracePeriodDays, expiryReminderEnabled, expiryReminderTarget, expiryReminderDays }" }
+          "200": { "description": "OK — `{ smtpEnabled, smtpHost, smtpPort, smtpUsername, smtpFromName, smtpFromEmail, smtpEnableSsl, gracePeriodDays, expiryReminderEnabled, expiryReminderTarget, expiryReminderDays, requireApproval, termsOfUse, privacyPolicy }`" }
         }
       },
       "patch": {
@@ -1893,7 +1932,10 @@
                   "gracePeriodDays":         { "type": "integer", "minimum": 0, "maximum": 30 },
                   "expiryReminderEnabled":   { "type": "boolean" },
                   "expiryReminderTarget":    { "type": "string", "enum": ["admin","company","both"] },
-                  "expiryReminderDays":      { "type": "string", "description": "JSON array de días, ej: \"[1,2,7,15,30]\"" }
+                  "expiryReminderDays":      { "type": "string", "description": "JSON array de días, ej: \"[1,2,7,15,30]\"" },
+                  "requireApproval":         { "type": "boolean", "description": "Si true, las empresas de /sign-up quedan pendientes hasta aprobación manual. Al pasar a false, todas las pendientes se aprueban automáticamente." },
+                  "termsOfUse":              { "type": "string", "nullable": true, "description": "Texto de los Términos de uso mostrado en /terms. Si es null se usa el texto por defecto." },
+                  "privacyPolicy":           { "type": "string", "nullable": true, "description": "Texto de la Política de privacidad mostrado en /privacy. Si es null se usa el texto por defecto." }
                 }
               }
             }

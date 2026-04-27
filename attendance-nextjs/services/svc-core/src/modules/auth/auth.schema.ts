@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const registerSchema = z.object({
   companyName: z.string().min(2),
   timeZone:    z.string().default('America/Guayaquil'),
+  country:     z.string().length(2).toUpperCase().default('EC'),
   username:    z.string().min(3),
   email:       z.string().email(),
   password:    z.string().min(6),

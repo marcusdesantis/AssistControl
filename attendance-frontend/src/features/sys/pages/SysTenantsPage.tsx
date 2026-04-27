@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Loader2, ArrowUpRight, ToggleLeft, ToggleRight, Plus, X, Bell, Mail, Send } from 'lucide-react'
+import { Search, Loader2, ArrowUpRight, ToggleLeft, ToggleRight, Plus, X, Bell, Mail, Send, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sysTenantsService, sysPlansService, type SysTenant, type SysPlan, type CreateTenantDto } from '../sysService'
 import Pagination from '@/components/Pagination'
@@ -195,9 +195,11 @@ function CreateTenantModal({ onClose, onCreated, plans }: {
   const defaultPlan = plans.find(p => p.isDefault) ?? plans[0]
   const [form, setForm]       = useState<CreateTenantDto>({ ...EMPTY_FORM, planId: defaultPlan?.id ?? '' })
   const [saving, setSaving]   = useState(false)
+  const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null)
 
   const set = (k: keyof CreateTenantDto) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const val = e.target.value
+    if (fieldError?.field === k) setFieldError(null)
     if (k === 'country') {
       const found = COUNTRIES.find(c => c.tz === val || c.code === val)
       setForm(p => ({ ...p, country: found?.code ?? val, timeZone: found?.tz ?? p.timeZone }))
@@ -208,6 +210,7 @@ function CreateTenantModal({ onClose, onCreated, plans }: {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFieldError(null)
     setSaving(true)
     try {
       const payload = { ...form, planId: form.planId || undefined }
@@ -215,17 +218,26 @@ function CreateTenantModal({ onClose, onCreated, plans }: {
       toast.success('Empresa creada correctamente.')
       onCreated(tenant)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Error al crear la empresa.')
+      const code = err?.response?.data?.code ?? err?.response?.data?.errorCode
+      const msg  = err?.response?.data?.message
+      if (code === 'USERNAME_TAKEN')       setFieldError({ field: 'username',    message: 'Este usuario ya está en uso.' })
+      else if (code === 'EMAIL_TAKEN')     setFieldError({ field: 'email',       message: 'Este correo ya está registrado.' })
+      else if (code === 'COMPANY_NAME_TAKEN') setFieldError({ field: 'companyName', message: 'Ya existe una empresa con ese nombre.' })
+      else toast.error(msg ?? 'Error al crear la empresa.')
     } finally { setSaving(false) }
   }
 
-  const field = (label: string, key: keyof CreateTenantDto, type = 'text', placeholder = '') => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <input type={type} value={form[key] as string} onChange={set(key)} placeholder={placeholder} required
-        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
-    </div>
-  )
+  const field = (label: string, key: keyof CreateTenantDto, type = 'text', placeholder = '') => {
+    const hasErr = fieldError?.field === key
+    return (
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+        <input type={type} value={form[key] as string} onChange={set(key)} placeholder={placeholder} required
+          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition ${hasErr ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 focus:ring-slate-400'}`} />
+        {hasErr && <p className="text-red-500 text-xs mt-1">{fieldError.message}</p>}
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" style={{marginTop: 0}}>
@@ -295,6 +307,7 @@ export default function SysTenantsPage() {
   const [query,      setQuery]      = useState('')
   const [loading,    setLoading]    = useState(true)
   const [toggling,   setToggling]   = useState<string | null>(null)
+  const [approving,  setApproving]  = useState<string | null>(null)
   const [showModal,  setShowModal]  = useState(false)
   const [plans,      setPlans]      = useState<SysPlan[]>([])
   const [selected,   setSelected]   = useState<Set<string>>(new Set())
@@ -366,11 +379,21 @@ export default function SysTenantsPage() {
     finally { setToggling(null) }
   }
 
+  const handleApprove = async (t: SysTenant) => {
+    setApproving(t.id)
+    try {
+      await sysTenantsService.approve(t.id)
+      setItems(prev => prev.map(x => x.id === t.id ? { ...x, pendingApproval: false, isActive: true } : x))
+      toast.success(`Empresa "${t.name}" aprobada correctamente.`)
+    } catch { toast.error('Error al aprobar la empresa.') }
+    finally { setApproving(null) }
+  }
+
   function runTour() {
     createTour([
-      { element: '#tour-tenants-new',    title: 'Nueva empresa',         description: 'Crea una nueva empresa cliente en el sistema. Se generará un usuario administrador y se asignará el plan elegido.' },
-      { element: '#tour-tenants-search', title: 'Buscar empresa',        description: 'Busca empresas por nombre. Los resultados se actualizan automáticamente mientras escribes.' },
-      { element: '#tour-tenants-table',  title: 'Lista de empresas',     description: 'Aquí se listan todas las empresas registradas con su estado de suscripción. Haz clic en el nombre para ver el detalle completo.' },
+      { element: '#tour-tenants-new',    title: 'Nueva empresa',              description: 'Crea manualmente una nueva empresa en el sistema. Se generará un usuario administrador y se asignará el plan que elijas.' },
+      { element: '#tour-tenants-search', title: 'Buscar empresa',             description: 'Filtra empresas por nombre. Los resultados se actualizan automáticamente mientras escribes.' },
+      { element: '#tour-tenants-table',  title: 'Lista de empresas',          description: 'Todas las empresas registradas con su plan y estado. Haz clic en el nombre para ver el detalle completo.\n\n• Estado "Pendiente" (ámbar): empresa registrada desde /sign-up que espera aprobación manual. Usa el botón "Aprobar" para activarla — se le enviará una notificación y un correo automáticamente.\n• Estado "Activa / Inactiva": empresas ya aprobadas que puedes activar o desactivar con el toggle.\n• Íconos de acción: envía notificaciones internas o correos a una empresa específica.' },
     ]).drive()
   }
 
@@ -517,16 +540,32 @@ export default function SysTenantsPage() {
                     </td>
                     <td className="px-4 py-3.5 text-gray-600">{t._count?.employees ?? 0}</td>
                     <td className="px-4 py-3.5">
-                      <button onClick={() => t.isActive ? setConfirmDeact(t) : handleToggle(t)} disabled={toggling === t.id}
-                        className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${t.isActive ? 'text-emerald-600 hover:text-emerald-800' : 'text-gray-400 hover:text-gray-700'}`}>
-                        {toggling === t.id
-                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : t.isActive ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                        {t.isActive ? 'Activa' : 'Inactiva'}
-                      </button>
+                      {t.pendingApproval ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                          Pendiente
+                        </span>
+                      ) : (
+                        <button onClick={() => t.isActive ? setConfirmDeact(t) : handleToggle(t)} disabled={toggling === t.id}
+                          className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${t.isActive ? 'text-emerald-600 hover:text-emerald-800' : 'text-gray-400 hover:text-gray-700'}`}>
+                          {toggling === t.id
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : t.isActive ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                          {t.isActive ? 'Activa' : 'Inactiva'}
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center justify-end gap-1">
+                        {t.pendingApproval && (
+                          <button onClick={() => handleApprove(t)} disabled={approving === t.id}
+                            title="Aprobar empresa"
+                            className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 font-semibold px-2 py-1.5 hover:bg-emerald-50 rounded-lg transition-colors">
+                            {approving === t.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <CheckCircle2 className="w-3.5 h-3.5" />}
+                            Aprobar
+                          </button>
+                        )}
                         <button onClick={() => setCompose({ mode: 'notify', tenantId: t.id })}
                           title="Enviar notificación"
                           className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-gray-100 rounded-lg transition-colors">

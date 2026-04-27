@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Save, Mail, Server, Eye, EyeOff, ToggleLeft, ToggleRight, CreditCard } from 'lucide-react'
+import { Loader2, Save, Mail, Server, Eye, EyeOff, ToggleLeft, ToggleRight, CreditCard, Settings2, FileText, Shield, ExternalLink, Copy, Check } from 'lucide-react'
 import { sysSettingsService, type SystemSettings } from '../sysService'
+import { copyText } from '@/utils/clipboard'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
 
@@ -24,6 +25,9 @@ const EMPTY: SystemSettings = {
   expiryReminderEnabled: false,
   expiryReminderTarget: 'admin',
   expiryReminderDays: '[1,2,7,15,30]',
+  requireApproval: false,
+  termsOfUse: null,
+  privacyPolicy: null,
 }
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }: {
@@ -61,18 +65,37 @@ function PasswordField({ label, value, onChange, placeholder }: {
   )
 }
 
-type Tab = 'email' | 'billing'
+type Tab = 'general' | 'email' | 'billing'
 
 export default function SysSettingsPage() {
   const [form,    setForm]    = useState<SystemSettings>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
-  const [activeTab, setActiveTab] = useState<Tab>('email')
+  const [activeTab, setActiveTab] = useState<Tab>('general')
+  const [copied,  setCopied]  = useState(false)
+
+  const signUpUrl = `${window.location.origin}/sign-up`
+
+  const handleCopy = async () => {
+    await copyText(signUpUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   useEffect(() => {
-    sysSettingsService.get()
-      .then(setForm)
+    const BASE_URL = import.meta.env.VITE_API_URL ?? ''
+    Promise.all([
+      sysSettingsService.get(),
+      import('axios').then(m => m.default.get(`${BASE_URL}/api/v1/public/legal`).then(r => r.data?.data)),
+    ])
+      .then(([settings, legal]) => {
+        setForm({
+          ...settings,
+          termsOfUse:    settings.termsOfUse    ?? legal?.termsOfUse    ?? null,
+          privacyPolicy: settings.privacyPolicy ?? legal?.privacyPolicy ?? null,
+        })
+      })
       .catch(() => toast.error('Error al cargar la configuración.'))
       .finally(() => setLoading(false))
   }, [])
@@ -104,12 +127,14 @@ export default function SysSettingsPage() {
 
   function runTour() {
     createTour([
-      { element: '#tour-cfg-header',  title: 'Configuración del sistema',   description: 'Ajustes globales que afectan a todo el sistema. Los cambios se aplican al presionar Guardar.' },
-      { element: '#tour-cfg-tab-email',   title: 'Tab: Configuración de correo', description: 'Configura el servidor SMTP que el sistema usa para enviar notificaciones y correos a las empresas. Puedes elegir el proveedor (Gmail, Outlook, etc.) e ingresar tus credenciales.', onHighlight: () => setActiveTab('email') },
-      { element: '#tour-cfg-content-email', title: 'Ajustes SMTP',           description: 'Activa o desactiva el envío de correos, selecciona el proveedor, ingresa el servidor, puerto, usuario y contraseña. Guarda los cambios para que surtan efecto.', onHighlight: () => setActiveTab('email') },
-      { element: '#tour-cfg-tab-billing',  title: 'Tab: Suscripciones',      description: 'Configura cómo el sistema maneja el vencimiento de suscripciones: días de gracia y recordatorios automáticos por correo.', onHighlight: () => setActiveTab('billing') },
-      { element: '#tour-cfg-content-billing', title: 'Ajustes de facturación', description: 'Define cuántos días de gracia tienen las empresas tras vencer su suscripción, y configura recordatorios automáticos para que se les notifique antes o después del vencimiento.', onHighlight: () => setActiveTab('billing') },
-      { element: '#tour-cfg-save',    title: 'Guardar cambios',             description: 'Aplica todos los cambios de ambas secciones. Asegúrate de guardar antes de salir de la página.' },
+      { element: '#tour-cfg-header',           title: 'Configuración del sistema',      description: 'Ajustes globales que afectan a todo el sistema. Los cambios se aplican al presionar Guardar.' },
+      { element: '#tour-cfg-tab-general',      title: 'Tab: General',                   description: 'Configuración general del sistema: registro de empresas y documentos legales.', onHighlight: () => setActiveTab('general') },
+      { element: '#tour-cfg-content-general',  title: 'Registro y documentos legales',  description: 'Izquierda: activa la aprobación manual para que las empresas que se registren en /sign-up queden pendientes hasta que las apruebes. Derecha: edita los Términos de uso y la Política de privacidad que los usuarios leen al registrarse. Usa "Ver página" para previsualizar cómo se verán.', onHighlight: () => setActiveTab('general') },
+      { element: '#tour-cfg-tab-email',        title: 'Tab: Configuración de correo',   description: 'Configura el servidor SMTP que el sistema usa para enviar correos a las empresas: aprobaciones, vencimientos y notificaciones.', onHighlight: () => setActiveTab('email') },
+      { element: '#tour-cfg-content-email',    title: 'Ajustes SMTP',                   description: 'Activa o desactiva el envío de correos, selecciona el proveedor (Gmail, Outlook, etc.), ingresa el servidor, puerto, usuario y contraseña. Guarda los cambios para que surtan efecto.', onHighlight: () => setActiveTab('email') },
+      { element: '#tour-cfg-tab-billing',      title: 'Tab: Suscripciones',             description: 'Configura cómo el sistema maneja el vencimiento de suscripciones: días de gracia y recordatorios automáticos por correo.', onHighlight: () => setActiveTab('billing') },
+      { element: '#tour-cfg-content-billing',  title: 'Ajustes de facturación',         description: 'Define cuántos días de gracia tienen las empresas tras vencer su suscripción, y configura recordatorios automáticos para notificarles antes o después del vencimiento.', onHighlight: () => setActiveTab('billing') },
+      { element: '#tour-cfg-save',             title: 'Guardar cambios',                description: 'Aplica todos los cambios de todas las secciones. Asegúrate de guardar antes de salir de la página.' },
     ]).drive()
   }
 
@@ -137,8 +162,9 @@ export default function SysSettingsPage() {
       <div id="tour-cfg-tabs" className="bg-white rounded-xl border border-gray-200" style={{ overflow: 'clip' }}>
         <div className="flex border-b border-gray-200">
           {([
-            { key: 'email',   label: 'Configuración de correo', Icon: Server,     tourId: 'tour-cfg-tab-email'   },
-            { key: 'billing', label: 'Suscripciones',             Icon: CreditCard, tourId: 'tour-cfg-tab-billing' },
+            { key: 'general', label: 'General',                  Icon: Settings2,  tourId: 'tour-cfg-tab-general' },
+            { key: 'email',   label: 'Configuración de correo',  Icon: Server,     tourId: 'tour-cfg-tab-email'   },
+            { key: 'billing', label: 'Suscripciones',            Icon: CreditCard, tourId: 'tour-cfg-tab-billing' },
           ] as { key: Tab; label: string; Icon: React.ElementType; tourId: string }[]).map(({ key, label, Icon, tourId }) => (
             <button key={key} id={tourId} onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium border-b-2 transition-colors ${
@@ -153,6 +179,109 @@ export default function SysSettingsPage() {
         </div>
 
         <div className="p-6">
+
+          {/* ── Tab: General ────────────────────────────────────────────── */}
+          {activeTab === 'general' && (
+            <div id="tour-cfg-content-general" className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+              {/* ── Columna izquierda: Registro ────────────────────────────── */}
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 mb-1">Registro de empresas</p>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Controla cómo se incorporan las nuevas empresas registradas desde la página pública.
+                  </p>
+                </div>
+                {/* URL pública de registro */}
+              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="text-xs text-gray-500 truncate flex-1 font-mono">{signUpUrl}</span>
+                <a href={signUpUrl} target="_blank" rel="noopener noreferrer"
+                  className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-white rounded-lg transition-colors shrink-0" title="Abrir página">
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+                <button onClick={handleCopy}
+                  className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-white rounded-lg transition-colors shrink-0" title="Copiar URL">
+                  {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="flex items-start justify-between gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Requerir aprobación manual</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Si está activado, las empresas que se registren desde <span className="font-medium">/sign-up</span> quedarán
+                      pendientes hasta que el superadmin las apruebe manualmente desde la sección Empresas.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setForm(p => ({ ...p, requireApproval: !p.requireApproval }))}
+                    className={`flex items-center gap-1.5 text-sm font-medium shrink-0 transition-colors ${form.requireApproval ? 'text-slate-700' : 'text-gray-400'}`}>
+                    {form.requireApproval
+                      ? <ToggleRight className="w-8 h-8" />
+                      : <ToggleLeft  className="w-8 h-8" />}
+                    {form.requireApproval ? 'Activado' : 'Desactivado'}
+                  </button>
+                </div>
+                {form.requireApproval && (
+                  <div className="px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 space-y-1">
+                    <p className="font-medium">Con esta opción activada:</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-amber-700">
+                      <li>Las nuevas empresas de <strong>/sign-up</strong> no podrán iniciar sesión hasta ser aprobadas.</li>
+                      <li>Recibirás una notificación por cada empresa registrada.</li>
+                      <li>Si desactivas esta opción, todas las empresas pendientes serán aprobadas automáticamente.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Columna derecha: Documentos legales ───────────────────── */}
+              <div className="space-y-5">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 mb-1">Documentos legales</p>
+                  <p className="text-xs text-gray-400">
+                    Texto que se muestra en las páginas <strong>/terms</strong> y <strong>/privacy</strong> accesibles desde el registro.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                      <FileText className="w-4 h-4 text-gray-400" /> Términos de uso
+                    </label>
+                    <a href="/terms" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-primary-600 hover:underline font-medium">
+                      <ExternalLink className="w-3.5 h-3.5" /> Ver página
+                    </a>
+                  </div>
+                  <textarea
+                    rows={10}
+                    value={form.termsOfUse ?? ''}
+                    onChange={e => setForm(p => ({ ...p, termsOfUse: e.target.value || null }))}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                      <Shield className="w-4 h-4 text-gray-400" /> Política de privacidad
+                    </label>
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-primary-600 hover:underline font-medium">
+                      <ExternalLink className="w-3.5 h-3.5" /> Ver página
+                    </a>
+                  </div>
+                  <textarea
+                    rows={10}
+                    value={form.privacyPolicy ?? ''}
+                    onChange={e => setForm(p => ({ ...p, privacyPolicy: e.target.value || null }))}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                  />
+                </div>
+              </div>
+
+            </div>
+          )}
 
           {/* ── Tab: Correo ─────────────────────────────────────────────── */}
           {activeTab === 'email' && (

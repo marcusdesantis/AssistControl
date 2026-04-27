@@ -15,6 +15,9 @@ const schema = z.object({
   expiryReminderEnabled:    z.boolean().optional(),
   expiryReminderTarget:     z.enum(['admin', 'company', 'both']).optional(),
   expiryReminderDays:       z.string().optional(),
+  requireApproval:          z.boolean().optional(),
+  termsOfUse:               z.string().nullable().optional(),
+  privacyPolicy:            z.string().nullable().optional(),
 })
 
 export const GET = withSuperadmin(async () => {
