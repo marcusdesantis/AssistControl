@@ -518,7 +518,7 @@ function FeedbackOverlay({ fb, onClose }: { fb: FeedbackState; onClose: () => vo
 export default function CheckerPage() {
   const [checkerKey,    setCheckerKey]    = useState<string | null>(() => localStorage.getItem(CHECKER_KEY_STORAGE))
   const [planBlocked,   setPlanBlocked]   = useState<boolean | null>(null) // null = verificando
-  const [deactivated,   setDeactivated]   = useState(false)
+  const [deactivated,   _setDeactivated]  = useState(false)
   const [time,          setTime]          = useState(new Date())
   const [code,          setCode]          = useState('')
   const [pin,           setPin]           = useState('')

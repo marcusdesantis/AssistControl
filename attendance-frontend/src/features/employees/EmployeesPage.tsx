@@ -15,10 +15,6 @@ import type { Schedule } from '@/types/schedule'
 import type { Department, Position } from '@/types/organization'
 import type { PagedResult } from '@/types/pagination'
 
-const STATUS_BADGE: Record<string, string> = {
-  Active:   'bg-green-100 text-green-700',
-  Inactive: 'bg-red-100 text-red-700',
-}
 
 const STATUS_OPTIONS: { value: EmployeeStatus | ''; label: string }[] = [
   { value: '',         label: 'Todos los estados' },

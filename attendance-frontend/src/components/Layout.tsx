@@ -4,12 +4,11 @@ import {
   Clock, LayoutDashboard, Users, CalendarCheck,
   BarChart3, Settings, Menu, X, ChevronRight,
   ScanLine, CalendarDays, MessageSquare, Building2, Network, Lock, ShieldOff,
-  AlertTriangle,
+  AlertTriangle, Headset,
 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import ProfileMenu from './ProfileMenu'
 import { useAuthStore } from '@/store/authStore'
-import { authService } from '@/features/auth/authService'
 import { billingService } from '@/features/settings/billingService'
 import type { PlanCapabilities } from '@/types/auth'
 import { DEFAULT_CAPABILITIES } from '@/types/auth'
@@ -33,13 +32,13 @@ const navItems: NavItem[] = [
   { to: '/organization', icon: Network,          label: 'Catálogos',    capability: 'organization' },
   { to: '/messages',     icon: MessageSquare,    label: 'Mensajes',     capability: 'messages'     },
   { to: '/reports',      icon: BarChart3,        label: 'Reportes',     capability: 'reports'      },
+  { to: '/support',      icon: Headset,          label: 'Soporte'                                   },
   { to: '/settings',     icon: Settings,         label: 'Configuración',capability: 'settings'     },
 ]
 
 export default function Layout() {
   const navigate = useNavigate()
   const { user, clearAuth, capabilities, tenantDeactivated, clearDeactivated } = useAuthStore()
-  const { setCapabilities } = useAuthStore.getState()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sub, setSub] = useState<Subscription | null>(null)
 
@@ -77,12 +76,6 @@ export default function Layout() {
       window.removeEventListener('capabilities-changed', refresh)
     }
   }, [])
-
-  const handleLogout = async () => {
-    try { await authService.logout() } catch { /* ignorar */ }
-    clearAuth()
-    navigate('/login', { replace: true })
-  }
 
   const roleLabel: Record<string, string> = {
     Admin: 'Administrador',

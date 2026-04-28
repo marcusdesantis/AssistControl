@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Building2, CreditCard, Package, ShieldCheck, ChevronRight, Settings, FileText, Users } from 'lucide-react'
+import { LayoutDashboard, Building2, CreditCard, Package, ShieldCheck, ChevronRight, Settings, FileText, Users, Headset } from 'lucide-react'
 import { useSysAuthStore } from '@/store/sysAuthStore'
 import NotificationBell from '@/components/NotificationBell'
 import SysProfileMenu from './SysProfileMenu'
@@ -11,7 +11,8 @@ const NAV = [
   { to: '/sys/plans',        label: 'Planes',        icon: Package },
   { to: '/sys/subscriptions',label: 'Suscripciones', icon: CreditCard },
   { to: '/sys/invoices',     label: 'Comprobantes',  icon: FileText },
-  { to: '/sys/settings',     label: 'Configuración', icon: Settings },
+  { to: '/sys/support',      label: 'Soporte',       icon: Headset  },
+  { to: '/sys/settings',    label: 'Configuración', icon: Settings },
 ]
 
 export default function SysLayout() {

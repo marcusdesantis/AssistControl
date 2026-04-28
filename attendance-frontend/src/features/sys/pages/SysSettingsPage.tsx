@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Save, Mail, Server, Eye, EyeOff, ToggleLeft, ToggleRight, CreditCard, Settings2, FileText, Shield, ExternalLink, Copy, Check } from 'lucide-react'
+import { Loader2, Save, Mail, Server, Eye, EyeOff, ToggleLeft, ToggleRight, CreditCard, Settings2, FileText, Shield, ExternalLink, Copy, Check, Headset } from 'lucide-react'
 import { sysSettingsService, type SystemSettings } from '../sysService'
 import { copyText } from '@/utils/clipboard'
 import { createTour } from '@/utils/tour'
@@ -28,6 +28,8 @@ const EMPTY: SystemSettings = {
   requireApproval: false,
   termsOfUse: null,
   privacyPolicy: null,
+  supportWhatsapp: null,
+  supportEmail: null,
 }
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }: {
@@ -129,7 +131,7 @@ export default function SysSettingsPage() {
     createTour([
       { element: '#tour-cfg-header',           title: 'Configuración del sistema',      description: 'Ajustes globales que afectan a todo el sistema. Los cambios se aplican al presionar Guardar.' },
       { element: '#tour-cfg-tab-general',      title: 'Tab: General',                   description: 'Configuración general del sistema: registro de empresas y documentos legales.', onHighlight: () => setActiveTab('general') },
-      { element: '#tour-cfg-content-general',  title: 'Registro y documentos legales',  description: 'Izquierda: activa la aprobación manual para que las empresas que se registren en /sign-up queden pendientes hasta que las apruebes. Derecha: edita los Términos de uso y la Política de privacidad que los usuarios leen al registrarse. Usa "Ver página" para previsualizar cómo se verán.', onHighlight: () => setActiveTab('general') },
+      { element: '#tour-cfg-content-general',  title: 'Registro, soporte y documentos',  description: 'Izquierda: URL pública de registro, aprobación manual y datos de contacto de soporte (WhatsApp y email) que verán las empresas en su página /support. Derecha: edita los Términos de uso y la Política de privacidad que los usuarios leen al registrarse.', onHighlight: () => setActiveTab('general') },
       { element: '#tour-cfg-tab-email',        title: 'Tab: Configuración de correo',   description: 'Configura el servidor SMTP que el sistema usa para enviar correos a las empresas: aprobaciones, vencimientos y notificaciones.', onHighlight: () => setActiveTab('email') },
       { element: '#tour-cfg-content-email',    title: 'Ajustes SMTP',                   description: 'Activa o desactiva el envío de correos, selecciona el proveedor (Gmail, Outlook, etc.), ingresa el servidor, puerto, usuario y contraseña. Guarda los cambios para que surtan efecto.', onHighlight: () => setActiveTab('email') },
       { element: '#tour-cfg-tab-billing',      title: 'Tab: Suscripciones',             description: 'Configura cómo el sistema maneja el vencimiento de suscripciones: días de gracia y recordatorios automáticos por correo.', onHighlight: () => setActiveTab('billing') },
@@ -182,7 +184,7 @@ export default function SysSettingsPage() {
 
           {/* ── Tab: General ────────────────────────────────────────────── */}
           {activeTab === 'general' && (
-            <div id="tour-cfg-content-general" className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div id="tour-cfg-content-general" className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start gap-y-8">
 
               {/* ── Columna izquierda: Registro ────────────────────────────── */}
               <div className="space-y-4">
@@ -234,8 +236,46 @@ export default function SysSettingsPage() {
                 )}
               </div>
 
-              {/* ── Columna derecha: Documentos legales ───────────────────── */}
-              <div className="space-y-5">
+              {/* ── Soporte ───────────────────────────────────────────────── */}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 mb-1">Contacto de soporte</p>
+                  <p className="text-xs text-gray-400">
+                    Datos visibles para las empresas en su página de soporte.
+                  </p>
+                </div>
+                <Field label="WhatsApp (con código país)" value={form.supportWhatsapp ?? ''}
+                  onChange={v => setForm(p => ({ ...p, supportWhatsapp: v || null }))}
+                  placeholder="+593999999999" />
+                <Field label="Email de contacto de soporte" value={form.supportEmail ?? ''}
+                  onChange={v => setForm(p => ({ ...p, supportEmail: v || null }))}
+                  placeholder="soporte@empresa.com" />
+
+                <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 space-y-2">
+                  <p className="font-medium text-gray-700 flex items-center gap-1.5">
+                    <Headset className="w-3.5 h-3.5 text-gray-400" /> ¿Cómo funciona?
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-500">
+                    <li>
+                      <span className="font-medium text-gray-700">WhatsApp y email</span> se muestran a las empresas en su
+                      página de soporte como canales de contacto directo.
+                    </li>
+                    <li>
+                      <span className="font-medium text-gray-700">Email de contacto</span> recibe una notificación por correo
+                      cada vez que una empresa crea un nuevo ticket de soporte
+                      {form.smtpEnabled
+                        ? ' (SMTP activo ✓).'
+                        : ' (requiere activar el SMTP en la pestaña "Configuración de correo").'}
+                    </li>
+                    <li>
+                      Las empresas también pueden escribir a este email directamente si no tienen plan de soporte preferencial.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* ── Documentos legales (full width) ───────────────────────── */}
+              <div className="space-y-5 lg:col-span-2">
                 <div>
                   <p className="text-sm font-semibold text-gray-800 mb-1">Documentos legales</p>
                   <p className="text-xs text-gray-400">
@@ -243,40 +283,42 @@ export default function SysSettingsPage() {
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      <FileText className="w-4 h-4 text-gray-400" /> Términos de uso
-                    </label>
-                    <a href="/terms" target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-primary-600 hover:underline font-medium">
-                      <ExternalLink className="w-3.5 h-3.5" /> Ver página
-                    </a>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                        <FileText className="w-4 h-4 text-gray-400" /> Términos de uso
+                      </label>
+                      <a href="/terms" target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-primary-600 hover:underline font-medium">
+                        <ExternalLink className="w-3.5 h-3.5" /> Ver página
+                      </a>
+                    </div>
+                    <textarea
+                      rows={12}
+                      value={form.termsOfUse ?? ''}
+                      onChange={e => setForm(p => ({ ...p, termsOfUse: e.target.value || null }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                    />
                   </div>
-                  <textarea
-                    rows={10}
-                    value={form.termsOfUse ?? ''}
-                    onChange={e => setForm(p => ({ ...p, termsOfUse: e.target.value || null }))}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      <Shield className="w-4 h-4 text-gray-400" /> Política de privacidad
-                    </label>
-                    <a href="/privacy" target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-primary-600 hover:underline font-medium">
-                      <ExternalLink className="w-3.5 h-3.5" /> Ver página
-                    </a>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                        <Shield className="w-4 h-4 text-gray-400" /> Política de privacidad
+                      </label>
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-primary-600 hover:underline font-medium">
+                        <ExternalLink className="w-3.5 h-3.5" /> Ver página
+                      </a>
+                    </div>
+                    <textarea
+                      rows={12}
+                      value={form.privacyPolicy ?? ''}
+                      onChange={e => setForm(p => ({ ...p, privacyPolicy: e.target.value || null }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                    />
                   </div>
-                  <textarea
-                    rows={10}
-                    value={form.privacyPolicy ?? ''}
-                    onChange={e => setForm(p => ({ ...p, privacyPolicy: e.target.value || null }))}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
-                  />
                 </div>
               </div>
 

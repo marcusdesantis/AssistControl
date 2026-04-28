@@ -179,7 +179,6 @@ const COUNTRIES: { code: string; name: string; tz: string }[] = [
   { code: 'MA', name: 'Marruecos',            tz: 'Africa/Casablanca'    },
 ]
 
-const TIMEZONES = [...new Set(COUNTRIES.map(c => c.tz))]
 
 const DEFAULT_COUNTRY = COUNTRIES[0]
 const EMPTY_FORM: CreateTenantDto = {

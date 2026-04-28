@@ -12,7 +12,8 @@ const CAP_NAMES: Record<keyof PlanCapabilities, string> = {
   organization: 'Organización',
   messages:     'Mensajes',
   reports:      'Reportes',
-  settings:     'Configuración',
+  settings:        'Configuración',
+  prioritySupport: 'Soporte Preferencial',
 }
 
 interface Props {

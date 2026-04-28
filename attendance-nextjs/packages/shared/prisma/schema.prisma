@@ -122,6 +122,7 @@ model Tenant {
   subscriptionLogs          SubscriptionLog[]
   paymentMethods            PaymentMethod[]
   notifications             Notification[]
+  supportTickets            SupportTicket[]
 }
 
 // ─── User (admin) ─────────────────────────────────────────────────────────────
@@ -521,7 +522,44 @@ model SystemSettings {
   requireApproval            Boolean  @default(false)
   termsOfUse                 String?
   privacyPolicy              String?
+  supportWhatsapp            String?
+  supportEmail               String?
   updatedAt                  DateTime @updatedAt
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+// ─── Support ──────────────────────────────────────────────────────────────────
+
+model SupportTicket {
+  id          String    @id @default(uuid())
+  tenantId    String
+  subject     String
+  description String
+  category    String    @default("general")
+  status      String    @default("open")
+  priority    String    @default("normal")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  resolvedAt  DateTime?
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages    SupportMessage[]
+
+  @@index([tenantId, status])
+  @@index([status, priority])
+}
+
+model SupportMessage {
+  id         String   @id @default(uuid())
+  ticketId   String
+  body       String
+  authorType String
+  createdAt  DateTime @default(now())
+
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

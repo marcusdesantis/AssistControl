@@ -4,27 +4,29 @@ export interface ModuleCap {
 }
 
 export interface PlanCapabilities {
-  employees:    ModuleCap
-  attendance:   ModuleCap
-  checker:      ModuleCap
-  mobileApp:    ModuleCap
-  schedules:    ModuleCap
-  organization: ModuleCap
-  messages:     ModuleCap
-  reports:      ModuleCap
-  settings:     ModuleCap
+  employees:       ModuleCap
+  attendance:      ModuleCap
+  checker:         ModuleCap
+  mobileApp:       ModuleCap
+  schedules:       ModuleCap
+  organization:    ModuleCap
+  messages:        ModuleCap
+  reports:         ModuleCap
+  settings:        ModuleCap
+  prioritySupport: ModuleCap
 }
 
 export const DEFAULT_CAPABILITIES: PlanCapabilities = {
-  employees:    { enabled: true  },
-  attendance:   { enabled: true  },
-  checker:      { enabled: true  },
-  mobileApp:    { enabled: false },
-  schedules:    { enabled: false },
-  organization: { enabled: false },
-  messages:     { enabled: false },
-  reports:      { enabled: false },
-  settings:     { enabled: true  },
+  employees:       { enabled: true  },
+  attendance:      { enabled: true  },
+  checker:         { enabled: true  },
+  mobileApp:       { enabled: false },
+  schedules:       { enabled: false },
+  organization:    { enabled: false },
+  messages:        { enabled: false },
+  reports:         { enabled: false },
+  settings:        { enabled: true  },
+  prioritySupport: { enabled: false },
 }
 
 export interface UserInfo {

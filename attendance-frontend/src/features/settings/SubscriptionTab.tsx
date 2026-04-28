@@ -11,7 +11,7 @@ import type { InitiatePaymentResult } from './billingService'
 import type { Plan, Subscription, Invoice } from '@/types/billing'
 import { useAuthStore } from '@/store/authStore'
 import type { PlanCapabilities } from '@/types/auth'
-import { fmtDate as _fmtDate, fmtMoney as _fmtMoney, countryToLocale } from '@/utils/locale'
+import { fmtDate as _fmtDate, fmtMoney as _fmtMoney, countryToLocale as _countryToLocale } from '@/utils/locale'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
 
@@ -149,7 +149,7 @@ const PLAN_CONFIG = [
 ]
 
 function PlanCard({
-  plan, index, current, canRenew, isCycleUpgrade, willSchedule, scheduledDate, billingCycle, loading, onSelect,
+  plan, index, current, canRenew, isCycleUpgrade, willSchedule, scheduledDate: _scheduledDate, billingCycle, loading, onSelect,
 }: {
   plan: Plan; index: number; current: boolean; canRenew: boolean
   isCycleUpgrade: boolean; willSchedule: boolean; scheduledDate: string | null
@@ -378,7 +378,8 @@ export default function SubscriptionTab() {
 
   async function handleConfirmPayment() {
     if (!confirmPlan) return
-    const proration = confirmPlan.result as any
+    const _proration = confirmPlan.result as any
+    void _proration
     setConfirmPlan(null)
 
     setSubscribingId(confirmPlan.plan.id)

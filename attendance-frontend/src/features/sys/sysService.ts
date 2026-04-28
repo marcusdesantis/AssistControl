@@ -105,15 +105,16 @@ export interface ModuleCap {
 }
 
 export interface PlanCapabilities {
-  employees:    ModuleCap
-  attendance:   ModuleCap
-  checker:      ModuleCap
-  mobileApp:    ModuleCap
-  schedules:    ModuleCap
-  organization: ModuleCap
-  messages:     ModuleCap
-  reports:      ModuleCap
-  settings:     ModuleCap
+  employees:       ModuleCap
+  attendance:      ModuleCap
+  checker:         ModuleCap
+  mobileApp:       ModuleCap
+  schedules:       ModuleCap
+  organization:    ModuleCap
+  messages:        ModuleCap
+  reports:         ModuleCap
+  settings:        ModuleCap
+  prioritySupport: ModuleCap
 }
 
 export interface SysPlan {
@@ -175,6 +176,8 @@ export interface SystemSettings {
   requireApproval:          boolean
   termsOfUse:               string | null
   privacyPolicy:            string | null
+  supportWhatsapp:          string | null
+  supportEmail:             string | null
 }
 
 export const sysSettingsService = {
@@ -267,6 +270,42 @@ export interface SysInvoice {
   paidAt:        string | null
   createdAt:     string
   tenant:        { id: string; name: string; taxId: string | null }
+}
+
+// ─── Support ──────────────────────────────────────────────────────────────────
+
+export interface SysTicket {
+  id: string; tenantId: string; subject: string; category: string
+  status: string; priority: string
+  createdAt: string; updatedAt: string; resolvedAt: string | null
+  _count: { messages: number }
+  tenant: { name: string }
+}
+
+export interface SysTicketDetail extends SysTicket {
+  description: string
+  messages: { id: string; body: string; authorType: string; createdAt: string }[]
+}
+
+export const sysSupportService = {
+  list: async (params?: { status?: string; priority?: string; page?: number; pageSize?: number }) => {
+    const res = await sysApi.get<ApiResponse<{ total: number; page: number; pageSize: number; items: SysTicket[] }>>(
+      '/support/tickets', { params }
+    )
+    return res.data.data!
+  },
+  get: async (id: string): Promise<SysTicketDetail> => {
+    const res = await sysApi.get<ApiResponse<SysTicketDetail>>(`/support/tickets/${id}`)
+    return res.data.data!
+  },
+  update: async (id: string, data: { status?: string; priority?: string }) => {
+    const res = await sysApi.patch<ApiResponse<SysTicket>>(`/support/tickets/${id}`, data)
+    return res.data.data!
+  },
+  reply: async (id: string, body: string) => {
+    const res = await sysApi.post<ApiResponse<unknown>>(`/support/tickets/${id}/messages`, { body })
+    return res.data.data!
+  },
 }
 
 export const sysInvoicesService = {

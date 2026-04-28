@@ -1935,13 +1935,169 @@
                   "expiryReminderDays":      { "type": "string", "description": "JSON array de días, ej: \"[1,2,7,15,30]\"" },
                   "requireApproval":         { "type": "boolean", "description": "Si true, las empresas de /sign-up quedan pendientes hasta aprobación manual. Al pasar a false, todas las pendientes se aprueban automáticamente." },
                   "termsOfUse":              { "type": "string", "nullable": true, "description": "Texto de los Términos de uso mostrado en /terms. Si es null se usa el texto por defecto." },
-                  "privacyPolicy":           { "type": "string", "nullable": true, "description": "Texto de la Política de privacidad mostrado en /privacy. Si es null se usa el texto por defecto." }
+                  "privacyPolicy":           { "type": "string", "nullable": true, "description": "Texto de la Política de privacidad mostrado en /privacy. Si es null se usa el texto por defecto." },
+                  "supportWhatsapp":         { "type": "string", "nullable": true, "description": "Número de WhatsApp de soporte (con código país, ej: +593999999999). Visible para los tenants en /support." },
+                  "supportEmail":            { "type": "string", "nullable": true, "description": "Email de soporte visible para tenants en /support." }
                 }
               }
             }
           }
         },
         "responses": { "200": { "description": "OK — configuración actualizada" } }
+      }
+    },
+
+    "/api/v1/admin/support/tickets": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Soporte"],
+        "summary": "Listar todos los tickets de soporte",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [
+          { "name": "status",   "in": "query", "schema": { "type": "string", "enum": ["open","pending","closed"] } },
+          { "name": "priority", "in": "query", "schema": { "type": "string", "enum": ["low","normal","high","urgent"] } },
+          { "name": "page",     "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "pageSize", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "OK — `{ total, page, pageSize, items: [{ id, tenantId, subject, category, status, priority, createdAt, updatedAt, resolvedAt, _count.messages, tenant.name }] }`" }
+        }
+      }
+    },
+
+    "/api/v1/admin/support/tickets/{id}": {
+      "get": {
+        "tags": ["🛡️ Superadmin — Soporte"],
+        "summary": "Detalle de un ticket con mensajes",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "OK — ticket + messages (authorType: 'admin'|'tenant') + tenant.name" },
+          "404": { "description": "NOT_FOUND" }
+        }
+      },
+      "patch": {
+        "tags": ["🛡️ Superadmin — Soporte"],
+        "summary": "Actualizar estado o prioridad de un ticket",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status":   { "type": "string", "enum": ["open","pending","closed"] },
+                  "priority": { "type": "string", "enum": ["low","normal","high","urgent"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — ticket actualizado. Si status=closed se registra resolvedAt." },
+          "404": { "description": "NOT_FOUND" }
+        }
+      }
+    },
+
+    "/api/v1/admin/support/tickets/{id}/messages": {
+      "post": {
+        "tags": ["🛡️ Superadmin — Soporte"],
+        "summary": "Responder a un ticket como admin",
+        "security": [{ "SuperadminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["body"], "properties": { "body": { "type": "string", "minLength": 1, "maxLength": 5000 } } } } }
+        },
+        "responses": {
+          "200": { "description": "OK — mensaje creado, ticket pasa a status 'pending'" },
+          "404": { "description": "NOT_FOUND" }
+        }
+      }
+    },
+
+    "/api/v1/support/info": {
+      "get": {
+        "tags": ["🎧 Soporte (tenant)"],
+        "summary": "Obtener datos de contacto de soporte",
+        "description": "Disponible para todos los tenants autenticados (no requiere plan prioritySupport).",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — `{ whatsapp: string|null, email: string|null }`" }
+        }
+      }
+    },
+
+    "/api/v1/support/tickets": {
+      "get": {
+        "tags": ["🎧 Soporte (tenant)"],
+        "summary": "Listar tickets del tenant",
+        "description": "Requiere plan con `prioritySupport` habilitado. Devuelve 403 PLAN_LIMIT si el plan no lo incluye.",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — array de tickets del tenant" },
+          "403": { "description": "PLAN_LIMIT — plan sin soporte preferencial" }
+        }
+      },
+      "post": {
+        "tags": ["🎧 Soporte (tenant)"],
+        "summary": "Crear nuevo ticket de soporte",
+        "description": "Requiere plan con `prioritySupport` habilitado.",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["subject","description"],
+                "properties": {
+                  "subject":     { "type": "string", "minLength": 5, "maxLength": 200 },
+                  "description": { "type": "string", "minLength": 10, "maxLength": 5000 },
+                  "category":    { "type": "string", "enum": ["general","billing","technical","other"], "default": "general" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — ticket creado" },
+          "403": { "description": "PLAN_LIMIT — plan sin soporte preferencial" }
+        }
+      }
+    },
+
+    "/api/v1/support/tickets/{id}": {
+      "get": {
+        "tags": ["🎧 Soporte (tenant)"],
+        "summary": "Detalle de un ticket del tenant",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "OK — ticket con messages (authorType: 'admin'|'tenant')" },
+          "403": { "description": "PLAN_LIMIT" },
+          "404": { "description": "NOT_FOUND" }
+        }
+      }
+    },
+
+    "/api/v1/support/tickets/{id}/messages": {
+      "post": {
+        "tags": ["🎧 Soporte (tenant)"],
+        "summary": "Responder a un ticket como tenant",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["body"], "properties": { "body": { "type": "string", "minLength": 1, "maxLength": 5000 } } } } }
+        },
+        "responses": {
+          "200": { "description": "OK — mensaje creado, ticket vuelve a status 'open'" },
+          "403": { "description": "PLAN_LIMIT o TICKET_CLOSED" },
+          "404": { "description": "NOT_FOUND" }
+        }
       }
     },
 
@@ -2016,6 +2172,8 @@
     { "name": "🛡️ Superadmin — Facturación",     "description": "Comprobantes y facturas globales — **svc-admin** (:3008)" },
     { "name": "🛡️ Superadmin — Configuración",   "description": "Configuración global: SMTP, gracia, recordatorios — **svc-admin** (:3008)" },
     { "name": "🛡️ Superadmin — Notificaciones", "description": "Notificaciones del superadmin (forAdmin=true) — **svc-admin** (:3008)" },
+    { "name": "🛡️ Superadmin — Soporte",        "description": "Gestión de tickets de soporte preferencial — **svc-admin** (:3008)" },
+    { "name": "🎧 Soporte (tenant)",             "description": "Soporte al tenant: contacto y tickets (requiere plan prioritySupport) — **svc-support** (:3009)" },
     { "name": "❤️ Health",                        "description": "Healthchecks" }
   ]
 }

@@ -24,6 +24,53 @@ async function getSmtpConfig(tenantId: string) {
   }
 }
 
+async function getSystemSmtpConfig() {
+  const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } })
+  if (!settings?.smtpEnabled || !settings.smtpHost || !settings.smtpUsername || !settings.smtpPassword)
+    return null
+  const secure = settings.smtpPort === 465
+  return {
+    host:        settings.smtpHost,
+    port:        settings.smtpPort,
+    secure,
+    user:        settings.smtpUsername,
+    password:    settings.smtpPassword,
+    fromName:    settings.smtpFromName ?? 'Sistema',
+    fromEmail:   settings.smtpFromEmail ?? settings.smtpUsername,
+    supportEmail: settings.supportEmail ?? null,
+  }
+}
+
+interface SystemEmailOptions {
+  subject: string
+  html:    string
+  to?:     string | string[]
+}
+
+/** Sends an email using the system-level SMTP (SystemSettings). Throws if not configured. */
+export async function sendSystemEmail(opts: SystemEmailOptions): Promise<void> {
+  const config = await getSystemSmtpConfig()
+  if (!config) throw { code: 'SMTP_NOT_CONFIGURED', message: 'SMTP del sistema no configurado.' }
+
+  const to: string | string[] | null = opts.to ?? config.supportEmail
+  if (!to || (Array.isArray(to) && to.length === 0))
+    throw { code: 'NO_RECIPIENT', message: 'No hay destinatario configurado.' }
+
+  const transporter = nodemailer.createTransport({
+    host:   config.host,
+    port:   config.port,
+    secure: config.secure,
+    auth:   { user: config.user, pass: config.password },
+  })
+
+  await transporter.sendMail({
+    from:    `"${config.fromName}" <${config.fromEmail}>`,
+    to:      Array.isArray(to) ? to.join(',') : to,
+    subject: opts.subject,
+    html:    opts.html,
+  })
+}
+
 export async function generateQr(text: string, size = 200): Promise<string> {
   return QRCode.toDataURL(text, { width: size, margin: 1, errorCorrectionLevel: 'M' })
 }

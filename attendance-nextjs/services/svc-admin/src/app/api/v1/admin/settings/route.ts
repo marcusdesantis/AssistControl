@@ -18,6 +18,8 @@ const schema = z.object({
   requireApproval:          z.boolean().optional(),
   termsOfUse:               z.string().nullable().optional(),
   privacyPolicy:            z.string().nullable().optional(),
+  supportWhatsapp:          z.string().nullable().optional(),
+  supportEmail:             z.string().nullable().optional(),
 })
 
 export const GET = withSuperadmin(async () => {

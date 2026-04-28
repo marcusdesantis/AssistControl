@@ -14,19 +14,21 @@ const CAP_LABELS: { key: keyof PlanCapabilities; label: string; hint: string; ha
   { key: 'schedules',    label: 'Horarios',         hint: 'Gestión de horarios y turnos de trabajo por empleado',   hasLimit: true,  limitLabel: 'Máx. horarios'     },
   { key: 'messages',     label: 'Mensajes',         hint: 'Mensajería interna entre empleados y supervisores',      hasLimit: false                                   },
   { key: 'reports',      label: 'Reportes',         hint: 'Reportes y estadísticas avanzadas de asistencia',        hasLimit: false                                   },
-  { key: 'settings',     label: 'Configuración',    hint: 'Acceso al módulo de configuración de la empresa',        hasLimit: false                                   },
+  { key: 'settings',        label: 'Configuración',       hint: 'Acceso al módulo de configuración de la empresa',        hasLimit: false },
+  { key: 'prioritySupport', label: 'Soporte Preferencial', hint: 'Permite a la empresa abrir tickets de soporte con atención prioritaria', hasLimit: false },
 ]
 
 const DEFAULT_CAPS: PlanCapabilities = {
-  employees:    { enabled: true },
-  attendance:   { enabled: true  },
-  checker:      { enabled: true  },
-  mobileApp:    { enabled: false },
-  schedules:    { enabled: true },
-  organization: { enabled: true },
-  messages:     { enabled: false },
-  reports:      { enabled: false },
-  settings:     { enabled: true  },
+  employees:       { enabled: true  },
+  attendance:      { enabled: true  },
+  checker:         { enabled: true  },
+  mobileApp:       { enabled: false },
+  schedules:       { enabled: true  },
+  organization:    { enabled: true  },
+  messages:        { enabled: false },
+  reports:         { enabled: false },
+  settings:        { enabled: true  },
+  prioritySupport: { enabled: false },
 }
 
 function PlanModal({ plan, onClose, onSaved }: {
@@ -50,7 +52,8 @@ function PlanModal({ plan, onClose, onSaved }: {
       organization: { ...DEFAULT_CAPS.organization, ...(plan?.capabilities?.organization ?? {}) },
       messages:     { ...DEFAULT_CAPS.messages,     ...(plan?.capabilities?.messages     ?? {}) },
       reports:      { ...DEFAULT_CAPS.reports,      ...(plan?.capabilities?.reports      ?? {}) },
-      settings:     { ...DEFAULT_CAPS.settings,     ...(plan?.capabilities?.settings     ?? {}) },
+      settings:        { ...DEFAULT_CAPS.settings,        ...(plan?.capabilities?.settings        ?? {}) },
+      prioritySupport: { ...DEFAULT_CAPS.prioritySupport, ...(plan?.capabilities?.prioritySupport ?? {}) },
     },
   })
   const [saving, setSaving] = useState(false)
@@ -355,6 +358,7 @@ export default function SysPlansPage() {
       { element: '#tour-plans-header', title: 'Planes de suscripción',  description: 'Aquí se definen los planes que se ofrecen a las empresas. Cada plan tiene un precio mensual/anual y un conjunto de capacidades (módulos habilitados y límites).' },
       { element: '#tour-plans-new',    title: 'Nuevo plan',             description: 'Crea un nuevo plan configurando su nombre, precio, si es gratuito, y qué módulos incluye. Las empresas solo pueden acceder a los módulos que su plan tiene activados.' },
       { element: '#tour-plans-cards',  title: 'Tarjetas de planes',     description: 'Cada tarjeta muestra el nombre, precio y características del plan. Puedes editarlo o eliminarlo (si no tiene empresas activas). El plan DEFAULT es el que se asigna por defecto a empresas nuevas.' },
+      { element: '#tour-plans-new',    title: 'Soporte Preferencial',    description: 'Al editar o crear un plan, encontrarás el módulo "Soporte Preferencial" en la lista de módulos. Las empresas con este módulo activado pueden abrir tickets de soporte desde su panel y verlos en /sys/support.' },
     ]).drive()
   }
 
