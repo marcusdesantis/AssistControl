@@ -125,10 +125,12 @@ export default function LoginPage() {
 
         {/* Logo / Título */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur rounded-2xl mb-4">
-            <Clock className="w-9 h-9 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">AssistControl</h1>
+          <a href="/" className="inline-block">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur rounded-2xl mb-4 hover:bg-white/20 transition-colors">
+              <Clock className="w-9 h-9 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-white hover:text-primary-100 transition-colors">AssistControl</h1>
+          </a>
           <p className="text-primary-200 mt-1 text-sm">Ingresa tus credenciales para continuar</p>
         </div>
 
