@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { ArrowLeft, Clock, Loader2 } from 'lucide-react'
@@ -6,8 +7,8 @@ import { ArrowLeft, Clock, Loader2 } from 'lucide-react'
 interface Props { type: 'terms' | 'privacy' }
 
 const META = {
-  terms:   { title: 'Términos de uso',        heading: 'Términos de uso' },
-  privacy: { title: 'Política de privacidad', heading: 'Política de privacidad' },
+  terms:   { title: 'Términos de uso',        heading: 'Términos de uso',        description: 'Consulta los términos y condiciones de uso de AssistControl, la plataforma de control de asistencia para empresas.' },
+  privacy: { title: 'Política de privacidad', heading: 'Política de privacidad', description: 'Conoce cómo AssistControl protege y gestiona los datos personales de sus usuarios y empresas.' },
 }
 
 export default function LegalPage({ type }: Props) {
@@ -16,7 +17,6 @@ export default function LegalPage({ type }: Props) {
   const meta = META[type]
 
   useEffect(() => {
-    document.title = `${meta.title} — AssistControl`
     const BASE_URL = import.meta.env.VITE_API_URL ?? ''
     axios.get(`${BASE_URL}/api/v1/public/legal`)
       .then(res => {
@@ -25,11 +25,18 @@ export default function LegalPage({ type }: Props) {
       })
       .catch(() => setContent('No se pudo cargar el contenido. Intenta nuevamente.'))
       .finally(() => setLoading(false))
-    return () => { document.title = 'AssistControl' }
   }, [type])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Helmet>
+        <title>{meta.title} — AssistControl</title>
+        <meta name="description" content={meta.description} />
+        <meta property="og:title" content={`${meta.title} — AssistControl`} />
+        <meta property="og:url" content={`https://www.tiempoya.net/${type === 'terms' ? 'terms' : 'privacy'}`} />
+        <link rel="canonical" href={`https://www.tiempoya.net/${type === 'terms' ? 'terms' : 'privacy'}`} />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
 
       {/* Header — igual al de /sign-up */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-6 py-4">

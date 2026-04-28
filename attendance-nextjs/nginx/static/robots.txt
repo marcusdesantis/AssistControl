@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+Allow: /sign-up
+Allow: /terms
+Allow: /privacy
+
+Disallow: /dashboard
+Disallow: /employees
+Disallow: /attendance
+Disallow: /schedules
+Disallow: /messages
+Disallow: /reports
+Disallow: /company
+Disallow: /settings
+Disallow: /notifications
+Disallow: /support
+Disallow: /organization
+Disallow: /checker
+Disallow: /register/
+Disallow: /change-password
+Disallow: /sys/
+Disallow: /api/
+
+Sitemap: https://www.tiempoya.net/sitemap.xml

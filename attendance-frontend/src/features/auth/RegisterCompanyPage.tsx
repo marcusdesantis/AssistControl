@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import axios from 'axios'
@@ -44,24 +45,6 @@ export default function RegisterCompanyPage() {
       .catch(() => {})
   }, [])
 
-  useEffect(() => {
-    document.title = 'Registra tu empresa gratis — AssistControl'
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]')
-    if (!meta) { meta = document.createElement('meta'); meta.name = 'description'; document.head.appendChild(meta) }
-    meta.content = 'Crea tu cuenta gratuita en AssistControl y comienza a gestionar la asistencia de tus empleados hoy mismo. Sin tarjeta de crédito.'
-
-    const ogTags: Record<string, string> = {
-      'og:title':       'Registra tu empresa gratis — AssistControl',
-      'og:description': 'Plataforma de control de asistencia para empresas. App móvil, reportes y gestión de equipos en un solo lugar.',
-      'og:type':        'website',
-    }
-    Object.entries(ogTags).forEach(([prop, content]) => {
-      let el = document.querySelector<HTMLMetaElement>(`meta[property="${prop}"]`)
-      if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el) }
-      el.content = content
-    })
-    return () => { document.title = 'AssistControl' }
-  }, [])
 
   const onSubmit = async (data: Form) => {
     setError(null)
@@ -106,6 +89,14 @@ export default function RegisterCompanyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Helmet>
+        <title>Registra tu empresa gratis — AssistControl</title>
+        <meta name="description" content="Crea tu cuenta gratuita en AssistControl y comienza a gestionar la asistencia de tus empleados hoy mismo. Sin tarjeta de crédito." />
+        <meta property="og:title" content="Registra tu empresa gratis — AssistControl" />
+        <meta property="og:description" content="Plataforma de control de asistencia para empresas. App móvil, reportes y gestión de equipos en un solo lugar." />
+        <meta property="og:url" content="https://www.tiempoya.net/sign-up" />
+        <link rel="canonical" href="https://www.tiempoya.net/sign-up" />
+      </Helmet>
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-6 py-4">

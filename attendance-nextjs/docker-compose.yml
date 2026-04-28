@@ -16,6 +16,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/docs:/etc/nginx/docs:ro
+      - ./nginx/static:/etc/nginx/static:ro
     depends_on:
       - svc-core
       - svc-employees
@@ -26,6 +27,7 @@ services:
       - svc-billing
       - svc-admin
       - svc-support
+      - svc-landing
     <<: *service-defaults
 
   # ── svc-core  (auth, company, settings) ──────────────────────────────────────
@@ -183,6 +185,20 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    <<: *service-defaults
+
+  # ── svc-landing ───────────────────────────────────────────────────────────────
+  svc-landing:
+    build:
+      context: .
+      dockerfile: services/svc-landing/Dockerfile
+    expose:
+      - "3010"
+    environment:
+      PORT: 3010
+      APP_URL: ${APP_URL:-http://localhost:5173}
+      NEXT_PUBLIC_SITE_URL: "https://www.tiempoya.net"
+      INTERNAL_API_URL: "http://nginx"
     <<: *service-defaults
 
 networks:
