@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import RedirectIfAuth from './components/RedirectIfAuth'
 
 export const metadata: Metadata = {
   title: 'AssistControl — Sistema de Control de Asistencia para Empresas',
@@ -298,6 +299,7 @@ function Footer() {
 export default function LandingPage() {
   return (
     <>
+      <RedirectIfAuth />
       <NavBar />
       <main>
         <Hero />

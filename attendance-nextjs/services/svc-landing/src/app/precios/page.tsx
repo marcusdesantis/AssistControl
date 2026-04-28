@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import RedirectIfAuth from '../components/RedirectIfAuth'
 
 export const metadata: Metadata = {
   title: 'Precios y Planes',
@@ -94,6 +95,7 @@ export default async function PreciosPage() {
 
   return (
     <>
+      <RedirectIfAuth />
       <NavBar />
       <main>
         {/* Hero */}
