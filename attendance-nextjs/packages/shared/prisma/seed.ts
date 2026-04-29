@@ -21,18 +21,18 @@ async function main() {
 
   // ── Superadmin ───────────────────────────────────────────────────────────────
   const superadminExists = await prisma.superadminAccount.findUnique({
-    where: { email: 'superadmin@assistcontrol.com' },
+    where: { email: 'superadmin@tiempoya.net' },
   })
   if (!superadminExists) {
     await prisma.superadminAccount.create({
       data: {
-        email:        'superadmin@assistcontrol.com',
+        email:        'superadmin@tiempoya.net',
         passwordHash: hash('SuperAdmin123!'),
         name:         'Super Admin',
         isActive:     true,
       },
     })
-    console.log('  ✓ Superadmin created (superadmin@assistcontrol.com / SuperAdmin123!)')
+    console.log('  ✓ Superadmin created (superadmin@tiempoya.net / SuperAdmin123!)')
   } else {
     console.log('  – Superadmin already exists')
   }

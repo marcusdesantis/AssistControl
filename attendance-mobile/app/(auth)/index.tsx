@@ -90,7 +90,7 @@ export default function LoginScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name="time-outline" size={44} color="#fff" />
           </View>
-          <Text style={styles.title}>AssistControl</Text>
+          <Text style={styles.title}>TiempoYa</Text>
           <Text style={styles.subtitle}>Acceso para empleados</Text>
         </View>
 

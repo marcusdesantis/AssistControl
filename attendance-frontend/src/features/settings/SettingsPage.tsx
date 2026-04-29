@@ -432,7 +432,7 @@ export default function SettingsPage() {
                   label="Nombre del remitente"
                   value={form.smtpFromName ?? ''}
                   onChange={v => setForm(p => ({ ...p, smtpFromName: v }))}
-                  placeholder="AssistControl"
+                  placeholder="TiempoYa"
                 />
               </div>
 

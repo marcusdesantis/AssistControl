@@ -7,8 +7,8 @@ import { ArrowLeft, Clock, Loader2 } from 'lucide-react'
 interface Props { type: 'terms' | 'privacy' }
 
 const META = {
-  terms:   { title: 'Términos de uso',        heading: 'Términos de uso',        description: 'Consulta los términos y condiciones de uso de AssistControl, la plataforma de control de asistencia para empresas.' },
-  privacy: { title: 'Política de privacidad', heading: 'Política de privacidad', description: 'Conoce cómo AssistControl protege y gestiona los datos personales de sus usuarios y empresas.' },
+  terms:   { title: 'Términos de uso',        heading: 'Términos de uso',        description: 'Consulta los términos y condiciones de uso de TiempoYa, la plataforma de control de asistencia para empresas.' },
+  privacy: { title: 'Política de privacidad', heading: 'Política de privacidad', description: 'Conoce cómo TiempoYa protege y gestiona los datos personales de sus usuarios y empresas.' },
 }
 
 export default function LegalPage({ type }: Props) {
@@ -30,9 +30,9 @@ export default function LegalPage({ type }: Props) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Helmet>
-        <title>{meta.title} — AssistControl</title>
+        <title>{meta.title} — TiempoYa</title>
         <meta name="description" content={meta.description} />
-        <meta property="og:title" content={`${meta.title} — AssistControl`} />
+        <meta property="og:title" content={`${meta.title} — TiempoYa`} />
         <meta property="og:url" content={`https://www.tiempoya.net/${type === 'terms' ? 'terms' : 'privacy'}`} />
         <link rel="canonical" href={`https://www.tiempoya.net/${type === 'terms' ? 'terms' : 'privacy'}`} />
         <meta name="robots" content="noindex, follow" />
@@ -45,7 +45,7 @@ export default function LegalPage({ type }: Props) {
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-gray-900 text-lg">AssistControl</span>
+            <span className="font-bold text-gray-900 text-lg">TiempoYa</span>
           </div>
           <span className="text-sm text-gray-500">
             ¿Ya tienes cuenta?{' '}
@@ -86,7 +86,7 @@ export default function LegalPage({ type }: Props) {
 
       <footer className="border-t border-gray-100 bg-white py-5 px-6">
         <p className="text-center text-xs text-gray-400">
-          © {new Date().getFullYear()} AssistControl · Sistema de Gestión de Asistencia
+          © {new Date().getFullYear()} TiempoYa · Sistema de Gestión de Asistencia
         </p>
       </footer>
     </div>

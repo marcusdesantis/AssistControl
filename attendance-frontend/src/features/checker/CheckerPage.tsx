@@ -876,7 +876,7 @@ export default function CheckerPage() {
           <Clock className="w-5 h-5 text-white" />
         </div>
         <div>
-          <p className="font-bold text-sm leading-tight">AssistControl</p>
+          <p className="font-bold text-sm leading-tight">TiempoYa</p>
           <p className="text-primary-200 text-xs capitalize">{dateStr}</p>
         </div>
         <div className="ml-auto flex items-center gap-3">

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AssistControl",
+    "name": "TiempoYa",
     "slug": "attendance-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,14 +11,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.abisoft.assistcontrol",
+      "bundleIdentifier": "com.abisoft.tiempoya",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Se usa para registrar tu ubicación al marcar entrada/salida.",
         "NSLocationAlwaysUsageDescription": "Se usa para enviarte recordatorios de asistencia."
       }
     },
     "android": {
-      "package": "com.abisoft.assistcontrol",
+      "package": "com.abisoft.tiempoya",
       "adaptiveIcon": {
         "foregroundImage": "./aiattendance-logo.png",
         "backgroundColor": "#0f172a"

@@ -55,7 +55,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>AssistControl v1.0.0</Text>
+        <Text style={styles.version}>TiempoYa v1.0.0</Text>
       </View>
     </SafeAreaView>
   )

@@ -1,15 +1,15 @@
 import { withPublic, apiOk } from '@attendance/shared'
 import { prisma } from '@attendance/shared'
 
-const DEFAULT_TERMS = `TÉRMINOS DE USO — AssistControl
+const DEFAULT_TERMS = `TÉRMINOS DE USO — TiempoYa
 
 Última actualización: enero 2025
 
 1. ACEPTACIÓN DE LOS TÉRMINOS
-Al acceder y utilizar AssistControl, usted acepta estar sujeto a estos Términos de Uso. Si no está de acuerdo con alguno de estos términos, no utilice el servicio.
+Al acceder y utilizar TiempoYa, usted acepta estar sujeto a estos Términos de Uso. Si no está de acuerdo con alguno de estos términos, no utilice el servicio.
 
 2. DESCRIPCIÓN DEL SERVICIO
-AssistControl es una plataforma de gestión de asistencia laboral que permite a las empresas registrar, monitorear y reportar la asistencia de sus empleados mediante aplicaciones web y móvil con GPS integrado.
+TiempoYa es una plataforma de gestión de asistencia laboral que permite a las empresas registrar, monitorear y reportar la asistencia de sus empleados mediante aplicaciones web y móvil con GPS integrado.
 
 3. REGISTRO DE CUENTA
 Para utilizar el servicio debe registrar una cuenta proporcionando información verídica y actualizada. Es responsable de mantener la confidencialidad de sus credenciales de acceso y de todas las actividades realizadas desde su cuenta.
@@ -32,10 +32,10 @@ Los planes de suscripción y sus precios están descritos en la plataforma. Los 
 Nos comprometemos a mantener una disponibilidad del 99% del servicio, salvo mantenimientos programados que serán comunicados con antelación. No somos responsables por interrupciones causadas por terceros o fuerza mayor.
 
 8. PROPIEDAD INTELECTUAL
-Todo el software, diseño, marcas y contenido de AssistControl son propiedad exclusiva de sus desarrolladores. Queda prohibida la reproducción, distribución o modificación sin autorización expresa por escrito.
+Todo el software, diseño, marcas y contenido de TiempoYa son propiedad exclusiva de sus desarrolladores. Queda prohibida la reproducción, distribución o modificación sin autorización expresa por escrito.
 
 9. LIMITACIÓN DE RESPONSABILIDAD
-AssistControl no será responsable por daños indirectos, incidentales, especiales o consecuentes derivados del uso o imposibilidad de uso del servicio, incluyendo pérdida de datos, lucro cesante o interrupción del negocio.
+TiempoYa no será responsable por daños indirectos, incidentales, especiales o consecuentes derivados del uso o imposibilidad de uso del servicio, incluyendo pérdida de datos, lucro cesante o interrupción del negocio.
 
 10. MODIFICACIONES DE LOS TÉRMINOS
 Nos reservamos el derecho de modificar estos términos en cualquier momento. Notificaremos los cambios significativos con al menos 15 días de anticipación. El uso continuado del servicio tras la notificación implica la aceptación de los nuevos términos.
@@ -46,9 +46,9 @@ Podemos suspender o cancelar su acceso si viola estos términos, si el pago de s
 12. LEY APLICABLE
 Estos términos se rigen por las leyes del país de constitución del proveedor del servicio. Cualquier controversia se resolverá ante los tribunales competentes de dicha jurisdicción.
 
-Para consultas sobre estos términos: soporte@assistcontrol.com`
+Para consultas sobre estos términos: soporte@tiempoya.net`
 
-const DEFAULT_PRIVACY = `POLÍTICA DE PRIVACIDAD — AssistControl
+const DEFAULT_PRIVACY = `POLÍTICA DE PRIVACIDAD — TiempoYa
 
 Última actualización: enero 2025
 
@@ -107,7 +107,7 @@ Como usuario del servicio, usted tiene derecho a:
 • Oponerse o restringir el tratamiento de sus datos
 • Retirar su consentimiento en cualquier momento
 
-Para ejercer estos derechos, contáctenos en: privacidad@assistcontrol.com
+Para ejercer estos derechos, contáctenos en: privacidad@tiempoya.net
 
 7. COOKIES
 Utilizamos únicamente cookies de sesión estrictamente necesarias para el funcionamiento del servicio (autenticación y preferencias básicas). No utilizamos cookies de rastreo publicitario ni compartimos datos con redes de publicidad.
@@ -123,7 +123,7 @@ Notificaremos cualquier cambio significativo a esta política con al menos 15 d�
 
 11. CONTACTO Y RECLAMACIONES
 Para consultas, solicitudes o reclamaciones sobre privacidad:
-Email: privacidad@assistcontrol.com
+Email: privacidad@tiempoya.net
 
 Tiene derecho a presentar una reclamación ante la autoridad de protección de datos de su país si considera que el tratamiento de sus datos no cumple con la normativa aplicable.`
 

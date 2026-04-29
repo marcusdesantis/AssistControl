@@ -90,9 +90,9 @@ export default function RegisterCompanyPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Helmet>
-        <title>Registra tu empresa gratis — AssistControl</title>
-        <meta name="description" content="Crea tu cuenta gratuita en AssistControl y comienza a gestionar la asistencia de tus empleados hoy mismo. Sin tarjeta de crédito." />
-        <meta property="og:title" content="Registra tu empresa gratis — AssistControl" />
+        <title>Registra tu empresa gratis — TiempoYa</title>
+        <meta name="description" content="Crea tu cuenta gratuita en TiempoYa y comienza a gestionar la asistencia de tus empleados hoy mismo. Sin tarjeta de crédito." />
+        <meta property="og:title" content="Registra tu empresa gratis — TiempoYa" />
         <meta property="og:description" content="Plataforma de control de asistencia para empresas. App móvil, reportes y gestión de equipos en un solo lugar." />
         <meta property="og:url" content="https://www.tiempoya.net/sign-up" />
         <link rel="canonical" href="https://www.tiempoya.net/sign-up" />
@@ -105,7 +105,7 @@ export default function RegisterCompanyPage() {
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-gray-900 text-lg">AssistControl</span>
+            <span className="font-bold text-gray-900 text-lg">TiempoYa</span>
           </a>
           <span className="text-sm text-gray-500">
             ¿Ya tienes cuenta?{' '}
@@ -130,7 +130,7 @@ export default function RegisterCompanyPage() {
             <span className="text-primary-600">de tu equipo</span> sin complicaciones
           </h1>
           <p className="text-gray-500 text-lg mb-8 leading-relaxed">
-            AssistControl es la plataforma más sencilla para registrar entradas,
+            TiempoYa es la plataforma más sencilla para registrar entradas,
             salidas y generar reportes de asistencia. App móvil con GPS incluida.
           </p>
 
@@ -284,7 +284,7 @@ export default function RegisterCompanyPage() {
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer className="border-t border-gray-100 bg-white py-6 px-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
-          <span>© {new Date().getFullYear()} AssistControl. Todos los derechos reservados.</span>
+          <span>© {new Date().getFullYear()} TiempoYa. Todos los derechos reservados.</span>
           <span>Sistema de Gestión de Asistencia</span>
         </div>
       </footer>

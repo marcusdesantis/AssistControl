@@ -376,7 +376,7 @@ export default function SysSettingsPage() {
                 <PasswordField label="Contraseña / App Password" value={form.smtpPassword ?? ''}
                   onChange={v => setForm(p => ({ ...p, smtpPassword: v }))} placeholder="Contraseña o App Password" />
                 <Field label="Nombre del remitente" value={form.smtpFromName ?? ''} onChange={v => setForm(p => ({ ...p, smtpFromName: v }))}
-                  placeholder="AssistControl" />
+                  placeholder="TiempoYa" />
               </div>
 
               {/* SSL checkbox */}

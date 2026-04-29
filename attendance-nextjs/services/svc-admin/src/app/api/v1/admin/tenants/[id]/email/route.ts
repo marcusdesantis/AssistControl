@@ -44,7 +44,7 @@ export const POST = withSuperadmin(async (req, _ctx, { params }: { params: Promi
   })
 
   await transporter.sendMail({
-    from:    `"${smtp.smtpFromName ?? 'AssistControl'}" <${smtp.smtpUsername}>`,
+    from:    `"${smtp.smtpFromName ?? 'TiempoYa'}" <${smtp.smtpUsername}>`,
     to:      recipientEmail,
     subject,
     html:    body.replace(/\n/g, '<br>'),

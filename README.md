@@ -7,38 +7,90 @@ Plataforma SaaS multi-tenant para el control de asistencia de empleados. Compues
 ## Arquitectura general
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  Clientes                        │
-│  Dashboard Web (React)   App Móvil (Expo/RN)    │
-└─────────────────┬───────────────┬───────────────┘
-                  │               │
-          ┌───────▼───────────────▼───────┐
-          │        Nginx (puerto 80)       │
-          │     Gateway · CORS · Routing   │
-          └───────────────┬───────────────┘
-                          │
-     ┌────────────────────┼────────────────────┐
-     │                    │                    │
-  svc-core            svc-employees      svc-attendance
-  :3001               :3002              :3003
-  Auth / Empresa      Empleados          Asistencia
-  Notificaciones      Depto / Cargos     Horarios
-     │                    │                    │
-  svc-analytics       svc-mobile         svc-comms
-  :3004               :3005              :3006
-  Dashboard           API Móvil          Mensajes
-  Reportes            Checker            Comunicados
-     │                    │                    │
-  svc-billing         svc-admin
-  :3007               :3008
-  Facturación         Superadmin
-  Suscripciones       Gestión Planes
-          │
-  ┌───────▼───────┐
-  │  PostgreSQL   │
-  │  :5432        │
-  └───────────────┘
+                         Internet
+                            │
+                     Puerto 80 (público)
+                            │
+              ┌─────────────▼─────────────┐
+              │   aiattendance-frontend    │
+              │   nginx · Docker           │
+              │   (attendance-frontend)    │
+              └─────────────┬─────────────┘
+                            │
+          ┌─────────────────┼──────────────────────┐
+          │                 │                       │
+    /  /precios         /api/v1/...            resto (SPA)
+    /_next/                 │                  index.html
+          │                 │
+          │          Puerto 8080 (interno)
+          │                 │
+          └────────┬────────┘
+                   │
+      ┌────────────▼────────────┐
+      │  attendance-nextjs      │
+      │  nginx · Docker Compose │
+      │  Gateway · CORS         │
+      └────────────┬────────────┘
+                   │
+   ┌───────────────┼───────────────────────────┐
+   │               │               │           │
+svc-core      svc-employees  svc-attendance  svc-analytics
+:3001          :3002          :3003           :3004
+Auth/Empresa   Empleados      Asistencia      Dashboard
+Notific.       Depto/Cargos   Horarios        Reportes
+   │               │               │           │
+svc-mobile     svc-comms      svc-billing   svc-admin
+:3005          :3006          :3007          :3008
+API Móvil      Mensajería     Facturación   Superadmin
+Checker        Comunicados    Suscripciones Gestión
+   │
+svc-support    svc-landing
+:3009          :3010
+Tickets        Landing page
+Soporte        SSR (Next.js)
+                   │
+          ┌────────▼────────┐
+          │   PostgreSQL    │
+          │   Host :5432    │
+          └─────────────────┘
 ```
+
+---
+
+## Servidor de producción
+
+- **IP:** `167.86.87.213`
+- **Dominio (pendiente de adquirir):** `tiempoya.net`
+- **Directorio:** `~/proyectos/opt/attendance-ia/`
+
+### Contenedores en ejecución
+
+| Contenedor | Puerto host | Descripción |
+|---|---|---|
+| `aiattendance-frontend` | **80** | Nginx principal — sirve SPA + proxy al backend |
+| `attendance-nextjs-nginx-1` | **8080** | Gateway de APIs + landing page |
+| `attendance-nextjs-svc-core-1` | interno 3001 | Auth, empresa, settings |
+| `attendance-nextjs-svc-employees-1` | interno 3002 | Empleados, departamentos |
+| `attendance-nextjs-svc-attendance-1` | interno 3003 | Asistencia, horarios |
+| `attendance-nextjs-svc-analytics-1` | interno 3004 | Dashboard, reportes |
+| `attendance-nextjs-svc-mobile-1` | interno 3005 | API móvil |
+| `attendance-nextjs-svc-comms-1` | interno 3006 | Mensajería |
+| `attendance-nextjs-svc-billing-1` | interno 3007 | Facturación, planes |
+| `attendance-nextjs-svc-admin-1` | interno 3008 | Superadmin |
+| `attendance-nextjs-svc-support-1` | interno 3009 | Soporte tickets |
+| `attendance-nextjs-svc-landing-1` | interno 3010 | Landing page SSR |
+| `attendance_api` | 5000 | API antigua — **no tocar** |
+| `sql_server_attendance` | 1433 | SQL Server antiguo — **no tocar** |
+
+### Enrutamiento (puerto 80)
+
+| Ruta | Destino |
+|---|---|
+| `/` exacto | proxy → 8080 → svc-landing |
+| `/precios` | proxy → 8080 → svc-landing |
+| `/_next/` | proxy → 8080 → svc-landing (assets) |
+| `/api/v1/...` | proxy → 8080 → microservicio correspondiente |
+| resto | SPA React (index.html) |
 
 ---
 
@@ -46,7 +98,7 @@ Plataforma SaaS multi-tenant para el control de asistencia de empleados. Compues
 
 ### 1. `attendance-nextjs` — Backend (Microservicios)
 
-Backend monorepo con 8 microservicios Next.js 15 detrás de un gateway Nginx.
+Backend monorepo con 10 microservicios Next.js 15 detrás de un gateway Nginx.
 
 **Stack:**
 - Next.js 15 · TypeScript · Prisma 5 · PostgreSQL
@@ -65,18 +117,20 @@ Backend monorepo con 8 microservicios Next.js 15 detrás de un gateway Nginx.
 | svc-comms | 3006 | Mensajería |
 | svc-billing | 3007 | Facturación, suscripciones, pagos |
 | svc-admin | 3008 | Panel superadmin, tenants, planes |
+| svc-support | 3009 | Tickets de soporte (SSE real-time) |
+| svc-landing | 3010 | Landing page pública SSR |
 
-**Variables de entorno (`.env`):**
+**Variables de entorno (`attendance-nextjs/.env`):**
 ```env
-DATABASE_URL=postgresql://postgres:PASSWORD@host:5432/attendance
+DATABASE_URL=postgresql://postgres:PASSWORD@host.docker.internal:5432/attendance
 JWT_SECRET=secreto_largo_aleatorio
 JWT_EXPIRES_IN=1440m
 SUPERADMIN_JWT_SECRET=otro_secreto_largo
-NGINX_PORT=80
-APP_URL=https://tu-dominio.com
-FRONTEND_URL=https://tu-dominio.com
-PAYPHONE_TOKEN=
-PAYPHONE_STORE_ID=
+NGINX_PORT=8080                        # En producción usar 8080 (80 lo ocupa el frontend)
+APP_URL=http://167.86.87.213           # URL pública — cambiar al dominio cuando se adquiera
+FRONTEND_URL=http://167.86.87.213
+PAYPHONE_TOKEN=tu_token
+PAYPHONE_STORE_ID=tu_store_id
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=tu_password
 POSTGRES_DB=attendance
@@ -84,37 +138,28 @@ POSTGRES_DB=attendance
 
 **Cómo ejecutar (local):**
 ```bash
-# 1. Levantar postgres (contenedor separado)
-docker run -d --name postgres-assistcontrol \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=attendance \
-  -e POSTGRES_HOST_AUTH_METHOD=md5 \
-  -p 5433:5432 postgres:16-alpine
-
-# 2. Instalar dependencias
+# 1. Instalar dependencias
+cd attendance-nextjs
 pnpm install
 
-# 3. Crear esquema y datos iniciales
-DATABASE_URL="postgresql://postgres:postgres@localhost:5433/attendance" \
+# 2. Crear esquema y datos iniciales
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/attendance" \
   npx prisma@5.22.0 db push --schema=packages/shared/prisma/schema.prisma
 
-DATABASE_URL="postgresql://postgres:postgres@localhost:5433/attendance" \
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/attendance" \
   npx tsx packages/shared/prisma/seed.ts
 
-# 4. Levantar servicios
+# 3. Levantar servicios
 docker compose up -d
 ```
 
-**Cómo ejecutar (producción):**
+**Actualizar en producción:**
 ```bash
+cd ~/proyectos/opt/attendance-ia/attendance-nextjs
 git pull
-docker compose up -d --build
-```
-
-**Migraciones en producción:**
-```bash
-DATABASE_URL='postgresql://user:pass@localhost:5432/attendance' \
-  npx prisma@5.22.0 db push --schema=packages/shared/prisma/schema.prisma
+# Reconstruir solo los servicios modificados:
+docker compose build svc-core svc-landing   # ejemplo
+docker compose up -d
 ```
 
 **Credenciales iniciales (seed):**
@@ -122,18 +167,18 @@ DATABASE_URL='postgresql://user:pass@localhost:5432/attendance' \
 - Admin demo: `admin@demo.com` / `Admin123!`
 - Empleado demo: `emp001` / `Pass1234!` · PIN: `1234`
 
-**Documentación API:** `http://localhost:80/docs`
+**Documentación API:** `http://167.86.87.213:8080/docs`
 
 ---
 
 ### 2. `attendance-frontend` — Dashboard Web
 
-Panel de administración para empresas, supervisores y empleados.
+Panel de administración para empresas, supervisores y empleados. Se sirve como contenedor Docker independiente en el puerto 80, actuando también como proxy hacia el backend.
 
 **Stack:**
 - React 18 · Vite · TypeScript · Tailwind CSS
-- Zustand · React Query · React Hook Form · Zod
-- Axios · React Router v6 · Lucide Icons
+- Zustand (persistido en `localStorage` con clave `attendance-auth`)
+- React Query · React Hook Form · Zod · Axios · React Router v6
 
 **Módulos principales:**
 
@@ -148,20 +193,36 @@ Panel de administración para empresas, supervisores y empleados.
 | Reportes | Reportes por empleado, período, departamento |
 | Empresa | Perfil, configuración SMTP |
 | Checker | Estación de marcación por PIN/QR |
-| Superadmin | Gestión de tenants, planes, suscripciones, facturas |
+| Soporte | Tickets con chat en tiempo real (SSE) |
+| Superadmin `/sys` | Gestión de tenants, planes, suscripciones, facturas |
 
-**Variables de entorno (`.env`):**
+**Variables de entorno (`.env` para Vite local):**
 ```env
 VITE_API_URL=http://localhost:80
 ```
 
-**Cómo ejecutar:**
+**Cómo ejecutar en desarrollo:**
 ```bash
+cd attendance-frontend
 npm install
-npm run dev        # Desarrollo — http://localhost:5173
-npm run build      # Build producción
-npm run preview    # Preview del build
+npm run dev        # http://localhost:5173
 ```
+
+**Actualizar en producción** (el contenedor NO usa docker-compose, se gestiona manualmente):
+```bash
+cd ~/proyectos/opt/attendance-ia/attendance-frontend
+git pull
+docker build --add-host=host.docker.internal:host-gateway -t aiattendance-frontend .
+docker stop aiattendance-frontend && docker rm aiattendance-frontend
+docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-gateway -p 80:80 aiattendance-frontend
+```
+
+> **Importante:** El flag `--add-host=host.docker.internal:host-gateway` es obligatorio. Sin él el nginx del frontend no puede hacer proxy al backend en el puerto 8080.
+
+**nginx del frontend** (`attendance-frontend/nginx.conf`):
+- `/` y `/precios` y `/_next/` → proxy a `host.docker.internal:8080` (svc-landing)
+- `/api/v1/` → proxy a `host.docker.internal:8080` (microservicios)
+- resto → SPA `index.html`
 
 ---
 
@@ -178,62 +239,50 @@ App para empleados — marcación de entrada/salida con GPS.
 
 | Pantalla | Descripción |
 |---|---|
-| Login | Acceso con usuario/PIN o checker |
-| Inicio | Botones de entrada y salida con GPS |
+| Login | Acceso con usuario/PIN |
+| Inicio | Botones entrada/salida con GPS |
 | Historial | Asistencia mensual, horas trabajadas |
 | Perfil | Datos del empleado, cerrar sesión |
 | Notificaciones | Avisos del sistema |
 
 **Variables de entorno:**
 ```env
-EXPO_PUBLIC_API_URL=http://192.168.1.X:80
+EXPO_PUBLIC_API_URL=http://167.86.87.213
 ```
-
-> La IP debe ser la del servidor accesible desde el dispositivo móvil.
 
 **Cómo ejecutar:**
 ```bash
+cd attendance-mobile
 npm install
-npm start          # Abre Expo Go (escanear QR)
+npm start          # Expo Go (escanear QR)
 npm run android    # Emulador Android
 npm run ios        # Simulador iOS
 ```
 
-**Generar APK (Android):**
+**Generar APK:**
 ```bash
-cd android
+cd attendance-mobile/android
 ./gradlew assembleRelease
 # APK: android/app/build/outputs/apk/release/app-release.apk
 ```
 
-**Configuración (`app.json`):**
-- Nombre: `AssistControl`
-- Bundle ID (iOS): `com.abisoft.assistcontrol`
-- Package (Android): `com.abisoft.assistcontrol`
-
 ---
 
-## Despliegue en producción (VPS)
+## Instalación inicial en servidor nuevo
 
-### Requisitos del servidor
-- Ubuntu 22.04+
-- Docker + Docker Compose
-- PostgreSQL 16 instalado en el host
-- Puerto 80 abierto
-
-### Instalación inicial
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/marcusdesantis/AssistControl.git
-cd AssistControl
+# 1. Clonar los repos
+git clone <repo-attendance-nextjs>  ~/proyectos/opt/attendance-ia/attendance-nextjs
+git clone <repo-attendance-frontend> ~/proyectos/opt/attendance-ia/attendance-frontend
 
-# 2. Configurar variables de entorno
-cp .env.example .env
-nano .env   # Editar con valores reales
-
-# 3. Configurar PostgreSQL (ya instalado en host)
-sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'tu_password';"
+# 2. Configurar PostgreSQL en el host
 sudo -u postgres psql -c "CREATE DATABASE attendance;"
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'tu_password';"
+
+# 3. Configurar .env del backend
+cd ~/proyectos/opt/attendance-ia/attendance-nextjs
+cp .env.example .env
+nano .env   # Rellenar con valores reales (ver sección Variables de entorno)
 
 # 4. Crear esquema y seed
 DATABASE_URL='postgresql://postgres:tu_password@localhost:5432/attendance' \
@@ -242,26 +291,33 @@ DATABASE_URL='postgresql://postgres:tu_password@localhost:5432/attendance' \
 DATABASE_URL='postgresql://postgres:tu_password@localhost:5432/attendance' \
   npx tsx packages/shared/prisma/seed.ts
 
-# 5. Levantar servicios
+# 5. Levantar backend (puerto 8080)
 docker compose up -d
+
+# 6. Construir y levantar frontend (puerto 80)
+cd ~/proyectos/opt/attendance-ia/attendance-frontend
+docker build --add-host=host.docker.internal:host-gateway -t aiattendance-frontend .
+docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-gateway -p 80:80 aiattendance-frontend
 ```
 
-### Actualizar el servidor
+---
+
+## Migraciones de base de datos
+
 ```bash
-git pull
-docker compose up -d --build svc-core svc-employees   # Solo los servicios modificados
+DATABASE_URL='postgresql://postgres:tu_password@localhost:5432/attendance' \
+  npx prisma@5.22.0 db push --schema=packages/shared/prisma/schema.prisma
 ```
 
 ---
 
 ## Backup de base de datos
 
-Se recomienda configurar un backup diario automático:
-
 ```bash
-# Crear script
+# Crear script de backup
 cat > ~/backup-db.sh << 'EOF'
 #!/bin/bash
+mkdir -p ~/backups
 pg_dump -U postgres attendance > ~/backups/attendance_$(date +%Y%m%d_%H%M%S).sql
 ls -t ~/backups/attendance_*.sql | tail -n +8 | xargs rm -f 2>/dev/null
 EOF
@@ -270,6 +326,20 @@ chmod +x ~/backup-db.sh
 # Cron diario a las 2am
 (crontab -l 2>/dev/null; echo "0 2 * * * ~/backup-db.sh") | crontab -
 ```
+
+---
+
+## Dominio y SSL (pendiente)
+
+Cuando se adquiera el dominio `tiempoya.net`:
+
+1. Apuntar DNS `A` a `167.86.87.213`
+2. Actualizar `APP_URL` en `attendance-nextjs/.env`:
+   ```env
+   APP_URL=https://www.tiempoya.net
+   ```
+3. Instalar Certbot y configurar SSL en nginx
+4. Reconstruir `svc-landing`: `docker compose build svc-landing && docker compose up -d svc-landing`
 
 ---
 
@@ -284,3 +354,5 @@ chmod +x ~/backup-db.sh
 | Auth | JWT, bcryptjs |
 | Pagos | Payphone |
 | Email | Nodemailer, SMTP |
+| SEO/Landing | Next.js SSR (svc-landing) |
+| Tiempo real | SSE (Server-Sent Events) |

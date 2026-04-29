@@ -128,7 +128,7 @@ export default function Layout() {
             <Clock className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <p className="font-bold text-sm leading-tight truncate">AssistControl</p>
+            <p className="font-bold text-sm leading-tight truncate">TiempoYa</p>
             <p className="text-primary-300 text-xs truncate">v1.0</p>
           </div>
           <button className="lg:hidden ml-auto" onClick={() => setSidebarOpen(false)}>

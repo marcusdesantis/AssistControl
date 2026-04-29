@@ -81,7 +81,7 @@ export default function DashboardPage() {
     createTour([
       { element: '#tour-dash-stats',  title: 'Resumen del día',       description: 'Aquí ves de un vistazo cuántos empleados están presentes, ausentes o con retardo. Haz clic en cada tarjeta para filtrar la vista de asistencia.' },
       { element: '#tour-dash-recent', title: 'Últimas entradas',      description: 'Las últimas marcaciones de entrada del día, ordenadas de más reciente a más antigua. Haz clic en "Ver todo" para ir al módulo de asistencia.' },
-      { element: '#tour-dash-links',  title: 'Accesos rápidos',       description: 'Atajos a los módulos más usados: AssistControl y Gestión de Empleados.' },
+      { element: '#tour-dash-links',  title: 'Accesos rápidos',       description: 'Atajos a los módulos más usados: TiempoYa y Gestión de Empleados.' },
     ]).drive()
   }
 
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                   <UserCheck className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-medium text-primary-900 text-sm">AssistControl</p>
+                  <p className="font-medium text-primary-900 text-sm">TiempoYa</p>
                   <p className="text-xs text-primary-600">Ver y registrar checadas de hoy</p>
                 </div>
               </div>

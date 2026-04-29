@@ -129,7 +129,7 @@ export default function LoginPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur rounded-2xl mb-4 hover:bg-white/20 transition-colors">
               <Clock className="w-9 h-9 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white hover:text-primary-100 transition-colors">AssistControl</h1>
+            <h1 className="text-3xl font-bold text-white hover:text-primary-100 transition-colors">TiempoYa</h1>
           </a>
           <p className="text-primary-200 mt-1 text-sm">Ingresa tus credenciales para continuar</p>
         </div>
@@ -213,7 +213,7 @@ export default function LoginPage() {
           </Link>
         </p>
         <p className="text-center text-primary-300 text-xs mt-3">
-          Sistema de AssistControl · v1.0
+          Sistema de TiempoYa · v1.0
         </p>
       </div>
     </div>

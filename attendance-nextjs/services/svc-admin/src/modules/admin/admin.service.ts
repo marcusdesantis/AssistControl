@@ -13,7 +13,7 @@ async function sendSystemEmail(to: string, subject: string, html: string) {
     auth: { user: settings.smtpUsername, pass: settings.smtpPassword },
   })
   await transporter.sendMail({
-    from: `"${settings.smtpFromName ?? 'AssistControl'}" <${settings.smtpUsername}>`,
+    from: `"${settings.smtpFromName ?? 'TiempoYa'}" <${settings.smtpUsername}>`,
     to, subject, html,
   }).catch(e => console.error('[sendSystemEmail]', e))
 }
@@ -302,7 +302,7 @@ export async function approveTenant(id: string) {
       tenantId: id,
       forAdmin: false,
       title: '¡Tu empresa ha sido aprobada!',
-      body:  `La empresa "${tenant.name}" ha sido verificada y aprobada. Ya puedes iniciar sesión y comenzar a usar AssistControl.`,
+      body:  `La empresa "${tenant.name}" ha sido verificada y aprobada. Ya puedes iniciar sesión y comenzar a usar TiempoYa.`,
       type:  'success',
     },
   })
@@ -316,16 +316,16 @@ export async function approveTenant(id: string) {
             Hola, te informamos que la empresa <strong>${tenant.name}</strong> ha sido verificada y aprobada por el administrador del sistema.
           </p>
           <p style="color:#475569;font-size:14px;margin:0 0 24px">
-            Ya puedes iniciar sesión en AssistControl y comenzar a gestionar la asistencia de tu equipo.
+            Ya puedes iniciar sesión en TiempoYa y comenzar a gestionar la asistencia de tu equipo.
           </p>
           <a href="${process.env.APP_URL ?? 'http://localhost:5173'}/login"
             style="display:inline-block;background:#1e40af;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600">
             Iniciar sesión
           </a>
-          <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">AssistControl · Sistema de Control de Asistencia</p>
+          <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">TiempoYa · Sistema de Control de Asistencia</p>
         </div>
       </div>`
-    await sendSystemEmail(adminUser.email, '✅ Tu empresa ha sido aprobada — AssistControl', html)
+    await sendSystemEmail(adminUser.email, '✅ Tu empresa ha sido aprobada — TiempoYa', html)
   }
 
   return tenant

@@ -62,7 +62,7 @@ export const GET = withSuperadmin(async (req) => {
 <body>
   <div class="header">
     <div>
-      <div class="brand">AssistControl</div>
+      <div class="brand">TiempoYa</div>
       <div class="brand-sub">Sistema de Gestión de Asistencia</div>
     </div>
     <div class="comp-box">
@@ -108,7 +108,7 @@ export const GET = withSuperadmin(async (req) => {
       </thead>
       <tbody>
         <tr>
-          <td>AssistControl — ${invoice.planName ?? 'Plan'}</td>
+          <td>TiempoYa — ${invoice.planName ?? 'Plan'}</td>
           <td>${cycleLabel}</td>
           <td>${fmt(invoice.periodStart)} — ${fmt(invoice.periodEnd)}</td>
           <td style="text-align:right">$${invoice.amount.toFixed(2)}</td>
@@ -125,7 +125,7 @@ export const GET = withSuperadmin(async (req) => {
 
   <div class="footer">
     Este documento es un comprobante de pago interno. No es una factura electrónica autorizada por el SRI.<br/>
-    AssistControl · ${new Date().getFullYear()}
+    TiempoYa · ${new Date().getFullYear()}
   </div>
 
   <script>window.onload = () => window.print()</script>

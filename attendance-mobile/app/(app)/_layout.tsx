@@ -123,7 +123,7 @@ function CompanyHeader() {
           <Ionicons name="business-outline" size={20} color="#93c5fd" />
         </View>
       )}
-      <Text style={hdr.name} numberOfLines={1}>{companyName ?? 'AssistControl'}</Text>
+      <Text style={hdr.name} numberOfLines={1}>{companyName ?? 'TiempoYa'}</Text>
     </View>
   )
 }

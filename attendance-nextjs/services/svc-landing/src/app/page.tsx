@@ -3,7 +3,7 @@ import Link from 'next/link'
 import RedirectIfAuth from './components/RedirectIfAuth'
 
 export const metadata: Metadata = {
-  title: 'AssistControl — Sistema de Control de Asistencia para Empresas',
+  title: 'TiempoYa — Sistema de Control de Asistencia para Empresas',
   description:
     'Software de control de asistencia y gestión de empleados. Registra entradas, salidas y horarios en tiempo real. App móvil incluida. Prueba gratis hoy.',
   alternates: { canonical: '/' },
@@ -24,7 +24,7 @@ function NavBar() {
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <span className="font-bold text-gray-900 text-lg">AssistControl</span>
+          <span className="font-bold text-gray-900 text-lg">TiempoYa</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#funcionalidades" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Funcionalidades</Link>
@@ -280,7 +280,7 @@ function Footer() {
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span className="font-bold text-white">AssistControl</span>
+            <span className="font-bold text-white">TiempoYa</span>
           </div>
           <nav className="flex flex-wrap gap-6 text-sm justify-center">
             <Link href="/"         className="hover:text-white transition-colors">Inicio</Link>
@@ -289,7 +289,7 @@ function Footer() {
             <a href={`${APP_URL}/privacy`} className="hover:text-white transition-colors">Privacidad</a>
             <a href={`${APP_URL}/login`}   className="hover:text-white transition-colors">Iniciar sesión</a>
           </nav>
-          <p className="text-sm text-gray-500">© {new Date().getFullYear()} AssistControl</p>
+          <p className="text-sm text-gray-500">© {new Date().getFullYear()} TiempoYa</p>
         </div>
       </div>
     </footer>

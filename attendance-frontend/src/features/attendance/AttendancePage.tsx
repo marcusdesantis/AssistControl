@@ -771,7 +771,7 @@ export default function AttendancePage() {
       {/* Header + toggle vista */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AssistControl</h1>
+          <h1 className="text-2xl font-bold text-gray-900">TiempoYa</h1>
           <p className="text-gray-500 text-sm mt-0.5">
             {view === 'day'
               ? selectedDate.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone })

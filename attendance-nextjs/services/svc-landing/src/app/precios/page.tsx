@@ -5,7 +5,7 @@ import RedirectIfAuth from '../components/RedirectIfAuth'
 export const metadata: Metadata = {
   title: 'Precios y Planes',
   description:
-    'Conoce los planes de AssistControl. Desde el plan gratuito hasta soluciones empresariales. Precio justo, sin sorpresas.',
+    'Conoce los planes de TiempoYa. Desde el plan gratuito hasta soluciones empresariales. Precio justo, sin sorpresas.',
   alternates: { canonical: '/precios' },
 }
 
@@ -71,7 +71,7 @@ function NavBar() {
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <span className="font-bold text-gray-900 text-lg">AssistControl</span>
+          <span className="font-bold text-gray-900 text-lg">TiempoYa</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8">
           <Link href="/#funcionalidades" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Funcionalidades</Link>
@@ -247,7 +247,7 @@ export default async function PreciosPage() {
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            AssistControl
+            TiempoYa
           </Link>
           <nav className="flex gap-6 text-sm">
             <Link href="/"        className="hover:text-white transition-colors">Inicio</Link>
@@ -255,7 +255,7 @@ export default async function PreciosPage() {
             <a href={`${APP_URL}/terms`}   className="hover:text-white transition-colors">Términos</a>
             <a href={`${APP_URL}/privacy`} className="hover:text-white transition-colors">Privacidad</a>
           </nav>
-          <p className="text-sm text-gray-500">© {new Date().getFullYear()} AssistControl</p>
+          <p className="text-sm text-gray-500">© {new Date().getFullYear()} TiempoYa</p>
         </div>
       </footer>
     </>

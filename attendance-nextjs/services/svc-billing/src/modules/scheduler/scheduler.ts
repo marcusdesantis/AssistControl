@@ -283,7 +283,7 @@ function emailHtml(tenantName: string, planName: string, endStr: string, days: n
            style="display:inline-block;background:#1e40af;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px">
           Renovar suscripción
         </a>
-        <p style="color:#9ca3af;font-size:12px;margin-top:24px">AssistControl · Sistema de Gestión de Asistencia</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">TiempoYa · Sistema de Gestión de Asistencia</p>
       </div>
     </div>
   `
@@ -304,7 +304,7 @@ function expiryReminderHtml(tenantName: string, planName: string, daysSince: num
            style="display:inline-block;background:#1e40af;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px">
           Renovar mi suscripción
         </a>
-        <p style="color:#9ca3af;font-size:12px;margin-top:24px">AssistControl · Sistema de Gestión de Asistencia</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">TiempoYa · Sistema de Gestión de Asistencia</p>
       </div>
     </div>
   `
@@ -324,7 +324,7 @@ function downgradeEmailHtml(tenantName: string, oldPlan: string, freePlan: strin
            style="display:inline-block;background:#1e40af;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px">
           Ver planes
         </a>
-        <p style="color:#9ca3af;font-size:12px;margin-top:24px">AssistControl · Sistema de Gestión de Asistencia</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">TiempoYa · Sistema de Gestión de Asistencia</p>
       </div>
     </div>
   `
