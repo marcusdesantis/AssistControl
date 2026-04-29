@@ -183,24 +183,22 @@ export default function CompanyPage() {
               <Field label="Nombre / Razón social *" value={form.name} onChange={set('name')} />
             </div>
             <Field label="Nombre comercial" value={form.legalName} onChange={set('legalName')} />
-            <Field label="RFC / Identificación fiscal" value={form.taxId} onChange={set('taxId')} />
-            <Field label="Lic. de funcionamiento" value={form.businessLicense} onChange={set('businessLicense')} />
+            <Field label="RUC" value={form.taxId} onChange={set('taxId')} />
+            <Field label="Representante" value={form.businessLicense} onChange={set('businessLicense')} />
           </div>
         </div>
 
         {/* Dirección */}
         <Section title="Dirección">
-          <div className="sm:col-span-2 lg:col-span-2">
+          <Field label="Ciudad" value={form.city} onChange={set('city')} />
+          <Field label="Estado" value={form.state} onChange={set('state')} />
+          <Field label="Código postal" value={form.postalCode} onChange={set('postalCode')} />
+          <div className="sm:col-span-2 lg:col-span-3">
             <Field label="Calle y número" value={form.street} onChange={set('street')} />
           </div>
-          <div className="sm:col-span-2 lg:col-span-2">
+          <div className="sm:col-span-2 lg:col-span-3">
             <Field label="Entre las calles" value={form.betweenStreets} onChange={set('betweenStreets')} />
           </div>
-          <Field label="Colonia" value={form.neighborhood} onChange={set('neighborhood')} />
-          <Field label="Población / Ciudad" value={form.city} onChange={set('city')} />
-          <Field label="Código postal" value={form.postalCode} onChange={set('postalCode')} />
-          <Field label="Municipio / Delegación" value={form.municipality} onChange={set('municipality')} />
-          <Field label="Estado" value={form.state} onChange={set('state')} />
         </Section>
 
         {/* Contacto */}
