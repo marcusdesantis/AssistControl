@@ -231,6 +231,7 @@ export default function HomeScreen() {
     try {
       const loc = await ensureLocation()
       if (!loc) { setActing(false); return }
+      const res = await mobileService.requestOtp(pinCode.trim())
       if (!res.required) {
         // Sin 2FA — registrar directamente con PIN
         await doCheckIn(loc?.latitude, loc?.longitude, pinCode.trim())
