@@ -334,24 +334,24 @@ function ReportsPageInner() {
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 overflow-hidden min-h-0 border-t border-gray-200">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0 border-t border-gray-200">
 
-        {/* Left panel */}
-        <aside id="tour-rep-types" className="w-72 shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
-          <div className="p-4 border-b border-gray-100">
+        {/* Left panel — sidebar en desktop, barra horizontal en mobile */}
+        <aside id="tour-rep-types" className="md:w-72 md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 md:overflow-y-auto">
+          <div className="hidden md:block p-4 border-b border-gray-100">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tipos de reporte</p>
           </div>
-          <nav className="p-2 space-y-0.5">
+          <nav className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 md:gap-0 md:space-y-0.5 no-scrollbar">
             {REPORT_DEFINITIONS.map(r => (
               <button
                 key={r.id}
                 onClick={() => handleSelectReport(r.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-start gap-2
+                className={`shrink-0 md:shrink md:w-full text-left px-3 py-2 md:py-2.5 rounded-lg text-sm transition-colors flex items-center md:items-start gap-2 whitespace-nowrap md:whitespace-normal
                   ${selected === r.id
                     ? 'bg-primary-50 text-primary-700 font-medium'
                     : 'text-gray-700 hover:bg-gray-50'}`}
               >
-                <span className="text-base leading-tight mt-0.5">{r.icon}</span>
+                <span className="text-base leading-tight md:mt-0.5">{r.icon}</span>
                 <span className="leading-snug">{r.label}</span>
               </button>
             ))}

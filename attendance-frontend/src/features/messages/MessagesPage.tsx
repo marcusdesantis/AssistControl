@@ -328,6 +328,7 @@ function MessagesPageInner() {
                 <p className="text-sm">No hay mensajes para este empleado</p>
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
                   <tr>
@@ -373,6 +374,7 @@ function MessagesPageInner() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
           {msgResult && selectedEmp && (

@@ -298,7 +298,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
@@ -310,7 +310,7 @@ export default function SettingsPage() {
           onClick={handleSave}
           id="tour-smtp-save"
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
         >
           {saving
             ? <><Loader2 className="w-4 h-4 animate-spin" />Guardando…</>
@@ -329,7 +329,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-200 overflow-x-auto">
           {([
             { key: 'email',       label: 'Configuración de correo', Icon: Server   },
             { key: 'invitations', label: 'Envío de registro',        Icon: Mail     },
@@ -339,7 +339,7 @@ export default function SettingsPage() {
             <button
               key={key}
               onClick={() => handleTabClick(key)}
-              className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 sm:px-6 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === key
                   ? 'border-primary-600 text-primary-700 bg-primary-50/50'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'

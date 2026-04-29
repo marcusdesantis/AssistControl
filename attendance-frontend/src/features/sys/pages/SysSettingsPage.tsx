@@ -162,14 +162,14 @@ export default function SysSettingsPage() {
 
       {/* Tabs container */}
       <div id="tour-cfg-tabs" className="bg-white rounded-xl border border-gray-200" style={{ overflow: 'clip' }}>
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-200 overflow-x-auto">
           {([
             { key: 'general', label: 'General',                  Icon: Settings2,  tourId: 'tour-cfg-tab-general' },
             { key: 'email',   label: 'Configuración de correo',  Icon: Server,     tourId: 'tour-cfg-tab-email'   },
             { key: 'billing', label: 'Suscripciones',            Icon: CreditCard, tourId: 'tour-cfg-tab-billing' },
           ] as { key: Tab; label: string; Icon: React.ElementType; tourId: string }[]).map(({ key, label, Icon, tourId }) => (
             <button key={key} id={tourId} onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 sm:px-6 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === key
                   ? 'border-slate-800 text-slate-800 bg-slate-50/50'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'

@@ -83,6 +83,7 @@ function HistoryModal({ employee, onClose }: { employee: Employee; onClose: () =
           ) : records.length === 0 ? (
             <p className="text-center text-gray-400 py-12 text-sm">Sin registros en este período</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-500 uppercase">
@@ -105,6 +106,7 @@ function HistoryModal({ employee, onClose }: { employee: Employee; onClose: () =
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
@@ -288,10 +290,10 @@ function OriginsModal({ row, onClose }: { row: AttendanceDayRow; onClose: () => 
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
 
           {/* Left — records list */}
-          <div className="w-[420px] shrink-0 border-r border-gray-200 overflow-y-auto p-5 space-y-4">
+          <div className="w-full md:w-[380px] md:shrink-0 border-b md:border-b-0 md:border-r border-gray-200 overflow-y-auto p-4 space-y-4 md:max-h-none max-h-[45vh]">
             {row.records.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-12">Sin registros este día</p>
             )}
@@ -771,15 +773,11 @@ export default function AttendancePage() {
       {/* Header + toggle vista */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">TiempoYa</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            {view === 'day'
-              ? selectedDate.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone })
-              : 'Resumen por período'}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Asistencia</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Registro de asistencia</p>
           <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
-        <div className="sm:ml-auto flex items-center gap-2">
+        <div className="sm:ml-auto flex flex-wrap items-center gap-2">
           <div id="tour-att-toggle" className="flex rounded-lg border border-gray-300 overflow-hidden bg-white">
             <button
               onClick={() => setView('day')}
@@ -796,12 +794,12 @@ export default function AttendancePage() {
           </div>
 
           {view === 'day' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button onClick={prevDay} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50">
                 <ChevronLeft className="w-4 h-4 text-gray-600" />
               </button>
-              <div className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white">
-                <Calendar className="w-4 h-4 text-gray-400" />{dateStr}
+              <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white">
+                <Calendar className="w-4 h-4 text-gray-400 shrink-0" />{dateStr}
               </div>
               <button onClick={nextDay} disabled={isToday} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40">
                 <ChevronRight className="w-4 h-4 text-gray-600" />

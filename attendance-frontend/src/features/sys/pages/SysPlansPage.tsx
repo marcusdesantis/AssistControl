@@ -390,7 +390,7 @@ export default function SysPlansPage() {
       <div id="tour-plans-header" className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Planes</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Gestiona los planes de suscripción</p>
+          <p className="text-gray-500 text-sm mt-0.5">Gestiona las suscripciones</p>
           <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
         <button id="tour-plans-new" onClick={() => setModal({ open: true })}

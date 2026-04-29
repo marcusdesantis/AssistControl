@@ -275,7 +275,7 @@ export default function SupportPage() {
       <div id="tour-support-header" className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Soporte</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Contacta con el equipo de soporte</p>
+          <p className="text-gray-500 text-sm mt-0.5">Contacta con soporte</p>
           <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
         {hasPrioritySupport && !showForm && (

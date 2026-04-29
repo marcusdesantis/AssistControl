@@ -200,7 +200,7 @@ export default function NotificationBell({ endpoint = '/notifications', variant 
         </button>
 
         {open && (
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="fixed left-2 right-2 top-[60px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <p className="text-sm font-semibold text-gray-900">Notificaciones</p>
               {unread > 0 && (

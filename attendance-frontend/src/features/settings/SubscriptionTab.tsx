@@ -179,7 +179,7 @@ function PlanCard({
 
   return (
     <div className={`
-      flex flex-col border-2 rounded-2xl p-6 shrink-0 w-[260px]
+      flex flex-col border-2 rounded-2xl p-6 w-full sm:w-[260px] sm:shrink-0
       transition-all duration-200 shadow-sm hover:shadow-md
       ${cfg.bg} ${current ? 'border-emerald-500' : cfg.border}
     `}>
@@ -570,12 +570,12 @@ export default function SubscriptionTab() {
 
       {/* ── Planes ───────────────────────────────────────────────────────── */}
       <div id="tour-sub-plans" className="bg-gray-50 rounded-2xl border border-gray-200 mx-5 px-5 py-5">
-        <div className="flex items-start justify-between mb-6 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-3">
           <div>
             <p className="text-gray-900 font-semibold text-base">Planes disponibles</p>
             <p className="text-gray-500 text-sm mt-0.5">Elige el plan que mejor se adapte a tu empresa</p>
           </div>
-          <div id="tour-sub-cycle" className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-xl shrink-0 shadow-sm">
+          <div id="tour-sub-cycle" className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-xl shrink-0 shadow-sm self-start">
             <button onClick={() => setBillingCycle('monthly')}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 billingCycle === 'monthly' ? 'bg-primary-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'
@@ -593,12 +593,11 @@ export default function SubscriptionTab() {
 
         <div className="relative">
           <button onClick={() => scroll('left')}
-            className="absolute left-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 shadow rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+            className="hidden sm:flex absolute left-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 shadow rounded-full items-center justify-center hover:bg-gray-50 transition-colors">
             <ChevronLeft className="w-4 h-4 text-gray-600" />
           </button>
-          <div ref={scrollRef} className="overflow-x-auto no-scrollbar scroll-smooth"
-            style={{ paddingLeft: '36px', paddingRight: '36px' }}>
-            <div className="flex items-start gap-4" style={{ paddingBottom: '64px' }}>
+          <div ref={scrollRef} className="sm:overflow-x-auto sm:no-scrollbar sm:scroll-smooth sm:px-9">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4 pb-4 sm:pb-16">
               {plans.map((plan, i) => {
                 const isCurrent        = subscription?.planId === plan.id
                 const isSameCycle      = subscription?.billingCycle === billingCycle
@@ -633,7 +632,7 @@ export default function SubscriptionTab() {
             </div>
           </div>
           <button onClick={() => scroll('right')}
-            className="absolute right-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 shadow rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+            className="hidden sm:flex absolute right-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 shadow rounded-full items-center justify-center hover:bg-gray-50 transition-colors">
             <ChevronRight className="w-4 h-4 text-gray-600" />
           </button>
         </div>
