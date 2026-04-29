@@ -1,6 +1,6 @@
 import { withSuperadmin, apiOk } from '@attendance/shared'
 import { z } from 'zod'
-import { getTenantDetail, updateTenant, toggleTenantActive } from '@/modules/admin/admin.service'
+import { getTenantDetail, updateTenant, toggleTenantActive, deleteTenant } from '@/modules/admin/admin.service'
 
 export const GET = withSuperadmin(async (_req, _ctx, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
@@ -8,10 +8,22 @@ export const GET = withSuperadmin(async (_req, _ctx, { params }: { params: Promi
 })
 
 const updateSchema = z.object({
-  name:      z.string().min(1).optional(),
-  legalName: z.string().optional(),
-  country:   z.string().length(2).optional(),
-  timeZone:  z.string().optional(),
+  name:            z.string().min(1).optional(),
+  legalName:       z.string().optional(),
+  country:         z.string().length(2).optional(),
+  timeZone:        z.string().optional(),
+  taxId:           z.string().optional(),
+  businessLicense: z.string().optional(),
+  street:          z.string().optional(),
+  betweenStreets:  z.string().optional(),
+  city:            z.string().optional(),
+  postalCode:      z.string().optional(),
+  state:           z.string().optional(),
+  phone1:          z.string().optional(),
+  phone2:          z.string().optional(),
+  fax:             z.string().optional(),
+  email:           z.string().optional(),
+  website:         z.string().optional(),
 })
 
 export const PATCH = withSuperadmin(async (req, _ctx, { params }: { params: Promise<{ id: string }> }) => {
@@ -23,4 +35,10 @@ export const PATCH = withSuperadmin(async (req, _ctx, { params }: { params: Prom
 export const POST = withSuperadmin(async (_req, _ctx, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   return apiOk(await toggleTenantActive(id), 'Estado actualizado.')
+})
+
+export const DELETE = withSuperadmin(async (_req, _ctx, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params
+  await deleteTenant(id)
+  return apiOk(null, 'Empresa eliminada permanentemente.')
 })

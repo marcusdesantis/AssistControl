@@ -108,8 +108,11 @@ export async function getTenantDetail(id: string) {
   const tenant = await prisma.tenant.findUnique({
     where: { id },
     select: {
-      id: true, name: true, legalName: true, taxId: true, country: true,
-      timeZone: true, logoUrl: true, isActive: true, isDeleted: true, createdAt: true,
+      id: true, name: true, legalName: true, taxId: true, businessLicense: true,
+      country: true, timeZone: true, logoUrl: true, isActive: true, isDeleted: true, createdAt: true,
+      street: true, betweenStreets: true, city: true, postalCode: true, state: true,
+      phone1: true, phone2: true, fax: true, email: true, website: true,
+      selfRegistered: true, pendingApproval: true,
       subscription: {
         select: {
           status: true, billingCycle: true, currentPeriodStart: true, currentPeriodEnd: true,
@@ -130,10 +133,58 @@ export async function toggleTenantActive(id: string) {
   return prisma.tenant.update({ where: { id }, data: { isActive: !tenant.isActive } })
 }
 
-export async function updateTenant(id: string, data: { name?: string; legalName?: string; country?: string; timeZone?: string }) {
+export async function updateTenant(id: string, data: {
+  name?: string; legalName?: string; country?: string; timeZone?: string
+  taxId?: string; businessLicense?: string; street?: string; betweenStreets?: string
+  city?: string; postalCode?: string; state?: string
+  phone1?: string; phone2?: string; fax?: string; email?: string; website?: string
+}) {
   const tenant = await prisma.tenant.findUnique({ where: { id } })
   if (!tenant) throw { code: 'NOT_FOUND', message: 'Tenant no encontrado.' }
+
+  if (data.name && data.name !== tenant.name) {
+    const existing = await prisma.tenant.findFirst({ where: { name: { equals: data.name, mode: 'insensitive' }, isDeleted: false, NOT: { id } } })
+    if (existing) throw { code: 'COMPANY_NAME_TAKEN', message: 'Ya existe una empresa con ese nombre.' }
+  }
+
   return prisma.tenant.update({ where: { id }, data })
+}
+
+export async function deleteTenant(id: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { id } })
+  if (!tenant) throw { code: 'NOT_FOUND', message: 'Empresa no encontrada.' }
+
+  // 1. RefreshTokens (a través de Users)
+  const userIds = (await prisma.user.findMany({ where: { tenantId: id }, select: { id: true } })).map(u => u.id)
+  if (userIds.length) await prisma.refreshToken.deleteMany({ where: { userId: { in: userIds } } })
+
+  // 2. Dependientes de Employee
+  await prisma.attendanceRecord.deleteMany({ where: { tenantId: id } })
+  await prisma.employeeMessage.deleteMany({ where: { tenantId: id } })
+  await prisma.checkerOtp.deleteMany({ where: { tenantId: id } })
+
+  // 3. Invitaciones
+  await prisma.employeeInvitation.deleteMany({ where: { tenantId: id } })
+
+  // 4. Empleados
+  await prisma.employee.deleteMany({ where: { tenantId: id } })
+
+  // 5. Billing
+  await prisma.subscriptionLog.deleteMany({ where: { tenantId: id } })
+  await prisma.subscription.deleteMany({ where: { tenantId: id } })
+  await prisma.invoice.deleteMany({ where: { tenantId: id } })
+  await prisma.paymentMethod.deleteMany({ where: { tenantId: id } })
+
+  // 6. Catálogos
+  await prisma.schedule.deleteMany({ where: { tenantId: id } })
+  await prisma.department.deleteMany({ where: { tenantId: id } })
+  await prisma.position.deleteMany({ where: { tenantId: id } })
+
+  // 7. Usuarios admin
+  await prisma.user.deleteMany({ where: { tenantId: id } })
+
+  // 8. Empresa (SupportTicket/SupportMessage/Notification tienen Cascade → se borran solos)
+  await prisma.tenant.delete({ where: { id } })
 }
 
 // ─── Plans ────────────────────────────────────────────────────────────────────

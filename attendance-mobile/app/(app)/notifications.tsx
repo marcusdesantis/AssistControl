@@ -41,10 +41,11 @@ function timeAgo(iso: string) {
 }
 
 export default function NotificationsScreen() {
-  const [items,    setItems]    = useState<MobileNotification[]>([])
-  const [unread,   setUnread]   = useState(0)
-  const [loading,  setLoading]  = useState(true)
-  const [marking,  setMarking]  = useState(false)
+  const [items,       setItems]       = useState<MobileNotification[]>([])
+  const [unread,      setUnread]      = useState(0)
+  const [loading,     setLoading]     = useState(true)
+  const [marking,     setMarking]     = useState(false)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -78,13 +79,23 @@ export default function NotificationsScreen() {
     finally { setMarking(false) }
   }
 
+  const toggleExpand = (n: MobileNotification) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      next.has(n.id) ? next.delete(n.id) : next.add(n.id)
+      return next
+    })
+    if (!n.isRead) markOne(n.id)
+  }
+
   const renderItem = ({ item: n }: { item: MobileNotification }) => {
-    const color = TYPE_COLOR[n.type] ?? TYPE_COLOR.info
-    const icon  = TYPE_ICON[n.type]  ?? TYPE_ICON.info
+    const color    = TYPE_COLOR[n.type] ?? TYPE_COLOR.info
+    const icon     = TYPE_ICON[n.type]  ?? TYPE_ICON.info
+    const expanded = expandedIds.has(n.id)
     return (
       <TouchableOpacity
-        onPress={() => !n.isRead && markOne(n.id)}
-        activeOpacity={n.isRead ? 1 : 0.7}
+        onPress={() => toggleExpand(n)}
+        activeOpacity={0.7}
         style={[styles.item, !n.isRead && styles.itemUnread]}
       >
         <View style={[styles.iconCircle, { backgroundColor: color + '22' }]}>
@@ -97,8 +108,15 @@ export default function NotificationsScreen() {
             </Text>
             {!n.isRead && <View style={[styles.dot, { backgroundColor: color }]} />}
           </View>
-          <Text style={styles.body} numberOfLines={3}>{n.body}</Text>
-          <Text style={styles.time}>{timeAgo(n.createdAt)}</Text>
+          <Text style={styles.body} numberOfLines={expanded ? undefined : 3}>{n.body}</Text>
+          <View style={styles.footer}>
+            <Text style={styles.time}>{timeAgo(n.createdAt)}</Text>
+            <Ionicons
+              name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+              size={14}
+              color="#475569"
+            />
+          </View>
         </View>
       </TouchableOpacity>
     )
@@ -168,6 +186,7 @@ const styles = StyleSheet.create({
   titleBold:         { color: '#f1f5f9', fontWeight: '700' },
   dot:               { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   body:              { fontSize: 13, color: '#64748b', lineHeight: 18 },
-  time:              { fontSize: 11, color: '#475569', marginTop: 6 },
+  footer:            { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
+  time:              { fontSize: 11, color: '#475569' },
   separator:         { height: 1, backgroundColor: '#1e293b', marginLeft: 72 },
 })

@@ -83,9 +83,12 @@ export const sysTenantsService = {
     const res = await sysApi.get<ApiResponse<SysTenantDetail>>(`/tenants/${id}`)
     return res.data.data!
   },
-  update: async (id: string, data: Partial<{ name: string; legalName: string; country: string; timeZone: string }>) => {
+  update: async (id: string, data: Partial<{ name: string; legalName: string; country: string; timeZone: string; taxId: string; businessLicense: string; street: string; betweenStreets: string; city: string; postalCode: string; state: string; phone1: string; phone2: string; fax: string; email: string; website: string }>) => {
     const res = await sysApi.patch<ApiResponse<SysTenant>>(`/tenants/${id}`, data)
     return res.data.data!
+  },
+  delete: async (id: string) => {
+    await sysApi.delete(`/tenants/${id}`)
   },
   toggle: async (id: string) => {
     const res = await sysApi.post<ApiResponse<SysTenant>>(`/tenants/${id}`)

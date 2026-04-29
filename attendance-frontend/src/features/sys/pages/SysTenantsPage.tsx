@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Loader2, ArrowUpRight, ToggleLeft, ToggleRight, Plus, X, Bell, Mail, Send, CheckCircle2 } from 'lucide-react'
+import { Search, Loader2, ArrowUpRight, ToggleLeft, ToggleRight, Plus, X, Bell, Mail, Send, CheckCircle2, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { sysTenantsService, sysPlansService, type SysTenant, type SysPlan, type CreateTenantDto } from '../sysService'
 import Pagination from '@/components/Pagination'
@@ -186,6 +186,230 @@ const EMPTY_FORM: CreateTenantDto = {
   username: '', email: '', password: '', planId: '',
 }
 
+// ─── Modal eliminar empresa ───────────────────────────────────────────────────
+
+function DeleteTenantModal({ tenant, onClose, onDeleted }: {
+  tenant: SysTenant
+  onClose: () => void
+  onDeleted: (id: string) => void
+}) {
+  const [confirm, setConfirm] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
+  const isMatch = confirm.trim().toLowerCase() === tenant.name.trim().toLowerCase()
+
+  const handleDelete = async () => {
+    if (!isMatch) return
+    setDeleting(true)
+    try {
+      await sysTenantsService.delete(tenant.id)
+      toast.success('Empresa eliminada permanentemente.')
+      onDeleted(tenant.id)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Error al eliminar.')
+    } finally { setDeleting(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" style={{marginTop: 0}}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="h-1.5 w-full bg-red-500" />
+        <div className="p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Eliminar empresa permanentemente</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Esta acción no se puede deshacer.</p>
+            </div>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-1.5 text-sm text-red-800">
+            <p className="font-semibold">Se eliminará todo lo relacionado a <span className="font-bold">"{tenant.name}"</span>:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-red-700">
+              <li>Empleados y sus registros de asistencia</li>
+              <li>Departamentos, cargos y horarios</li>
+              <li>Usuarios administradores</li>
+              <li>Mensajes, invitaciones y notificaciones</li>
+              <li>Suscripción, facturas y métodos de pago</li>
+              <li>Tickets de soporte</li>
+            </ul>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Escribe el nombre de la empresa para confirmar:
+              <span className="ml-1 font-bold text-gray-900">"{tenant.name}"</span>
+            </label>
+            <input
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              placeholder="Escribe el nombre exacto..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button onClick={onClose}
+              className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancelar
+            </button>
+            <button onClick={handleDelete} disabled={!isMatch || deleting}
+              className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Eliminar permanentemente
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Modal editar empresa ─────────────────────────────────────────────────────
+
+function EditTenantModal({ tenant, onClose, onSaved }: {
+  tenant: SysTenant
+  onClose: () => void
+  onSaved: (t: SysTenant) => void
+}) {
+  const detail = tenant as any
+  const [form, setForm] = useState({
+    name:            tenant.name,
+    legalName:       tenant.legalName ?? '',
+    timeZone:        tenant.timeZone,
+    country:         tenant.country,
+    taxId:           detail.taxId           ?? '',
+    businessLicense: detail.businessLicense ?? '',
+    street:          detail.street          ?? '',
+    betweenStreets:  detail.betweenStreets  ?? '',
+    city:            detail.city            ?? '',
+    postalCode:      detail.postalCode      ?? '',
+    state:           detail.state           ?? '',
+    phone1:          detail.phone1          ?? '',
+    phone2:          detail.phone2          ?? '',
+    fax:             detail.fax             ?? '',
+    email:           detail.email           ?? '',
+    website:         detail.website         ?? '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (k === 'timeZone') {
+      const found = COUNTRIES.find(c => c.tz === e.target.value)
+      if (found) setForm(p => ({ ...p, timeZone: found.tz, country: found.code }))
+    } else {
+      setForm(p => ({ ...p, [k]: e.target.value }))
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name.trim()) { toast.error('El nombre es requerido.'); return }
+    setSaving(true)
+    try {
+      const updated = await sysTenantsService.update(tenant.id, {
+        name:            form.name.trim(),
+        legalName:       form.legalName.trim()       || undefined,
+        country:         form.country,
+        timeZone:        form.timeZone,
+        taxId:           form.taxId.trim()           || undefined,
+        businessLicense: form.businessLicense.trim() || undefined,
+        street:          form.street.trim()          || undefined,
+        betweenStreets:  form.betweenStreets.trim()  || undefined,
+        city:            form.city.trim()            || undefined,
+        postalCode:      form.postalCode.trim()      || undefined,
+        state:           form.state.trim()           || undefined,
+        phone1:          form.phone1.trim()          || undefined,
+        phone2:          form.phone2.trim()          || undefined,
+        fax:             form.fax.trim()             || undefined,
+        email:           form.email.trim()           || undefined,
+        website:         form.website.trim()         || undefined,
+      })
+      toast.success('Empresa actualizada.')
+      onSaved(updated)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Error al actualizar.')
+    } finally { setSaving(false) }
+  }
+
+  const inp = (label: string, k: keyof typeof form, placeholder?: string, type = 'text') => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <input type={type} value={form[k]} onChange={set(k)} placeholder={placeholder}
+        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
+    </div>
+  )
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" style={{marginTop: 0}}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="text-base font-semibold text-gray-900">Editar empresa</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+
+          {/* Datos generales */}
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Datos generales</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">{inp('Nombre / Razón social *', 'name')}</div>
+              {inp('Nombre comercial',   'legalName')}
+              {inp('RUC',               'taxId')}
+              {inp('Representante',     'businessLicense')}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">País / Zona horaria</label>
+                <select value={form.timeZone} onChange={set('timeZone')}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                  {COUNTRIES.map((c, i) => <option key={i} value={c.tz}>{c.name} — {c.tz}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Dirección */}
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Dirección</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {inp('Ciudad',        'city')}
+              {inp('Estado',        'state')}
+              {inp('Código postal', 'postalCode')}
+              <div className="sm:col-span-3">{inp('Calle y número',   'street')}</div>
+              <div className="sm:col-span-3">{inp('Entre las calles', 'betweenStreets')}</div>
+            </div>
+          </div>
+
+          {/* Contacto */}
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Contacto</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {inp('Teléfono 1',         'phone1', '(000) 000-0000')}
+              {inp('Teléfono 2',         'phone2', '(000) 000-0000')}
+              {inp('Fax',                'fax')}
+              {inp('Correo electrónico', 'email', undefined, 'email')}
+              <div className="sm:col-span-2">{inp('Sitio web', 'website', 'https://www.empresa.com')}</div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pb-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slateate-900 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function CreateTenantModal({ onClose, onCreated, plans }: {
   onClose: () => void
   onCreated: (t: SysTenant) => void
@@ -312,6 +536,18 @@ export default function SysTenantsPage() {
   const [selected,   setSelected]   = useState<Set<string>>(new Set())
   const [compose,    setCompose]    = useState<{ mode: ComposeMode; tenantId?: string } | null>(null)
   const [confirmDeact, setConfirmDeact] = useState<SysTenant | null>(null)
+  const [editing,    setEditing]    = useState<SysTenant | null>(null)
+  const [deleting,   setDeleting]   = useState<SysTenant | null>(null)
+  const [loadingEdit, setLoadingEdit] = useState(false)
+
+  const handleEdit = async (t: SysTenant) => {
+    setLoadingEdit(true)
+    try {
+      const detail = await sysTenantsService.get(t.id)
+      setEditing(detail as unknown as SysTenant)
+    } catch { toast.error('Error al cargar datos de la empresa.') }
+    finally { setLoadingEdit(false) }
+  }
   const navigate = useNavigate()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -403,6 +639,20 @@ export default function SysTenantsPage() {
           plans={plans}
           onClose={() => setShowModal(false)}
           onCreated={t => { setShowModal(false); setItems(prev => [t as SysTenant, ...prev]); setTotal(n => n + 1) }}
+        />
+      )}
+      {editing && (
+        <EditTenantModal
+          tenant={editing}
+          onClose={() => setEditing(null)}
+          onSaved={updated => { setItems(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t)); setEditing(null) }}
+        />
+      )}
+      {deleting && (
+        <DeleteTenantModal
+          tenant={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={id => { setItems(prev => prev.filter(t => t.id !== id)); setTotal(n => n - 1); setDeleting(null) }}
         />
       )}
 
@@ -565,6 +815,16 @@ export default function SysTenantsPage() {
                             Aprobar
                           </button>
                         )}
+                        <button onClick={() => handleEdit(t)} disabled={loadingEdit}
+                          title="Editar empresa"
+                          className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">
+                          {loadingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pencil className="w-3.5 h-3.5" />}
+                        </button>
+                        <button onClick={() => setDeleting(t)}
+                          title="Eliminar empresa"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                         <button onClick={() => setCompose({ mode: 'notify', tenantId: t.id })}
                           title="Enviar notificación"
                           className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-gray-100 rounded-lg transition-colors">

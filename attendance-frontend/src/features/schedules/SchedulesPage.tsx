@@ -106,6 +106,31 @@ function ScheduleModal({
       return
     }
 
+    for (const d of days) {
+      if (!d.isWorkDay) continue
+      const dayLabel = DAYS.find(x => x.value === d.day)?.label ?? `Día ${d.day}`
+
+      if (d.entryTime >= d.exitTime) {
+        setError(`${dayLabel}: la hora de entrada debe ser menor que la hora de salida.`)
+        return
+      }
+
+      if (d.hasLunch) {
+        if (d.lunchStart <= d.entryTime || d.lunchStart >= d.exitTime) {
+          setError(`${dayLabel}: la hora de inicio de comida debe estar entre la entrada y la salida.`)
+          return
+        }
+        if (d.lunchEnd <= d.entryTime || d.lunchEnd > d.exitTime) {
+          setError(`${dayLabel}: la hora de regreso de comida debe estar entre la entrada y la salida.`)
+          return
+        }
+        if (d.lunchStart >= d.lunchEnd) {
+          setError(`${dayLabel}: la hora de inicio de comida debe ser menor que la hora de regreso.`)
+          return
+        }
+      }
+    }
+
     setSaving(true)
     setError(null)
 
