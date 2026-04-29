@@ -39,8 +39,9 @@ function extractToken(req: Request): string | null {
 function handleError(e: any, label: string): Response {
   if (e?.code === 'NOT_FOUND')        return Response.json({ success: false, message: e.message }, { status: 404 })
   if (e?.code === 'PLAN_LIMIT')       return Response.json({ success: false, code: 'PLAN_LIMIT',    message: e.message }, { status: 403 })
-  if (e?.code === 'TENANT_INACTIVE')  return Response.json({ success: false, code: 'TENANT_INACTIVE', message: e.message }, { status: 403 })
-  if (e?.code === 'USER_INACTIVE')    return Response.json({ success: false, code: 'USER_INACTIVE',   message: e.message }, { status: 403 })
+  if (e?.code === 'TENANT_INACTIVE')      return Response.json({ success: false, code: 'TENANT_INACTIVE',      message: e.message }, { status: 403 })
+  if (e?.code === 'USER_INACTIVE')        return Response.json({ success: false, code: 'USER_INACTIVE',        message: e.message }, { status: 403 })
+  if (e?.code === 'MOBILE_NOT_ALLOWED')  return Response.json({ success: false, code: 'MOBILE_NOT_ALLOWED',  message: e.message }, { status: 403 })
   if (e?.code)                         return apiBadRequest(e.message, e.code)
   if (e?.name === 'ZodError')        return apiBadRequest(e.errors?.[0]?.message ?? 'Datos inválidos', 'VALIDATION_ERROR')
   if (e?.name === 'JsonWebTokenError' || e?.name === 'TokenExpiredError') return apiUnauthorized()

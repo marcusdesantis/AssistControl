@@ -4,8 +4,13 @@
     "slug": "attendance-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./aiattendance-logo.png",
+    "icon": "./icon.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -20,7 +25,7 @@
     "android": {
       "package": "com.abisoft.tiempoya",
       "adaptiveIcon": {
-        "foregroundImage": "./aiattendance-logo.png",
+        "foregroundImage": "./icon.png",
         "backgroundColor": "#0f172a"
       },
       "permissions": [

@@ -57,6 +57,14 @@ export async function login(username: string, password: string) {
   if (!tenant?.isActive)
     throw { code: 'TENANT_INACTIVE', message: 'Tu empresa ha sido desactivada. Contacta al administrador.' }
 
+  const subscription = await prisma.subscription.findFirst({
+    where: { tenantId: employee.tenantId },
+    include: { plan: true },
+  })
+  const caps = subscription?.plan?.capabilities as any
+  if (!caps?.mobileApp?.enabled)
+    throw { code: 'MOBILE_NOT_ALLOWED', message: 'Tu plan no incluye acceso a la aplicación móvil. Contacta con el administrador de tu empresa.' }
+
   const token  = signEmployee({ sub: employee.id, tenantId: employee.tenantId, employeeCode: employee.employeeCode })
 
   return {
@@ -90,7 +98,18 @@ export async function getProfile(employeeId: string, tenantId: string) {
   }
 }
 
+async function assertMobileAccess(tenantId: string) {
+  const subscription = await prisma.subscription.findFirst({
+    where: { tenantId },
+    include: { plan: true },
+  })
+  const caps = subscription?.plan?.capabilities as any
+  if (!caps?.mobileApp?.enabled)
+    throw { code: 'MOBILE_NOT_ALLOWED', message: 'Tu plan no incluye acceso a la aplicación móvil. Contacta con el administrador de tu empresa.' }
+}
+
 export async function getTodayStatus(employeeId: string, tenantId: string) {
+  await assertMobileAccess(tenantId)
   const tenant  = await prisma.tenant.findFirst({ where: { id: tenantId } })
   const tz      = tenant?.timeZone ?? 'America/Guayaquil'
   const today   = DateTime.now().setZone(tz).toFormat('yyyy-MM-dd')

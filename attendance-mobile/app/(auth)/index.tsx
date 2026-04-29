@@ -25,14 +25,18 @@ export default function LoginScreen() {
   const [password,          setPassword]          = useState('')
   const [showPass,          setShowPass]          = useState(false)
   const [loading,           setLoading]           = useState(false)
-  const [error,             setError]             = useState<string | null>(null)
-  const [userInactiveModal, setUserInactiveModal] = useState(false)
+  const [error,               setError]               = useState<string | null>(null)
+  const [userInactiveModal,   setUserInactiveModal]   = useState(false)
+  const [mobileNotAllowed,    setMobileNotAllowed]    = useState(false)
 
   useEffect(() => {
     storage.getItem('login_notice').then((notice) => {
       if (notice === 'user_inactive') {
         storage.deleteItem('login_notice')
         setUserInactiveModal(true)
+      } else if (notice === 'mobile_not_allowed') {
+        storage.deleteItem('login_notice')
+        setMobileNotAllowed(true)
       }
     })
   }, [])
@@ -70,6 +74,8 @@ export default function LoginScreen() {
       const code = e?.response?.data?.code
       if (code === 'USER_INACTIVE') {
         setUserInactiveModal(true)
+      } else if (code === 'MOBILE_NOT_ALLOWED') {
+        setMobileNotAllowed(true)
       } else {
         const msg = e?.response?.data?.message ?? e?.message ?? 'Error al iniciar sesión.'
         setError(msg)
@@ -167,6 +173,32 @@ export default function LoginScreen() {
             <TouchableOpacity
               style={styles.modalBtn}
               onPress={() => setUserInactiveModal(false)}
+            >
+              <Text style={styles.modalBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal: plan sin acceso a app móvil */}
+      <Modal
+        visible={mobileNotAllowed}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMobileNotAllowed(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconWrap, { backgroundColor: '#1e1b4b' }]}>
+              <Ionicons name="phone-portrait-outline" size={36} color="#818cf8" />
+            </View>
+            <Text style={styles.modalTitle}>Sin acceso a la app</Text>
+            <Text style={styles.modalBody}>
+              El plan de tu empresa no incluye acceso a la aplicación móvil. Contacta con el administrador para más información.
+            </Text>
+            <TouchableOpacity
+              style={[styles.modalBtn, { backgroundColor: '#4f46e5' }]}
+              onPress={() => setMobileNotAllowed(false)}
             >
               <Text style={styles.modalBtnText}>Entendido</Text>
             </TouchableOpacity>

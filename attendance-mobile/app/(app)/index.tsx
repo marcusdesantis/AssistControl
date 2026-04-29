@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Platform,
   RefreshControl,
@@ -145,6 +146,8 @@ export default function HomeScreen() {
   const [pending,     setPending]     = useState<{ lat?: number; lon?: number; pin?: string } | null>(null)
   // Mensajes pendientes tras check-in/check-out
   const [pendingMsgs, setPendingMsgs] = useState<EmployeeMessage[]>([])
+  // GPS bloqueado
+  const [gpsBlocked,  setGpsBlocked]  = useState<'services' | 'permission' | null>(null)
 
   const loadStatus = useCallback(async () => {
     try {
@@ -161,15 +164,18 @@ export default function HomeScreen() {
 
   useFocusEffect(useCallback(() => { loadStatus() }, [loadStatus]))
 
-  const getLocation = async (): Promise<{ latitude: number; longitude: number } | undefined> => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== 'granted') return undefined
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
-      return { latitude: loc.coords.latitude, longitude: loc.coords.longitude }
-    } catch {
-      return undefined
+  const ensureLocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
+    const servicesEnabled = await Location.hasServicesEnabledAsync()
+    if (!servicesEnabled) { setGpsBlocked('services'); return null }
+
+    const { status: existing } = await Location.getForegroundPermissionsAsync()
+    if (existing !== 'granted') {
+      const { status: requested } = await Location.requestForegroundPermissionsAsync()
+      if (requested !== 'granted') { setGpsBlocked('permission'); return null }
     }
+
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+    return { latitude: loc.coords.latitude, longitude: loc.coords.longitude }
   }
 
   const resetFlow = () => {
@@ -194,11 +200,12 @@ export default function HomeScreen() {
   }
 
   const doCheckOut = async () => {
+    const loc = await ensureLocation()
+    if (!loc) return
     setActing(true)
     setErrorMsg(null)
     try {
-      const loc    = await getLocation()
-      const result = await mobileService.checkOut(loc?.latitude, loc?.longitude)
+      const result = await mobileService.checkOut(loc.latitude, loc.longitude)
       await loadStatus()
       if (result.pendingMessages?.length > 0) setPendingMsgs(result.pendingMessages)
     } catch (e: any) {
@@ -208,8 +215,10 @@ export default function HomeScreen() {
     }
   }
 
-  // Paso 1: mostrar pantalla de PIN
-  const handleCheckIn = () => {
+  // Paso 1: verificar GPS y mostrar pantalla de PIN
+  const handleCheckIn = async () => {
+    const loc = await ensureLocation()
+    if (!loc) return
     setErrorMsg(null)
     setPinStep(true)
   }
@@ -220,8 +229,8 @@ export default function HomeScreen() {
     setActing(true)
     setErrorMsg(null)
     try {
-      const loc = await getLocation()
-      const res = await mobileService.requestOtp(pinCode.trim())
+      const loc = await ensureLocation()
+      if (!loc) { setActing(false); return }
       if (!res.required) {
         // Sin 2FA — registrar directamente con PIN
         await doCheckIn(loc?.latitude, loc?.longitude, pinCode.trim())
@@ -428,6 +437,38 @@ export default function HomeScreen() {
           onClose={() => setPendingMsgs([])}
         />
       )}
+
+      {/* Modal: GPS requerido */}
+      <Modal
+        visible={gpsBlocked !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGpsBlocked(null)}
+      >
+        <View style={gpsStyles.overlay}>
+          <View style={gpsStyles.card}>
+            <View style={gpsStyles.iconWrap}>
+              <Ionicons name="location-outline" size={36} color="#3b82f6" />
+            </View>
+            <Text style={gpsStyles.title}>Ubicación requerida</Text>
+            <Text style={gpsStyles.body}>
+              {gpsBlocked === 'services'
+                ? 'El GPS de tu dispositivo está desactivado. Actívalo en Configuración para poder registrar tu asistencia.'
+                : 'Esta app necesita acceso a tu ubicación para registrar asistencia. Activa el permiso en Configuración.'}
+            </Text>
+            <TouchableOpacity
+              style={gpsStyles.btnPrimary}
+              onPress={() => { setGpsBlocked(null); Linking.openSettings() }}
+            >
+              <Ionicons name="settings-outline" size={16} color="#fff" />
+              <Text style={gpsStyles.btnPrimaryText}>Abrir Configuración</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={gpsStyles.btnSecondary} onPress={() => setGpsBlocked(null)}>
+              <Text style={gpsStyles.btnSecondaryText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -526,4 +567,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   gpsText:      { color: '#475569', fontSize: 11 },
+})
+
+const gpsStyles = StyleSheet.create({
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
+  card:           { backgroundColor: '#1e293b', borderRadius: 20, padding: 28, alignItems: 'center', width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 20, elevation: 12 },
+  iconWrap:       { width: 72, height: 72, borderRadius: 36, backgroundColor: '#0f2d5e', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  title:          { fontSize: 18, fontWeight: '700', color: '#f1f5f9', marginBottom: 10, textAlign: 'center' },
+  body:           { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  btnPrimary:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2563eb', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 24, width: '100%', justifyContent: 'center', marginBottom: 10 },
+  btnPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  btnSecondary:   { paddingVertical: 10, width: '100%', alignItems: 'center' },
+  btnSecondaryText: { color: '#64748b', fontSize: 14 },
 })
