@@ -7,5 +7,7 @@ export const GET = withSuperadmin(async (req) => {
   const pageSize = Math.min(50, parseInt(p.get('pageSize') ?? '20'))
   const status   = p.get('status')   ?? undefined
   const priority = p.get('priority') ?? undefined
-  return apiOk(await svc.adminGetTickets({ page, pageSize, status, priority }))
+  const dateFrom = p.get('dateFrom') ?? undefined
+  const dateTo   = p.get('dateTo')   ?? undefined
+  return apiOk(await svc.adminGetTickets({ page, pageSize, status, priority, dateFrom, dateTo }))
 })

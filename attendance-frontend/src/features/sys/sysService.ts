@@ -292,7 +292,7 @@ export interface SysTicketDetail extends SysTicket {
 }
 
 export const sysSupportService = {
-  list: async (params?: { status?: string; priority?: string; page?: number; pageSize?: number }) => {
+  list: async (params?: { status?: string; priority?: string; dateFrom?: string; dateTo?: string; page?: number; pageSize?: number }) => {
     const res = await sysApi.get<ApiResponse<{ total: number; page: number; pageSize: number; items: SysTicket[] }>>(
       '/support/tickets', { params }
     )

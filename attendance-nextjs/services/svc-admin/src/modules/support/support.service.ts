@@ -3,12 +3,20 @@ import { prisma } from '@attendance/shared'
 export async function adminGetTickets(filters: {
   status?: string
   priority?: string
+  dateFrom?: string
+  dateTo?: string
   page: number
   pageSize: number
 }) {
   const where: Record<string, unknown> = {}
   if (filters.status)   where.status   = filters.status
   if (filters.priority) where.priority = filters.priority
+  if (filters.dateFrom || filters.dateTo) {
+    where.createdAt = {
+      ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+      ...(filters.dateTo   ? { lte: new Date(filters.dateTo + 'T23:59:59.999Z') } : {}),
+    }
+  }
 
   const [total, items] = await Promise.all([
     prisma.supportTicket.count({ where }),

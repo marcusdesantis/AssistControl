@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Loader2, ChevronRight, ArrowLeft, Send, X, Tag, Clock, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import { sysSupportService, type SysTicket, type SysTicketDetail } from '../sysService'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
 import { useSysAuthStore } from '@/store/sysAuthStore'
+import Pagination from '@/components/Pagination'
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   open:    { label: 'Abierto',   color: 'bg-blue-50 text-blue-700 border-blue-200'    },
@@ -264,17 +267,21 @@ export default function SysSupportPage() {
   const [selected, setSelected] = useState<SysTicket | null>(null)
   const [filterStatus,   setFilterStatus]   = useState('')
   const [filterPriority, setFilterPriority] = useState('')
-  const [page, setPage] = useState(1)
-  const pageSize = 20
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null])
+  const [page,     setPage]     = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const totalPages = Math.ceil(total / pageSize)
 
   const fetchTickets = async (p: number, silent = false) => {
     if (!silent) setLoading(true)
     try {
+      const [from, to] = dateRange
       const res = await sysSupportService.list({
-        page: p,
-        pageSize,
+        page: p, pageSize,
         status:   filterStatus   || undefined,
         priority: filterPriority || undefined,
+        dateFrom: from ? from.toISOString().split('T')[0] : undefined,
+        dateTo:   to   ? to.toISOString().split('T')[0]   : undefined,
       })
       setTickets(res.items)
       setTotal(res.total)
@@ -284,12 +291,12 @@ export default function SysSupportPage() {
 
   const load = (p = page) => fetchTickets(p, false)
 
-  useEffect(() => { fetchTickets(1, false); setPage(1) }, [filterStatus, filterPriority])
+  useEffect(() => { fetchTickets(1, false); setPage(1) }, [filterStatus, filterPriority, dateRange])
 
   useEffect(() => {
     const interval = setInterval(() => fetchTickets(page, true), 15000)
     return () => clearInterval(interval)
-  }, [page, filterStatus, filterPriority])
+  }, [page, filterStatus, filterPriority, dateRange])
 
   if (selected) {
     return (
@@ -328,7 +335,7 @@ export default function SysSupportPage() {
       </div>
 
       {/* Filtros */}
-      <div id="tour-support-filters" className="flex flex-wrap gap-3">
+      <div id="tour-support-filters" className="flex flex-wrap gap-3 items-center">
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-500">
           <option value="">Todos los estados</option>
@@ -344,13 +351,24 @@ export default function SysSupportPage() {
           <option value="normal">Normal</option>
           <option value="low">Baja</option>
         </select>
-        {(filterStatus || filterPriority) && (
-          <button onClick={() => { setFilterStatus(''); setFilterPriority('') }}
+        <DatePicker
+          selectsRange
+          startDate={dateRange[0]}
+          endDate={dateRange[1]}
+          onChange={(range) => setDateRange(range as [Date | null, Date | null])}
+          placeholderText="Filtrar por fecha"
+          dateFormat="dd/MM/yyyy"
+          isClearable
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-500 w-52 text-gray-600"
+          calendarClassName="text-sm"
+        />
+        {(filterStatus || filterPriority || dateRange[0]) && (
+          <button onClick={() => { setFilterStatus(''); setFilterPriority(''); setDateRange([null, null]) }}
             className="flex items-center gap-1 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="w-3.5 h-3.5" /> Limpiar
           </button>
         )}
-        <span className="ml-auto text-sm text-gray-400 self-center">{total} ticket{total !== 1 ? 's' : ''}</span>
+        <span className="ml-auto text-sm text-gray-400">{total} ticket{total !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Tabla */}
@@ -397,22 +415,16 @@ export default function SysSupportPage() {
             </tbody>
           </table>
         )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={total}
+          pageSize={pageSize}
+          onPageChange={p => { setPage(p); fetchTickets(p) }}
+          pageSizeOptions={[10, 20, 50]}
+          onPageSizeChange={s => { setPageSize(s); setPage(1); fetchTickets(1) }}
+        />
       </div>
-
-      {/* Paginación */}
-      {total > pageSize && (
-        <div className="flex items-center justify-center gap-2">
-          <button onClick={() => { setPage(p => p - 1); load(page - 1) }} disabled={page === 1}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">
-            Anterior
-          </button>
-          <span className="text-sm text-gray-500">Pág. {page} de {Math.ceil(total / pageSize)}</span>
-          <button onClick={() => { setPage(p => p + 1); load(page + 1) }} disabled={page >= Math.ceil(total / pageSize)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">
-            Siguiente
-          </button>
-        </div>
-      )}
     </div>
   )
 }
