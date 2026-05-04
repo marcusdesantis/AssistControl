@@ -247,26 +247,27 @@ export default function SysSettingsPage() {
                 </div>
 
                 {/* Toggle WhatsApp / Teléfono */}
-                <div className="flex rounded-lg border border-gray-200 overflow-hidden">
-                  {(['whatsapp', 'phone'] as const).map(opt => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setForm(p => ({
-                        ...p,
-                        supportWhatsapp: opt === 'phone' ? null : p.supportWhatsapp,
-                        supportPhone:    opt === 'whatsapp' ? null : p.supportPhone,
-                      }))}
-                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                        (opt === 'whatsapp' ? !form.supportPhone : !!form.supportPhone || (!form.supportWhatsapp && !form.supportPhone && opt === 'whatsapp'))
-                          ? 'bg-slate-800 text-white'
-                          : 'bg-white text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {opt === 'whatsapp' ? 'WhatsApp' : 'Teléfono de oficina'}
-                    </button>
-                  ))}
-                </div>
+                {(() => {
+                  const phoneMode = form.supportPhone !== null
+                  return (
+                    <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, supportPhone: null }))}
+                        className={`flex-1 py-2 text-xs font-medium transition-colors ${!phoneMode ? 'bg-slate-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, supportWhatsapp: null, supportPhone: p.supportPhone ?? '' }))}
+                        className={`flex-1 py-2 text-xs font-medium transition-colors ${phoneMode ? 'bg-slate-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        Teléfono de oficina
+                      </button>
+                    </div>
+                  )
+                })()}
 
                 {form.supportPhone == null ? (
                   <Field label="WhatsApp (con código país)" value={form.supportWhatsapp ?? ''}
