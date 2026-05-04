@@ -103,7 +103,7 @@ export default function NotificationsScreen() {
         </View>
         <View style={styles.content}>
           <View style={styles.titleRow}>
-            <Text style={[styles.title, !n.isRead && styles.titleBold]} numberOfLines={1}>
+            <Text style={[styles.title, !n.isRead && styles.titleBold]} numberOfLines={expanded ? undefined : 1}>
               {n.title}
             </Text>
             {!n.isRead && <View style={[styles.dot, { backgroundColor: color }]} />}
@@ -157,6 +157,7 @@ export default function NotificationsScreen() {
           data={items}
           keyExtractor={n => n.id}
           renderItem={renderItem}
+          extraData={expandedIds}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor="#3b82f6" />}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
