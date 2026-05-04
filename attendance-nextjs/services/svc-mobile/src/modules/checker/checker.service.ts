@@ -66,17 +66,19 @@ async function resolveByKey(checkerKey: string) {
     where:  { tenantId: tenant.id },
     select: { plan: { select: { capabilities: true } } },
   })
+  let checkerLimit: number | null = null
   if (sub) {
-    const caps = sub.plan.capabilities as Record<string, { enabled?: boolean }> | null
+    const caps = sub.plan.capabilities as Record<string, { enabled?: boolean; limit?: number | null }> | null
     if (caps?.checker?.enabled === false)
       throw { code: 'PLAN_LIMIT', message: 'El plan actual no incluye el Reloj Checador. Contacta al administrador.' }
+    checkerLimit = caps?.checker?.limit ?? null
   }
 
-  return tenant
+  return { tenant, checkerLimit }
 }
 
 export async function getFeed(checkerKey: string) {
-  const tenant  = await resolveByKey(checkerKey)
+  const { tenant } = await resolveByKey(checkerKey)
   const tz      = tenant.timeZone ?? 'America/Guayaquil'
   const today   = DateTime.now().setZone(tz).toFormat('yyyy-MM-dd')
   const records = await prisma.attendanceRecord.findMany({
@@ -101,7 +103,7 @@ export async function getFeed(checkerKey: string) {
 }
 
 export async function requestOtp(checkerKey: string, employeeCode: string, pin: string) {
-  const tenant = await resolveByKey(checkerKey)
+  const { tenant } = await resolveByKey(checkerKey)
   const emp    = await prisma.employee.findFirst({
     where: { tenantId: tenant.id, employeeCode, isDeleted: false, status: 'Active' },
   })
@@ -142,7 +144,7 @@ export async function requestOtp(checkerKey: string, employeeCode: string, pin: 
 }
 
 export async function checkIn(checkerKey: string, employeeCode: string, pin: string, otpCode?: string | null) {
-  const tenant = await resolveByKey(checkerKey)
+  const { tenant, checkerLimit } = await resolveByKey(checkerKey)
   const emp    = await prisma.employee.findFirst({
     where: { tenantId: tenant.id, employeeCode, isDeleted: false, status: 'Active' },
     include: { schedule: true },
@@ -170,6 +172,14 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
     where: { tenantId: tenant.id, employeeId: emp.id, date: today, checkOutTime: null, isDeleted: false },
   })
   if (active) throw { code: 'ALREADY_CHECKED_IN', message: 'Ya tienes una entrada activa. Registra tu salida primero.' }
+
+  if (checkerLimit != null && checkerLimit > 0) {
+    const activeCount = await prisma.attendanceRecord.count({
+      where: { tenantId: tenant.id, date: today, checkInTime: { not: null }, checkOutTime: null, isDeleted: false },
+    })
+    if (activeCount >= checkerLimit)
+      throw { code: 'PLAN_LIMIT', message: `Se ha alcanzado el límite de ${checkerLimit} empleado(s) con entrada activa simultánea. Comunícate con el administrador de la empresa.` }
+  }
 
   const lateInfo = calcStatus(now, emp.schedule, emp.schedule?.lateToleranceMinutes ?? 0, tz)
   const record   = await prisma.attendanceRecord.create({
@@ -199,7 +209,7 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
 }
 
 export async function checkOut(checkerKey: string, employeeCode: string, pin: string) {
-  const tenant = await resolveByKey(checkerKey)
+  const { tenant } = await resolveByKey(checkerKey)
   const emp    = await prisma.employee.findFirst({
     where: { tenantId: tenant.id, employeeCode, isDeleted: false, status: 'Active' },
   })
@@ -254,7 +264,7 @@ function schedMins(day: any): number {
 }
 
 export async function getEmployeeReport(checkerKey: string, employeeId: string, from: string, to: string) {
-  const tenant = await resolveByKey(checkerKey)
+  const { tenant } = await resolveByKey(checkerKey)
   const emp    = await prisma.employee.findFirst({
     where: { id: employeeId, tenantId: tenant.id, isDeleted: false, status: 'Active' },
     include: { department: { select: { name: true } }, schedule: true },
@@ -383,14 +393,14 @@ export async function getEmployeeReport(checkerKey: string, employeeId: string, 
 }
 
 export async function markMessageRead(checkerKey: string, messageId: string) {
-  const tenant = await resolveByKey(checkerKey)
+  const { tenant } = await resolveByKey(checkerKey)
   const msg    = await prisma.employeeMessage.findFirst({ where: { id: messageId, tenantId: tenant.id, isDeleted: false } })
   if (!msg) throw { code: 'NOT_FOUND', message: 'Mensaje no encontrado.' }
   await prisma.employeeMessage.update({ where: { id: messageId }, data: { isRead: true } })
 }
 
 export async function deleteMessage(checkerKey: string, messageId: string) {
-  const tenant = await resolveByKey(checkerKey)
+  const { tenant } = await resolveByKey(checkerKey)
   const msg    = await prisma.employeeMessage.findFirst({ where: { id: messageId, tenantId: tenant.id, isDeleted: false } })
   if (!msg) throw { code: 'NOT_FOUND', message: 'Mensaje no encontrado.' }
   if (!msg.allowDelete) throw { code: 'NOT_ALLOWED', message: 'Este mensaje no puede ser eliminado.' }

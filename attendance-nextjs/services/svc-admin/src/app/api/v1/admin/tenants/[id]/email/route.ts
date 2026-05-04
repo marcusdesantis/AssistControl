@@ -40,15 +40,22 @@ export const POST = withSuperadmin(async (req, _ctx, { params }: { params: Promi
   const secure = smtp.smtpPort === 465
   const transporter = nodemailer.createTransport({
     host: smtp.smtpHost!, port: smtp.smtpPort, secure,
+    ...(secure ? {} : { requireTLS: true }),
     auth: { user: smtp.smtpUsername!, pass: smtp.smtpPassword! },
+    tls: { rejectUnauthorized: false },
   })
 
-  await transporter.sendMail({
-    from:    `"${smtp.smtpFromName ?? 'TiempoYa'}" <${smtp.smtpUsername}>`,
-    to:      recipientEmail,
-    subject,
-    html:    body.replace(/\n/g, '<br>'),
-  })
+  try {
+    await transporter.sendMail({
+      from:    `"${smtp.smtpFromName ?? 'TiempoYa'}" <${smtp.smtpUsername}>`,
+      to:      recipientEmail,
+      subject,
+      html:    body.replace(/\n/g, '<br>'),
+    })
+  } catch (err: any) {
+    console.error('[email/route]', err)
+    throw { code: 'SMTP_SEND_ERROR', message: `Error al enviar: ${err.message ?? err.code}` }
+  }
 
   return apiOk({ to: recipientEmail }, 'Correo enviado correctamente.')
 })

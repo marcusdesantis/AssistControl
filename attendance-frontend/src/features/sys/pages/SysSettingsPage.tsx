@@ -379,16 +379,23 @@ export default function SysSettingsPage() {
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-gray-500">Proveedor</label>
                 <div className="flex flex-wrap gap-2">
-                  {PROVIDERS.map(p => (
-                    <button key={p.label} onClick={() => applyProvider(p.host, p.port, p.ssl)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        form.smtpHost === p.host && p.host !== ''
-                          ? 'bg-slate-800 text-white border-slate-800'
-                          : 'bg-white text-gray-600 border-gray-300 hover:border-slate-400 hover:text-slate-700'
-                      }`}>
-                      {p.label}
-                    </button>
-                  ))}
+                  {(() => {
+                    const knownHosts = PROVIDERS.filter(p => p.host !== '').map(p => p.host)
+                    const isCustom = !knownHosts.includes(form.smtpHost ?? '')
+                    return PROVIDERS.map(p => {
+                      const active = p.host !== '' ? form.smtpHost === p.host : isCustom
+                      return (
+                        <button key={p.label} onClick={() => applyProvider(p.host, p.port, p.ssl)}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                            active
+                              ? 'bg-slate-800 text-white border-slate-800'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-slate-400 hover:text-slate-700'
+                          }`}>
+                          {p.label}
+                        </button>
+                      )
+                    })
+                  })()}
                 </div>
               </div>
 

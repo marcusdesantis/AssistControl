@@ -154,6 +154,20 @@ export async function checkIn(
   })
   if (active) throw { code: 'ALREADY_CHECKED_IN', message: 'Ya tienes una entrada activa. Registra tu salida primero.' }
 
+  const sub = await prisma.subscription.findUnique({
+    where:  { tenantId },
+    select: { plan: { select: { capabilities: true } } },
+  })
+  const caps         = sub?.plan?.capabilities as Record<string, { enabled?: boolean; limit?: number | null }> | null
+  const checkerLimit = caps?.checker?.limit ?? null
+  if (checkerLimit != null && checkerLimit > 0) {
+    const activeCount = await prisma.attendanceRecord.count({
+      where: { tenantId, date: today, checkInTime: { not: null }, checkOutTime: null, isDeleted: false },
+    })
+    if (activeCount >= checkerLimit)
+      throw { code: 'PLAN_LIMIT', message: `Se ha alcanzado el límite de ${checkerLimit} empleado(s) con entrada activa simultánea. Comunícate con el administrador de la empresa.` }
+  }
+
   const lateInfo = calcStatus(now, emp.schedule, emp.schedule?.lateToleranceMinutes ?? 0, tz)
   const record   = await prisma.attendanceRecord.create({
     data: { tenantId, employeeId, date: today, checkInTime: now, status: lateInfo.status, lateMinutes: lateInfo.lateMinutes, latitude: opts?.latitude ?? null, longitude: opts?.longitude ?? null, registeredFrom: 'Mobile' },
