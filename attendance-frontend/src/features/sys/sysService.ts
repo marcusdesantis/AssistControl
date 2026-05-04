@@ -180,6 +180,7 @@ export interface SystemSettings {
   termsOfUse:               string | null
   privacyPolicy:            string | null
   supportWhatsapp:          string | null
+  supportPhone:             string | null
   supportEmail:             string | null
 }
 

@@ -90,10 +90,11 @@ export async function addMessage(tenantId: string, ticketId: string, body: strin
 export async function getSupportInfo() {
   const settings = await prisma.systemSettings.findUnique({
     where: { id: 'system' },
-    select: { supportWhatsapp: true, supportEmail: true },
+    select: { supportWhatsapp: true, supportPhone: true, supportEmail: true },
   })
   return {
     whatsapp: settings?.supportWhatsapp ?? null,
+    phone:    settings?.supportPhone    ?? null,
     email:    settings?.supportEmail    ?? null,
   }
 }

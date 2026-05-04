@@ -226,7 +226,7 @@ docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-
 
 ---
 
-### 3. `attendance-mobile` — App Móvil
+### 3. `attendance-mobile` — App Móvil (TiempoYa)
 
 App para empleados — marcación de entrada/salida con GPS.
 
@@ -247,10 +247,16 @@ App para empleados — marcación de entrada/salida con GPS.
 
 **Variables de entorno:**
 ```env
-EXPO_PUBLIC_API_URL=http://167.86.87.213
+# Producción
+EXPO_PUBLIC_API_URL=https://www.tiempoya.net
+
+# Local (desarrollo)
+EXPO_PUBLIC_API_URL=http://192.168.X.X:8080
 ```
 
-**Cómo ejecutar:**
+> ⚠️ Verificar siempre que el `.env` apunte a producción antes de compilar la APK.
+
+**Cómo ejecutar en desarrollo:**
 ```bash
 cd attendance-mobile
 npm install
@@ -259,12 +265,65 @@ npm run android    # Emulador Android
 npm run ios        # Simulador iOS
 ```
 
-**Generar APK:**
-```bash
-cd attendance-mobile/android
-./gradlew assembleRelease
-# APK: android/app/build/outputs/apk/release/app-release.apk
+**Generar APK (Windows) — primera vez o tras clonar el repo:**
+
+Requisitos: Android Studio instalado con el SDK, Java 17.
+
+```powershell
+# 1. Configurar variables de entorno (hacer una sola vez en el sistema)
+#    Panel de control > Variables de entorno > Nueva variable del sistema:
+#    ANDROID_HOME = C:\Users\<tu-usuario>\AppData\Local\Android\Sdk
+#    JAVA_HOME    = C:\Program Files\Java\jdk-17
+
+# 2. Instalar dependencias
+cd attendance-mobile
+npm install
+
+# 3. Verificar que .env apunte a producción
+# EXPO_PUBLIC_API_URL=https://www.tiempoya.net
+
+# 4. Generar carpeta android/ (solo si no existe o si se agregó un plugin nativo)
+npx expo prebuild --platform android
+
+# 5. Aplicar fix de Kotlin (OBLIGATORIO tras cada prebuild)
+#    En android/build.gradle, buscar esta línea:
+#        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+#    Y reemplazarla por:
+#        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+
+# 6. Compilar la APK
+cd android
+.\gradlew.bat assembleRelease
+
+# APK generada en:
+# android\app\build\outputs\apk\release\app-release.apk
 ```
+
+**Generar APK — cuando ya existe la carpeta `android/` (actualizaciones de código):**
+
+```powershell
+# Solo recompilar, no hace falta prebuild ni reaplicar el fix
+cd attendance-mobile\android
+.\gradlew.bat assembleRelease
+
+# APK generada en:
+# android\app\build\outputs\apk\release\app-release.apk
+```
+
+**Si el build falla con error de Kotlin/Compose Compiler:**
+
+Abrir `android/build.gradle` y verificar que la línea del plugin de Kotlin sea:
+```gradle
+classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+```
+Si dice `classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')` sin versión, corregirlo y volver a compilar.
+
+**Instalar APK en el teléfono:**
+```powershell
+# Via USB (con Depuración USB activada en el teléfono)
+C:\Users\<usuario>\AppData\Local\Android\Sdk\platform-tools\adb.exe install android\app\build\outputs\apk\release\app-release.apk
+```
+O copiar el `.apk` al teléfono e instalarlo manualmente (requiere "Fuentes desconocidas" habilitado).
 
 ---
 

@@ -25,11 +25,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function ContactCard({ info }: { info: SupportInfo }) {
-  if (!info.whatsapp && !info.email) return null
+  if (!info.whatsapp && !info.phone && !info.email) return null
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
       <p className="text-sm font-semibold text-gray-800">Contacto de soporte</p>
-      {info.whatsapp && (
+      {info.whatsapp && !info.phone && (
         <a href={`https://wa.me/${info.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 transition-colors">
           <Phone className="w-4 h-4 text-green-600 shrink-0" />
@@ -38,6 +38,15 @@ function ContactCard({ info }: { info: SupportInfo }) {
             <p className="text-sm text-green-700">{info.whatsapp}</p>
           </div>
         </a>
+      )}
+      {info.phone && (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+          <Phone className="w-4 h-4 text-gray-500 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-gray-600">Teléfono</p>
+            <p className="text-sm text-gray-700">{info.phone}</p>
+          </div>
+        </div>
       )}
       {info.email && (
         <a href={`mailto:${info.email}`}

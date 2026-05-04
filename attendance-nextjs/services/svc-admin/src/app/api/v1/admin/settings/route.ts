@@ -19,6 +19,7 @@ const schema = z.object({
   termsOfUse:               z.string().nullable().optional(),
   privacyPolicy:            z.string().nullable().optional(),
   supportWhatsapp:          z.string().nullable().optional(),
+  supportPhone:             z.string().nullable().optional(),
   supportEmail:             z.string().nullable().optional(),
 })
 

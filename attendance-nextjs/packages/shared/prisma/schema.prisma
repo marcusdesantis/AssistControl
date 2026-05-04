@@ -523,6 +523,7 @@ model SystemSettings {
   termsOfUse                 String?
   privacyPolicy              String?
   supportWhatsapp            String?
+  supportPhone               String?
   supportEmail               String?
   updatedAt                  DateTime @updatedAt
 }

@@ -4,6 +4,7 @@ interface ApiResponse<T> { success: boolean; message?: string; data?: T }
 
 export interface SupportInfo {
   whatsapp: string | null
+  phone:    string | null
   email:    string | null
 }
 

@@ -29,6 +29,7 @@ const EMPTY: SystemSettings = {
   termsOfUse: null,
   privacyPolicy: null,
   supportWhatsapp: null,
+  supportPhone: null,
   supportEmail: null,
 }
 
@@ -244,9 +245,39 @@ export default function SysSettingsPage() {
                     Datos visibles para las empresas en su página de soporte.
                   </p>
                 </div>
-                <Field label="WhatsApp (con código país)" value={form.supportWhatsapp ?? ''}
-                  onChange={v => setForm(p => ({ ...p, supportWhatsapp: v || null }))}
-                  placeholder="+593999999999" />
+
+                {/* Toggle WhatsApp / Teléfono */}
+                <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                  {(['whatsapp', 'phone'] as const).map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setForm(p => ({
+                        ...p,
+                        supportWhatsapp: opt === 'phone' ? null : p.supportWhatsapp,
+                        supportPhone:    opt === 'whatsapp' ? null : p.supportPhone,
+                      }))}
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                        (opt === 'whatsapp' ? !form.supportPhone : !!form.supportPhone || (!form.supportWhatsapp && !form.supportPhone && opt === 'whatsapp'))
+                          ? 'bg-slate-800 text-white'
+                          : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {opt === 'whatsapp' ? 'WhatsApp' : 'Teléfono de oficina'}
+                    </button>
+                  ))}
+                </div>
+
+                {form.supportPhone == null ? (
+                  <Field label="WhatsApp (con código país)" value={form.supportWhatsapp ?? ''}
+                    onChange={v => setForm(p => ({ ...p, supportWhatsapp: v || null }))}
+                    placeholder="+593999999999" />
+                ) : (
+                  <Field label="Teléfono de oficina" value={form.supportPhone ?? ''}
+                    onChange={v => setForm(p => ({ ...p, supportPhone: v || null }))}
+                    placeholder="(04) 123-4567" />
+                )}
+
                 <Field label="Email de contacto de soporte" value={form.supportEmail ?? ''}
                   onChange={v => setForm(p => ({ ...p, supportEmail: v || null }))}
                   placeholder="soporte@empresa.com" />
@@ -257,7 +288,7 @@ export default function SysSettingsPage() {
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-gray-500">
                     <li>
-                      <span className="font-medium text-gray-700">WhatsApp y email</span> se muestran a las empresas en su
+                      <span className="font-medium text-gray-700">{form.supportPhone != null ? 'Teléfono de oficina' : 'WhatsApp'} y email</span> se muestran a las empresas en su
                       página de soporte como canales de contacto directo.
                     </li>
                     <li>
@@ -266,9 +297,6 @@ export default function SysSettingsPage() {
                       {form.smtpEnabled
                         ? ' (SMTP activo ✓).'
                         : ' (requiere activar el SMTP en la pestaña "Configuración de correo").'}
-                    </li>
-                    <li>
-                      Las empresas también pueden escribir a este email directamente si no tienen plan de soporte preferencial.
                     </li>
                   </ul>
                 </div>
