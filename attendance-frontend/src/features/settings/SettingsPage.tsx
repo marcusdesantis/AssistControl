@@ -384,19 +384,26 @@ export default function SettingsPage() {
               <div id="tour-smtp-provider" className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-gray-500">Proveedor</label>
                 <div className="flex flex-wrap gap-2">
-                  {PROVIDERS.map(p => (
-                    <button
-                      key={p.label}
-                      onClick={() => applyProvider(p.label)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        form.smtpHost === p.host && p.host !== ''
-                          ? 'bg-primary-600 text-white border-primary-600'
-                          : 'bg-white text-gray-600 border-gray-300 hover:border-primary-400 hover:text-primary-600'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
+                  {(() => {
+                    const knownHosts = PROVIDERS.filter(p => p.host !== '').map(p => p.host)
+                    const isCustom = !knownHosts.includes(form.smtpHost ?? '')
+                    return PROVIDERS.map(p => {
+                      const active = p.host !== '' ? form.smtpHost === p.host : isCustom
+                      return (
+                        <button
+                          key={p.label}
+                          onClick={() => applyProvider(p.label)}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                            active
+                              ? 'bg-primary-600 text-white border-primary-600'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-primary-400 hover:text-primary-600'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      )
+                    })
+                  })()}
                 </div>
               </div>
 
