@@ -18,8 +18,16 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
-    const code = error.response?.data?.code
-    if (error.response?.status === 403 && (code === 'TENANT_INACTIVE' || code === 'USER_INACTIVE' || code === 'MOBILE_NOT_ALLOWED')) {
+    const status = error.response?.status
+    const code   = error.response?.data?.code
+
+    if (status === 401) {
+      const { useAuthStore } = await import('@/store/authStore')
+      await useAuthStore.getState().clearAuth()
+      return Promise.reject(error)
+    }
+
+    if (status === 403 && (code === 'TENANT_INACTIVE' || code === 'USER_INACTIVE' || code === 'MOBILE_NOT_ALLOWED')) {
       const { useAuthStore } = await import('@/store/authStore')
       if (code === 'USER_INACTIVE') {
         await storage.setItem('login_notice', 'user_inactive')
