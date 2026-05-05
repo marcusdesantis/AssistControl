@@ -1,11 +1,11 @@
 const BASE_URL = 'https://pay.payphonetodoesposible.com'
 
-function authHeader() {
+function authHeader(browserReferer?: string) {
   const appUrl = process.env.APP_URL ?? 'https://www.tiempoya.net'
   return {
     'Authorization': `Bearer ${process.env.PAYPHONE_TOKEN ?? ''}`,
     'Content-Type':  'application/json',
-    'Referer':       appUrl,
+    'Referer':       browserReferer || appUrl,
     'Origin':        appUrl,
   }
 }
@@ -23,7 +23,7 @@ export interface PayphoneConfirmResult {
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-export async function confirmPayment(id: number, clientTxId: string): Promise<PayphoneConfirmResult> {
+export async function confirmPayment(id: number, clientTxId: string, browserReferer?: string): Promise<PayphoneConfirmResult> {
   const delays = [0, 2000, 4000, 6000]   // 4 intentos: inmediato, +2s, +4s, +6s
 
   for (let i = 0; i < delays.length; i++) {
@@ -34,7 +34,7 @@ export async function confirmPayment(id: number, clientTxId: string): Promise<Pa
 
     const res = await fetch(`${BASE_URL}/api/button/V2/Confirm`, {
       method: 'POST',
-      headers: authHeader(),
+      headers: authHeader(browserReferer),
       body,
     })
 
