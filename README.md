@@ -402,6 +402,84 @@ Cuando se adquiera el dominio `tiempoya.net`:
 
 ---
 
+## CI/CD — Jenkins (Deploy automático)
+
+Jenkins corre en el VPS en el puerto `9090`: `http://167.86.87.213:9090`
+
+### Estado de la configuración
+
+| Fase | Descripción | Estado |
+|---|---|---|
+| Fase 1 | Instalar Jenkins en el servidor | ✅ Completado |
+| Fase 2 | Instalar plugins (GitHub Integration + SSH Agent) | ✅ Completado |
+| Fase 3 | Credenciales en Jenkins (DATABASE_URL + github-ssh) | ✅ Completado |
+| Fase 4 | Crear Jenkinsfile en la raíz del repo | ✅ Completado |
+| Fase 5 | Crear Job `tiempoya-deploy` en Jenkins | ✅ Completado (pendiente URL del repo) |
+| Fase 6 | Configurar GitHub (Deploy key o Personal Access Token) | ⏳ Pendiente — requiere acceso del dueño del repo |
+| Fase 7 | Configurar Webhook en GitHub | ⏳ Pendiente |
+| Fase 8 | Probar el pipeline completo | ⏳ Pendiente |
+
+### Instalación de Jenkins (comando usado)
+
+```bash
+docker run -d \
+  --name jenkins \
+  --restart unless-stopped \
+  -p 9090:8080 \
+  -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /root/proyectos:/root/proyectos \
+  -u root \
+  jenkins/jenkins:lts
+```
+
+### Credenciales configuradas en Jenkins
+
+| ID | Tipo | Descripción |
+|---|---|---|
+| `DATABASE_URL` | Secret text | Conexión a PostgreSQL de producción |
+| `github-ssh` | SSH Username with private key | Clave SSH para acceder al repo de GitHub |
+
+### Clave pública SSH (para agregar en GitHub como Deploy key)
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGi4x4DSASS50ygxbcW7dDHg0Cg2CEtGmK4bgVJhHkxR jenkins@tiempoya
+```
+
+### Pasos pendientes para terminar la configuración
+
+**Paso 1 — El dueño del repo debe hacer UNA de estas dos opciones:**
+
+**Opción A — Deploy key** (recomendada):
+- GitHub → repo → Settings → Deploy keys → Add deploy key
+- Title: `Jenkins VPS`
+- Key: la clave pública de arriba
+- Allow write access: NO
+
+**Opción B — Personal Access Token**:
+- GitHub → avatar → Settings → Developer settings → Personal access tokens → Tokens (classic)
+- Generate new token → scope: `repo` → sin expiración
+- Pasar el token al administrador de Jenkins
+
+**Paso 2 — En Jenkins**, una vez resuelto el acceso:
+- Ir al Job `tiempoya-deploy` → Configure → Pipeline
+- En Credentials seleccionar `github-ssh`
+- Verificar que la URL del repo no muestre error
+- Guardar
+
+**Paso 3 — Configurar Webhook en GitHub**:
+- GitHub → repo → Settings → Webhooks → Add webhook
+- Payload URL: `http://167.86.87.213:9090/github-webhook/`
+- Content type: `application/json`
+- Trigger: `Just the push event`
+
+**Paso 4 — Probar el pipeline**:
+- En Jenkins → Job `tiempoya-deploy` → Build Now
+- Verificar que los 4 stages (Pull, Migrar DB, Deploy Backend, Deploy Frontend) pasen en verde
+
+---
+
 ## Tecnologías principales
 
 | Categoría | Tecnología |
