@@ -2,7 +2,7 @@ const BASE_URL = 'https://pay.payphonetodoesposible.com'
 
 function authHeader() {
   return {
-    'Authorization': `bearer ${process.env.PAYPHONE_TOKEN ?? ''}`,
+    'Authorization': `Bearer ${process.env.PAYPHONE_TOKEN ?? ''}`,
     'Content-Type':  'application/json',
   }
 }
