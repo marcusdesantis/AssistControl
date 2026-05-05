@@ -1,9 +1,12 @@
 const BASE_URL = 'https://pay.payphonetodoesposible.com'
 
 function authHeader() {
+  const appUrl = process.env.APP_URL ?? 'https://www.tiempoya.net'
   return {
     'Authorization': `Bearer ${process.env.PAYPHONE_TOKEN ?? ''}`,
     'Content-Type':  'application/json',
+    'Referer':       appUrl,
+    'Origin':        appUrl,
   }
 }
 
