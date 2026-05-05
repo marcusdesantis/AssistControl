@@ -15,6 +15,38 @@ export async function GET(req: Request) {
       return Response.redirect(`${base}&status=error`, 302)
     }
 
+    // 1. Verificar con Payphone ANTES de activar nada.
+    let result
+    try {
+      result = await confirmPayment(id, clientTransactionId)
+      console.log('[payphone/confirm] respuesta Payphone:', JSON.stringify(result))
+    } catch (confirmErr: any) {
+      console.error('[payphone/confirm] error al contactar Payphone:', confirmErr?.message ?? confirmErr)
+      await prisma.paymentEvent.update({
+        where: { stripeEventId: clientTransactionId },
+        data:  {
+          type:    'payphone.error',
+          payload: { ...(event.payload as any), confirmError: confirmErr?.message ?? String(confirmErr) } as any,
+        },
+      })
+      return Response.redirect(`${base}&status=error`, 302)
+    }
+
+    // 2. Si Payphone no aprobó (statusCode 3 = aprobado), rechazar sin activar.
+    if (result.statusCode !== 3) {
+      console.warn('[payphone/confirm] pago no aprobado — statusCode=%s transactionStatus=%s message=%s',
+        result.statusCode, result.transactionStatus, result.message)
+      await prisma.paymentEvent.update({
+        where: { stripeEventId: clientTransactionId },
+        data:  {
+          type:    'payphone.rejected',
+          payload: { ...(event.payload as any), payphoneResponse: result } as any,
+        },
+      })
+      return Response.redirect(`${base}&status=cancelled`, 302)
+    }
+
+    // 3. Pago aprobado — activar suscripción.
     const { tenantId, planId, billingCycle, amountCents, fullPriceCents, creditCents } = event.payload as any
 
     const existing = await prisma.subscription.findUnique({ where: { tenantId }, include: { plan: true } })
@@ -36,7 +68,6 @@ export async function GET(req: Request) {
       creditAmount: creditCents   ? creditCents / 100   : undefined,
     })
 
-    // Número de comprobante secuencial global
     const invoiceCount  = await prisma.invoice.count()
     const invoiceNumber = `COMP-${String(invoiceCount + 1).padStart(6, '0')}`
 
@@ -60,32 +91,15 @@ export async function GET(req: Request) {
 
     await prisma.paymentEvent.update({
       where: { stripeEventId: clientTransactionId },
-      data:  { type: 'payphone.completed' },
+      data:  {
+        type:    'payphone.completed',
+        payload: { ...(event.payload as any), payphoneResponse: result } as any,
+      },
     })
-
-    // Verificar con Payphone en background sin bloquear al usuario.
-    // Si el pago no está aprobado, revertimos la suscripción.
-    confirmPayment(id, clientTransactionId)
-      .then(async r => {
-        if (r.statusCode !== 3) {
-          console.warn('[payphone/confirm] pago no aprobado (statusCode=%s) — revirtiendo suscripción tenantId=%s', r.statusCode, tenantId)
-          await prisma.subscription.updateMany({
-            where: { tenantId },
-            data:  { status: 'canceled' },
-          })
-          await prisma.paymentEvent.update({
-            where: { stripeEventId: clientTransactionId },
-            data:  { type: 'payphone.rejected' },
-          })
-        } else {
-          console.log('[payphone/confirm] background confirm OK authCode=%s', r.authorizationCode)
-        }
-      })
-      .catch(e => console.error('[payphone/confirm] background confirm falló — revisar manualmente id=%s', id, e?.message ?? e))
 
     return Response.redirect(`${base}&status=paid`, 302)
   } catch (e: any) {
-    console.error('[payphone/confirm] error activando suscripción:', e?.message ?? e)
+    console.error('[payphone/confirm] error inesperado:', e?.message ?? e)
     return Response.redirect(`${base}&status=error`, 302)
   }
 }
