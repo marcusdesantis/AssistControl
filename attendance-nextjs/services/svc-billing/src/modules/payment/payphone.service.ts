@@ -50,6 +50,7 @@ export async function confirmPayment(id: string, clientTxId: string): Promise<Pa
       ...authHeader(),
       'Content-Length': Buffer.byteLength(body).toString(),
       'Host':           'pay.payphonetodoesposible.com',
+      'Content-Type':  'application/json',
       ...(sessionCookie ? { 'Cookie': sessionCookie } : {}),
     }
 
