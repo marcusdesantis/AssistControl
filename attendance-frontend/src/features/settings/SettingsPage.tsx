@@ -334,7 +334,7 @@ export default function SettingsPage() {
             { key: 'email',       label: 'Configuración de correo', Icon: Server   },
             { key: 'invitations', label: 'Envío de registro',        Icon: Mail     },
             { key: 'checker',      label: 'Checador',      Icon: KeyRound  },
-            { key: 'subscription', label: 'Suscripción',   Icon: CreditCard },
+            { key: 'subscription', label: 'Planes - Suscripción',   Icon: CreditCard },
           ] as { key: Tab; label: string; Icon: React.ElementType }[]).map(({ key, label, Icon }) => (
             <button
               key={key}

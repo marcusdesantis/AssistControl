@@ -33,7 +33,7 @@ const navItems: NavItem[] = [
   { to: '/messages',     icon: MessageSquare,    label: 'Mensajes',     capability: 'messages'     },
   { to: '/reports',      icon: BarChart3,        label: 'Reportes',     capability: 'reports'      },
   { to: '/support',      icon: Headset,          label: 'Soporte'                                   },
-  { to: '/settings',     icon: Settings,         label: 'Configuración',capability: 'settings'     },
+  { to: '/settings',     icon: Settings,         label: 'Configuración y planes',capability: 'settings'     },
 ]
 
 export default function Layout() {

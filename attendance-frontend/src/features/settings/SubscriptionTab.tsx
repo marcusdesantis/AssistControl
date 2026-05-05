@@ -466,8 +466,26 @@ export default function SubscriptionTab() {
                   <p className="text-xs text-gray-500">Esta acción bajará tu cuenta al plan gratuito</p>
                 </div>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-800">
-                Perderás acceso a las funcionalidades del plan actual de forma inmediata.
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3 space-y-2">
+                <p className="text-xs font-semibold text-red-700">Antes de continuar, ten en cuenta:</p>
+                <ul className="text-xs text-red-700 space-y-1.5">
+                  <li className="flex items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0">•</span>
+                    <span>Perderás acceso inmediato a todas las funcionalidades de tu plan actual.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0">•</span>
+                    <span>Los días restantes de tu suscripción <strong>no serán reembolsados</strong> ni acreditados.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0">•</span>
+                    <span>Esta acción es <strong>permanente e irreversible</strong>. No podrás recuperar el tiempo pagado.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0">•</span>
+                    <span>Tu cuenta pasará al plan gratuito con funcionalidades limitadas.</span>
+                  </li>
+                </ul>
               </div>
               <div className="flex flex-col gap-1 mb-4">
                 <label className="text-xs font-medium text-gray-500">Ingresa tu contraseña para confirmar</label>
@@ -539,8 +557,10 @@ export default function SubscriptionTab() {
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Suscripción activa</p>
               <p className="text-xl font-bold text-gray-900">{subscription.plan.name}</p>
               <p className="text-sm text-gray-500">
-                {subscription.billingCycle === 'annual' ? 'Facturación anual' : 'Facturación mensual'}
-                {subscription.currentPeriodEnd && ` · Vence ${fmtDate(subscription.currentPeriodEnd)}`}
+                {subscription.plan.isFree
+                  ? 'Gratis'
+                  : subscription.billingCycle === 'annual' ? 'Facturación anual' : 'Facturación mensual'}
+                {!subscription.plan.isFree && subscription.currentPeriodEnd && ` · Vence ${fmtDate(subscription.currentPeriodEnd)}`}
               </p>
               {subscription.cancelAtPeriodEnd && (
                 <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
