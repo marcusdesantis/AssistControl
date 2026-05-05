@@ -29,6 +29,8 @@ export async function confirmPayment(id: string, clientTxId: string, browserRefe
   for (let i = 0; i < delays.length; i++) {
     if (delays[i] > 0) await sleep(delays[i])
 
+    const token = process.env.PAYPHONE_TOKEN ?? ''
+    console.log(`[payphone] token primeros 10 chars: "${token.substring(0, 10)}" longitud: ${token.length}`)
     const body = JSON.stringify({ id, clientTxId })
     console.log(`[payphone] confirm intento ${i + 1} → body: ${body}`)
 
