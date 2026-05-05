@@ -23,7 +23,7 @@ export interface PayphoneConfirmResult {
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-export async function confirmPayment(id: number, clientTxId: string, browserReferer?: string): Promise<PayphoneConfirmResult> {
+export async function confirmPayment(id: string, clientTxId: string, browserReferer?: string): Promise<PayphoneConfirmResult> {
   const delays = [0, 2000, 4000, 6000]   // 4 intentos: inmediato, +2s, +4s, +6s
 
   for (let i = 0; i < delays.length; i++) {

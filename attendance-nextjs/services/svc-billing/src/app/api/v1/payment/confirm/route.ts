@@ -4,7 +4,7 @@ import { activateSubscription } from '@/modules/billing/billing.service'
 
 export async function GET(req: Request) {
   const url                 = new URL(req.url)
-  const id                  = parseInt(url.searchParams.get('id') ?? '0', 10)
+  const id                  = url.searchParams.get('id') ?? '0'
   const clientTransactionId = url.searchParams.get('clientTransactionId') ?? ''
   const frontendUrl         = process.env.FRONTEND_URL ?? 'http://localhost:5173'
   const base                = `${frontendUrl}/settings?tab=subscription`
