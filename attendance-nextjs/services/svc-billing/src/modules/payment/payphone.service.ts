@@ -20,7 +20,24 @@ export interface PayphoneConfirmResult {
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
+async function getSessionCookie(): Promise<string> {
+  try {
+    const res = await fetch(`${BASE_URL}/`, { method: 'GET' })
+    const setCookie = res.headers.get('set-cookie') ?? ''
+    const arCookie = setCookie
+      .split(',')
+      .map(c => c.split(';')[0].trim())
+      .filter(c => c.startsWith('ARRAffinity') || c.startsWith('ASLBSA'))
+      .join('; ')
+    console.log('[payphone] session cookie obtenido:', arCookie.substring(0, 60))
+    return arCookie
+  } catch {
+    return ''
+  }
+}
+
 export async function confirmPayment(id: string, clientTxId: string): Promise<PayphoneConfirmResult> {
+  const sessionCookie = await getSessionCookie()
   const delays = [0, 2000, 4000, 6000]   // 4 intentos: inmediato, +2s, +4s, +6s
 
   for (let i = 0; i < delays.length; i++) {
@@ -29,9 +46,14 @@ export async function confirmPayment(id: string, clientTxId: string): Promise<Pa
     const body = JSON.stringify({ id, clientTxId })
     console.log(`[payphone] confirm intento ${i + 1} → body: ${body}`)
 
+    const headers: Record<string, string> = {
+      ...authHeader(),
+      ...(sessionCookie ? { 'Cookie': sessionCookie } : {}),
+    }
+
     const res = await fetch(`${BASE_URL}/api/button/V2/Confirm`, {
       method: 'POST',
-      headers: authHeader(),
+      headers,
       body,
     })
 
