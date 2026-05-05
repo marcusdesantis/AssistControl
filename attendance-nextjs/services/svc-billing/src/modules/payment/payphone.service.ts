@@ -1,12 +1,9 @@
 const BASE_URL = 'https://pay.payphonetodoesposible.com'
 
-function authHeader(browserReferer?: string) {
-  const appUrl = process.env.APP_URL ?? 'https://www.tiempoya.net'
+function authHeader() {
   return {
-    'Authorization': `Bearer ${process.env.PAYPHONE_TOKEN ?? ''}`,
+    'Authorization': `bearer ${process.env.PAYPHONE_TOKEN ?? ''}`,
     'Content-Type':  'application/json',
-    'Referer':       browserReferer || appUrl,
-    'Origin':        appUrl,
   }
 }
 
@@ -23,20 +20,18 @@ export interface PayphoneConfirmResult {
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-export async function confirmPayment(id: string, clientTxId: string, browserReferer?: string): Promise<PayphoneConfirmResult> {
+export async function confirmPayment(id: string, clientTxId: string): Promise<PayphoneConfirmResult> {
   const delays = [0, 2000, 4000, 6000]   // 4 intentos: inmediato, +2s, +4s, +6s
 
   for (let i = 0; i < delays.length; i++) {
     if (delays[i] > 0) await sleep(delays[i])
 
-    const token = process.env.PAYPHONE_TOKEN ?? ''
-    console.log(`[payphone] token primeros 10 chars: "${token.substring(0, 10)}" longitud: ${token.length}`)
     const body = JSON.stringify({ id, clientTxId })
     console.log(`[payphone] confirm intento ${i + 1} → body: ${body}`)
 
     const res = await fetch(`${BASE_URL}/api/button/V2/Confirm`, {
       method: 'POST',
-      headers: authHeader(browserReferer),
+      headers: authHeader(),
       body,
     })
 

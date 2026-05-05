@@ -16,14 +16,9 @@ export async function GET(req: Request) {
     }
 
     // 1. Verificar con Payphone ANTES de activar nada.
-    // Reenviar el Referer del browser (viene de pay.payphonetodoesposible.com)
-    // para que Payphone valide correctamente el origen de la confirmación.
-    const browserReferer = req.headers.get('referer') ?? req.headers.get('Referer') ?? ''
-    console.log('[payphone/confirm] browser referer:', browserReferer)
-
     let result
     try {
-      result = await confirmPayment(id, clientTransactionId, browserReferer)
+      result = await confirmPayment(id, clientTransactionId)
       console.log('[payphone/confirm] respuesta Payphone:', JSON.stringify(result))
     } catch (confirmErr: any) {
       console.error('[payphone/confirm] error al contactar Payphone:', confirmErr?.message ?? confirmErr)
