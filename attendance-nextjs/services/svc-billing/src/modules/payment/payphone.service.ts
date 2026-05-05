@@ -48,6 +48,8 @@ export async function confirmPayment(id: string, clientTxId: string): Promise<Pa
 
     const headers: Record<string, string> = {
       ...authHeader(),
+      'Content-Length': Buffer.byteLength(body).toString(),
+      'Host':           'pay.payphonetodoesposible.com',
       ...(sessionCookie ? { 'Cookie': sessionCookie } : {}),
     }
 
