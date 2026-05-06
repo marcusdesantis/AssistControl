@@ -221,7 +221,11 @@ export async function deletePlan(id: string) {
   if (!plan) throw { code: 'NOT_FOUND', message: 'Plan no encontrado.' }
   if (plan.isDefault) throw { code: 'BAD_REQUEST', message: 'No se puede eliminar el plan por defecto.' }
   if (plan._count.subscriptions > 0) throw { code: 'BAD_REQUEST', message: 'El plan tiene suscripciones activas.' }
-  return prisma.plan.delete({ where: { id } })
+
+  await prisma.$transaction([
+    prisma.subscriptionLog.deleteMany({ where: { planId: id } }),
+    prisma.plan.delete({ where: { id } }),
+  ])
 }
 
 export async function reassignAndDeletePlan(planId: string, targetPlanId: string) {
@@ -233,6 +237,7 @@ export async function reassignAndDeletePlan(planId: string, targetPlanId: string
 
   await prisma.$transaction([
     prisma.subscription.updateMany({ where: { planId }, data: { planId: targetPlanId } }),
+    prisma.subscriptionLog.deleteMany({ where: { planId } }),
     prisma.plan.delete({ where: { id: planId } }),
   ])
 }
