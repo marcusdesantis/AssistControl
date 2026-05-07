@@ -1,14 +1,15 @@
-export type ScheduleType = 'Fixed' | 'Variable' | 'Rotating'
+export type ScheduleType = 'Fixed' | 'Variable' | 'Rotativo'
 
 export interface ScheduleDay {
-  day: number          // 0=Sunday, 1=Monday, ... 6=Saturday
-  dayLabel: string
+  day: number
+  dayLabel?: string
   isWorkDay: boolean
-  entryTime: string    // "HH:mm"
-  exitTime: string     // "HH:mm"
+  entryTime?: string | null
+  exitTime?: string | null
   hasLunch: boolean
-  lunchStart?: string
-  lunchEnd?: string
+  lunchStart?: string | null
+  lunchEnd?: string | null
+  requiredMinutes?: number | null
 }
 
 export interface Schedule {
@@ -17,8 +18,12 @@ export interface Schedule {
   type: ScheduleType
   typeLabel: string
   lateToleranceMinutes: number
-  requiredHoursPerDay?: number
-  days: ScheduleDay[]
+  requiredHoursPerDay?: number | null
+  // Fixed/Variable: ScheduleDay[]
+  // Rotativo: ScheduleDay[][]
+  days: ScheduleDay[] | ScheduleDay[][]
+  rotationWeeks?: number | null
+  rotationStartDate?: string | null
   employeeCount: number
   tenantId: string
   createdAt: string
@@ -27,19 +32,22 @@ export interface Schedule {
 export interface ScheduleDayInput {
   day: number
   isWorkDay: boolean
-  entryTime: string
-  exitTime: string
+  entryTime?: string | null
+  exitTime?: string | null
   hasLunch: boolean
-  lunchStart?: string
-  lunchEnd?: string
+  lunchStart?: string | null
+  lunchEnd?: string | null
+  requiredMinutes?: number | null
 }
 
 export interface CreateScheduleRequest {
   name: string
   type: ScheduleType
   lateToleranceMinutes: number
-  requiredHoursPerDay?: number
-  days: ScheduleDayInput[]
+  requiredHoursPerDay?: number | null
+  days: ScheduleDayInput[] | ScheduleDayInput[][]
+  rotationWeeks?: number | null
+  rotationStartDate?: string | null
 }
 
 export type UpdateScheduleRequest = CreateScheduleRequest

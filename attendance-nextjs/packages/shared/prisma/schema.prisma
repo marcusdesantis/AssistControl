@@ -32,8 +32,8 @@ enum AttendanceStatus {
 
 enum ScheduleType {
   Fixed
-  Flexible
-  Shift
+  Variable
+  Rotativo
 }
 
 enum SubscriptionStatus {
@@ -103,6 +103,9 @@ model Tenant {
 
   selfRegistered            Boolean   @default(false)
   pendingApproval           Boolean   @default(false)
+  emailVerified             Boolean   @default(false)
+  emailVerificationToken    String?
+  emailVerificationExpiry   DateTime?
 
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime? @updatedAt
@@ -117,6 +120,7 @@ model Tenant {
   employeeInvitations       EmployeeInvitation[]
   checkerOtps               CheckerOtp[]
   employeeMessages          EmployeeMessage[]
+  holidays                  Holiday[]
   subscription              Subscription?
   invoices                  Invoice[]
   subscriptionLogs          SubscriptionLog[]
@@ -212,6 +216,8 @@ model Schedule {
   lateToleranceMinutes Int          @default(0)
   requiredHoursPerDay  Float?
   days                 Json         @default("[]")
+  rotationWeeks        Int?
+  rotationStartDate    DateTime?
 
   createdAt            DateTime     @default(now())
   updatedAt            DateTime?    @updatedAt
@@ -233,8 +239,10 @@ model Employee {
   lastName        String
   departmentId    String?
   positionId      String?
-  scheduleId      String?
-  email           String
+  scheduleId          String?
+  scheduleStartDate   DateTime?
+  worksOnHolidays     Boolean   @default(true)
+  email               String
   phone           String?
   hireDate        String
   status          EmployeeStatus @default(Active)
@@ -582,4 +590,21 @@ model Notification {
   @@index([tenantId, isRead])
   @@index([forAdmin, isRead])
   @@index([tenantId, forEmployee, employeeId])
+}
+
+// ─── Holiday ──────────────────────────────────────────────────────────────────
+model Holiday {
+  id          String   @id @default(uuid())
+  tenantId    String
+  date        String   // YYYY-MM-DD
+  name        String
+  localName   String?
+  description String?
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, date])
+  @@index([tenantId])
 }

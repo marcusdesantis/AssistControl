@@ -8,6 +8,7 @@ import DashboardPage from '@/features/dashboard/DashboardPage'
 import EmployeesPage from '@/features/employees/EmployeesPage'
 import AttendancePage from '@/features/attendance/AttendancePage'
 import SchedulesPage  from '@/features/schedules/SchedulesPage'
+import HolidaysPage   from '@/features/holidays/HolidaysPage'
 import MessagesPage   from '@/features/messages/MessagesPage'
 import CheckerPage from '@/features/checker/CheckerPage'
 import ReportsPage     from '@/features/reports/ReportsPage'
@@ -16,6 +17,7 @@ import OrganizationPage from '@/features/organization/OrganizationPage'
 import SettingsPage       from '@/features/settings/SettingsPage'
 import RegisterPage          from '@/features/settings/RegisterPage'
 import RegisterCompanyPage  from '@/features/auth/RegisterCompanyPage'
+import VerifyEmailPage      from '@/features/auth/VerifyEmailPage'
 import LegalPage            from '@/features/auth/LegalPage'
 import NotificationsPage   from '@/features/notifications/NotificationsPage'
 // ── Sys (superadmin) ──────────────────────────────────────────────────────────
@@ -37,6 +39,7 @@ import SupportPage          from '@/features/support/SupportPage'
 export const router = createBrowserRouter([
   { path: '/login',            element: <LoginPage />,                          errorElement: <ErrorPage /> },
   { path: '/sign-up',          element: <RegisterCompanyPage />,                errorElement: <ErrorPage /> },
+  { path: '/verify-email',     element: <VerifyEmailPage />,                    errorElement: <ErrorPage /> },
   { path: '/terms',            element: <LegalPage type="terms" />,             errorElement: <ErrorPage /> },
   { path: '/privacy',          element: <LegalPage type="privacy" />,           errorElement: <ErrorPage /> },
   { path: '/change-password',  element: <ChangePasswordPage />,  errorElement: <ErrorPage /> },
@@ -57,6 +60,7 @@ export const router = createBrowserRouter([
           { path: '/employees',    element: <EmployeesPage /> },
           { path: '/organization', element: <OrganizationPage /> },
           { path: '/schedules',    element: <SchedulesPage /> },
+          { path: '/holidays',     element: <HolidaysPage /> },
           { path: '/attendance',element: <AttendancePage /> },
           { path: '/messages',  element: <MessagesPage /> },
           { path: '/reports',   element: <ReportsPage /> },

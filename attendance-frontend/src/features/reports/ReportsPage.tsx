@@ -10,6 +10,7 @@ import ReportViewerModal from './ReportViewerModal'
 import type { ReportType, AttendanceReportRow } from '@/types/report'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
+import { usePlan } from '@/hooks/usePlan'
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50]
 
@@ -75,11 +76,11 @@ function DatesModal({ group, reportType, onClose }: { group: EmployeeGroup; repo
   }, [onClose])
 
   const titleMap: Record<ReportType, string> = {
-    general:           'Días con registro',
-    absences:          'Días con falta',
-    lates:             'Días con retardo',
+    general:            'Días con registro',
+    absences:           'Días con falta',
+    lates:              'Días con retardo',
     'early-departures': 'Días con salida anticipada',
-    halfday:           'Días de medio día',
+    halfday:            'Días de medio día',
   }
 
   return createPortal(
@@ -173,6 +174,14 @@ function StatusBadge({ statusKey, label }: { statusKey: string; label: string })
 
 // ─── Summary cell per report type ─────────────────────────────────────────────
 
+function fmtMinsShort(mins: number): string {
+  if (mins === 0) return '0m'
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  if (h === 0) return `${m}m`
+  return m === 0 ? `${h}h` : `${h}h ${m}m`
+}
+
 function SummaryCell({ group, reportType }: { group: EmployeeGroup; reportType: ReportType }) {
   switch (reportType) {
     case 'absences':
@@ -193,8 +202,20 @@ function SummaryCell({ group, reportType }: { group: EmployeeGroup; reportType: 
         </span>
       )
     }
+    case 'overtime': {
+      const noct  = group.rows.reduce((s, r) => s + (r.nocturnalMinutes          ?? 0), 0)
+      const supl  = group.rows.reduce((s, r) => s + (r.supplementaryMinutes      ?? 0), 0)
+      const suplN = group.rows.reduce((s, r) => s + (r.supplementaryNightMinutes ?? 0), 0)
+      const extr  = group.rows.reduce((s, r) => s + (r.extraordinaryMinutes      ?? 0), 0)
+      const total = supl + suplN + extr
+      return (
+        <span className="text-purple-700 font-medium text-xs space-y-0.5 flex flex-col">
+          {total > 0 && <span>Extra: <strong>{fmtMinsShort(total)}</strong></span>}
+          {noct  > 0 && <span className="text-gray-500">Noct: {fmtMinsShort(noct)}</span>}
+        </span>
+      )
+    }
     default:
-      // General: contar días únicos, no registros individuales
       return <span className="text-gray-600">{dedupByDate(group.rows).length}</span>
   }
 }
@@ -204,14 +225,25 @@ function summaryLabel(reportType: ReportType) {
     case 'absences':         return 'Faltas'
     case 'lates':            return 'Retardos'
     case 'early-departures': return 'Salidas anticipadas'
+    case 'overtime':         return 'Horas extras'
     default:                 return 'Registros'
   }
 }
 
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function ReportsPageInner() {
-  const [selected,    setSelected]    = useState<ReportType>('general')
+  const { capabilities } = usePlan()
+  const allowedReports = capabilities.reports?.allowed
+  const visibleReports = REPORT_DEFINITIONS.filter(r =>
+    !allowedReports || allowedReports.length === 0 || allowedReports.includes(r.id)
+  )
+
+  const [selected,    setSelected]    = useState<ReportType>(() => {
+    const first = visibleReports[0]?.id as ReportType | undefined
+    return first ?? 'general'
+  })
   const [from,        setFrom]        = useState(firstOfMonth())
   const [to,          setTo]          = useState(today())
   const [department,  setDepartment]  = useState('Todos')
@@ -342,7 +374,7 @@ function ReportsPageInner() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tipos de reporte</p>
           </div>
           <nav className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 md:gap-0 md:space-y-0.5 no-scrollbar">
-            {REPORT_DEFINITIONS.map(r => (
+            {visibleReports.map(r => (
               <button
                 key={r.id}
                 onClick={() => handleSelectReport(r.id)}

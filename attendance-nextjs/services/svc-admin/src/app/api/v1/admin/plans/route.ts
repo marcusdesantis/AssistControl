@@ -14,7 +14,7 @@ const createSchema = z.object({
   maxEmployees:  z.number().int().positive().optional(),
   isFree:        z.boolean().default(false),
   features:      z.array(z.string()).default([]),
-  capabilities:  z.record(z.object({ enabled: z.boolean(), limit: z.number().int().positive().nullable().optional() })).default({}),
+  capabilities:  z.record(z.object({ enabled: z.boolean(), limit: z.number().int().positive().nullable().optional(), allowed: z.array(z.string()).optional() })).default({}),
   sortOrder:     z.number().int().default(0),
 })
 

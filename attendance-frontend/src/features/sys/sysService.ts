@@ -107,15 +107,20 @@ export interface ModuleCap {
   limit?:  number | null
 }
 
+export interface ReportsCap extends ModuleCap {
+  allowed?: string[]
+}
+
 export interface PlanCapabilities {
   employees:       ModuleCap
   attendance:      ModuleCap
   checker:         ModuleCap
   mobileApp:       ModuleCap
   schedules:       ModuleCap
+  holidays:        ModuleCap
   organization:    ModuleCap
   messages:        ModuleCap
-  reports:         ModuleCap
+  reports:         ReportsCap
   settings:        ModuleCap
   prioritySupport: ModuleCap
 }

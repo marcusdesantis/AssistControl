@@ -9,6 +9,7 @@ const CAP_NAMES: Record<keyof PlanCapabilities, string> = {
   checker:      'Reloj Checador',
   mobileApp:    'App Móvil',
   schedules:    'Horarios',
+  holidays:     'Días Inhábiles',
   organization: 'Organización',
   messages:     'Mensajes',
   reports:      'Reportes',

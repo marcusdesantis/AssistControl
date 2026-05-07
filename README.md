@@ -1,4 +1,4 @@
-# AssistControl — Sistema de Gestión de Asistencia
+# TiempoYa — Sistema de Gestión de Asistencia
 
 Plataforma SaaS multi-tenant para el control de asistencia de empleados. Compuesta por tres proyectos independientes: backend de microservicios, dashboard web y app móvil.
 
@@ -71,7 +71,7 @@ Soporte        SSR (Next.js)
 | `attendance-nextjs-nginx-1` | **8080** | Gateway de APIs + landing page |
 | `attendance-nextjs-svc-core-1` | interno 3001 | Auth, empresa, settings |
 | `attendance-nextjs-svc-employees-1` | interno 3002 | Empleados, departamentos |
-| `attendance-nextjs-svc-attendance-1` | interno 3003 | Asistencia, horarios |
+| `attendance-nextjs-svc-attendance-1` | interno 3003 | Asistencia, horarios, feriados |
 | `attendance-nextjs-svc-analytics-1` | interno 3004 | Dashboard, reportes |
 | `attendance-nextjs-svc-mobile-1` | interno 3005 | API móvil |
 | `attendance-nextjs-svc-comms-1` | interno 3006 | Mensajería |
@@ -103,7 +103,7 @@ Backend monorepo con 10 microservicios Next.js 15 detrás de un gateway Nginx.
 **Stack:**
 - Next.js 15 · TypeScript · Prisma 5 · PostgreSQL
 - pnpm workspaces · Docker Compose
-- JWT · Zod · Nodemailer · Payphone
+- JWT · Zod · Nodemailer · Payphone · Nager.Date (API feriados)
 
 **Servicios:**
 
@@ -111,7 +111,7 @@ Backend monorepo con 10 microservicios Next.js 15 detrás de un gateway Nginx.
 |---|---|---|
 | svc-core | 3001 | Auth, empresa, ajustes, notificaciones |
 | svc-employees | 3002 | Empleados, departamentos, cargos |
-| svc-attendance | 3003 | Asistencia, horarios |
+| svc-attendance | 3003 | Asistencia, horarios, feriados |
 | svc-analytics | 3004 | Dashboard, reportes |
 | svc-mobile | 3005 | API móvil, checker |
 | svc-comms | 3006 | Mensajería |
@@ -169,6 +169,16 @@ docker compose up -d
 
 **Documentación API:** `http://167.86.87.213:8080/docs`
 
+**Funcionalidades destacadas:**
+
+| Funcionalidad | Descripción |
+|---|---|
+| Verificación de email | Al registrarse desde `/sign-up`, se envía un correo con enlace de verificación (UUID, 24 h). Solo bloquea si SMTP está configurado. Tenants creados por superadmin no requieren verificación. |
+| Aprobación manual | Si `requireApproval=true` en SystemSettings, el tenant queda `pendingApproval=true` hasta que el superadmin lo apruebe desde el panel. |
+| Horas extras (Art. 55 EC) | Cálculo automático de recargos: nocturno 25 % (19:00–06:00), suplementario 50 % (después del horario, antes de medianoche), suplementario nocturno 100 % (después de medianoche) y extraordinario 100 % (sábados, domingos y feriados). |
+| Feriados | CRUD de días inhábiles por tenant. Importación masiva automática desde la API pública Nager.Date (Ecuador). |
+| Tipos de horario | Fixed (fijo), Variable (horas mínimas sin horario fijo), Rotativo (turnos rotativos con semanas configurables). |
+
 ---
 
 ### 2. `attendance-frontend` — Dashboard Web
@@ -187,11 +197,13 @@ Panel de administración para empresas, supervisores y empleados. Se sirve como 
 | Dashboard | KPIs, resumen de asistencia del día |
 | Empleados | CRUD completo, importación masiva |
 | Organización | Departamentos y cargos |
-| Horarios | Creación y asignación de horarios |
+| Horarios | Creación y asignación de horarios (Fixed, Variable, Rotativo) |
+| Feriados | Gestión de días inhábiles; importación desde Nager.Date (Ecuador) |
 | Asistencia | Registros, marcación manual, exportación |
 | Mensajes | Comunicación interna |
-| Reportes | Reportes por empleado, período, departamento |
+| Reportes | General, Ausencias, Tardanzas, Salidas anticipadas, **Horas extras** (Art.55 Ecuador) |
 | Empresa | Perfil, configuración SMTP |
+| Suscripción | Planes, pagos Payphone, facturas |
 | Checker | Estación de marcación por PIN/QR |
 | Soporte | Tickets con chat en tiempo real (SSE) |
 | Superadmin `/sys` | Gestión de tenants, planes, suscripciones, facturas |
@@ -235,26 +247,38 @@ App para empleados — marcación de entrada/salida con GPS.
 - Expo Router · Zustand · Axios
 - Expo Location · Expo Notifications · Expo Secure Store
 
+**Datos de la app:**
+- Nombre: `TiempoYa`
+- Package Android: `com.abisoft.tiempoya`
+- Bundle iOS: `com.abisoft.tiempoya`
+- Icono: `icon.png` (reloj sin texto, 1024×1024)
+- Splash: `splash.png` (portrait, resizeMode: cover)
+
 **Pantallas:**
 
 | Pantalla | Descripción |
 |---|---|
-| Login | Acceso con usuario/PIN |
+| Login | Acceso con usuario/contraseña |
 | Inicio | Botones entrada/salida con GPS |
 | Historial | Asistencia mensual, horas trabajadas |
 | Perfil | Datos del empleado, cerrar sesión |
 | Notificaciones | Avisos del sistema |
 
-**Variables de entorno:**
+**Variables de entorno (`.env` en la raíz de `attendance-mobile`):**
 ```env
 # Producción
 EXPO_PUBLIC_API_URL=https://www.tiempoya.net
 
-# Local (desarrollo)
+# Local (desarrollo) — reemplazar con la IP de tu máquina
 EXPO_PUBLIC_API_URL=http://192.168.X.X:8080
 ```
 
-> ⚠️ Verificar siempre que el `.env` apunte a producción antes de compilar la APK.
+> ⚠️ **Importante:** Verificar siempre que `.env` apunte a producción antes de compilar la APK. La URL se incrusta en el bundle JS en tiempo de compilación.
+
+**Nota sobre la carpeta `android/`:**
+> La carpeta `android/` está en `.gitignore` y NO se sube al repo. Cada vez que se clona el repo desde cero hay que generarla con `expo prebuild` y aplicar los dos fixes obligatorios (ver abajo).
+
+---
 
 **Cómo ejecutar en desarrollo:**
 ```bash
@@ -265,65 +289,93 @@ npm run android    # Emulador Android
 npm run ios        # Simulador iOS
 ```
 
-**Generar APK (Windows) — primera vez o tras clonar el repo:**
+---
 
-Requisitos: Android Studio instalado con el SDK, Java 17.
+**Requisitos para compilar APK (Windows):**
+- Android Studio instalado (incluye el SDK)
+- Java 17 (incluido en Android Studio o instalar por separado)
+- Variables de entorno del sistema configuradas **(hacer una sola vez)**:
+
+| Variable | Valor |
+|---|---|
+| `ANDROID_HOME` | `C:\Users\<tu-usuario>\AppData\Local\Android\Sdk` |
+| `JAVA_HOME` | `C:\Program Files\Java\jdk-17` |
+
+---
+
+**CASO 1 — Primera vez o tras clonar el repo desde cero:**
 
 ```powershell
-# 1. Configurar variables de entorno (hacer una sola vez en el sistema)
-#    Panel de control > Variables de entorno > Nueva variable del sistema:
-#    ANDROID_HOME = C:\Users\<tu-usuario>\AppData\Local\Android\Sdk
-#    JAVA_HOME    = C:\Program Files\Java\jdk-17
+# Pararse en la carpeta del proyecto
+cd C:\...\attendance-mobile
 
-# 2. Instalar dependencias
-cd attendance-mobile
+# 1. Instalar dependencias
 npm install
 
-# 3. Verificar que .env apunte a producción
-# EXPO_PUBLIC_API_URL=https://www.tiempoya.net
+# 2. Verificar que .env tenga la URL de producción
+#    EXPO_PUBLIC_API_URL=https://www.tiempoya.net
 
-# 4. Generar carpeta android/ (solo si no existe o si se agregó un plugin nativo)
+# 3. Generar carpeta android/
 npx expo prebuild --platform android
 
-# 5. Aplicar fix de Kotlin (OBLIGATORIO tras cada prebuild)
-#    En android/build.gradle, buscar esta línea:
+# 4. Fix de Kotlin — OBLIGATORIO tras cada prebuild
+#    Abrir android/build.gradle y cambiar:
 #        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
-#    Y reemplazarla por:
+#    Por:
 #        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
 
-# 6. Compilar la APK
+# 5. Fix de red HTTP — OBLIGATORIO tras cada prebuild
+#    Abrir android/app/src/main/AndroidManifest.xml
+#    En la etiqueta <application ...> agregar al final:
+#        android:usesCleartextTraffic="true"
+
+# 6. Compilar
+$env:ANDROID_HOME = "C:\Users\usuario\AppData\Local\Android\Sdk"
+$env:JAVA_HOME    = "C:\Program Files\Java\jdk-17"
 cd android
 .\gradlew.bat assembleRelease
-
-# APK generada en:
-# android\app\build\outputs\apk\release\app-release.apk
 ```
 
-**Generar APK — cuando ya existe la carpeta `android/` (actualizaciones de código):**
+---
+
+**CASO 2 — Actualización de código (la carpeta `android/` ya existe):**
 
 ```powershell
-# Solo recompilar, no hace falta prebuild ni reaplicar el fix
-cd attendance-mobile\android
+# No hace falta prebuild ni reaplicar los fixes
+$env:ANDROID_HOME = "C:\Users\usuario\AppData\Local\Android\Sdk"
+$env:JAVA_HOME    = "C:\Program Files\Java\jdk-17"
+cd C:\...\attendance-mobile\android
 .\gradlew.bat assembleRelease
-
-# APK generada en:
-# android\app\build\outputs\apk\release\app-release.apk
 ```
 
-**Si el build falla con error de Kotlin/Compose Compiler:**
+---
 
-Abrir `android/build.gradle` y verificar que la línea del plugin de Kotlin sea:
-```gradle
-classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-```
-Si dice `classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')` sin versión, corregirlo y volver a compilar.
+**CASO 3 — Se agregó un plugin nativo nuevo en `app.json`:**
 
-**Instalar APK en el teléfono:**
+Igual que el Caso 1 pero usar `expo prebuild` sin `--clean` para no borrar los fixes existentes:
+
 ```powershell
-# Via USB (con Depuración USB activada en el teléfono)
-C:\Users\<usuario>\AppData\Local\Android\Sdk\platform-tools\adb.exe install android\app\build\outputs\apk\release\app-release.apk
+npx expo prebuild --platform android   # sin --clean
+# Verificar que los fixes de Kotlin y cleartext siguen presentes
+# Si no están, reaplicarlos (ver Caso 1, pasos 4 y 5)
+cd android && .\gradlew.bat assembleRelease
 ```
-O copiar el `.apk` al teléfono e instalarlo manualmente (requiere "Fuentes desconocidas" habilitado).
+
+---
+
+**APK generada en:**
+```
+android\app\build\outputs\apk\release\app-release.apk
+```
+
+**Instalar en el teléfono:**
+```powershell
+# Via USB con Depuración USB activada
+C:\Users\usuario\AppData\Local\Android\Sdk\platform-tools\adb.exe install android\app\build\outputs\apk\release\app-release.apk
+```
+O copiar el `.apk` al teléfono e instalarlo manualmente (`Ajustes → Instalar apps desconocidas`).
+
+> Si el teléfono ya tiene instalada una versión anterior con distinto package name, desinstalarla primero.
 
 ---
 
@@ -404,7 +456,7 @@ Cuando se adquiera el dominio `tiempoya.net`:
 
 ## CI/CD — Jenkins (Deploy automático)
 
-Jenkins corre en el VPS en el puerto `9090`: `http://167.86.87.213:9090`
+Jenkins accesible en: `https://ci.tiempoya.net` (también `http://167.86.87.213:9090`)
 
 ### Estado de la configuración
 
@@ -414,10 +466,12 @@ Jenkins corre en el VPS en el puerto `9090`: `http://167.86.87.213:9090`
 | Fase 2 | Instalar plugins (GitHub Integration + SSH Agent) | ✅ Completado |
 | Fase 3 | Credenciales en Jenkins (DATABASE_URL + github-ssh) | ✅ Completado |
 | Fase 4 | Crear Jenkinsfile en la raíz del repo | ✅ Completado |
-| Fase 5 | Crear Job `tiempoya-deploy` en Jenkins | ✅ Completado (pendiente URL del repo) |
-| Fase 6 | Configurar GitHub (Deploy key o Personal Access Token) | ⏳ Pendiente — requiere acceso del dueño del repo |
-| Fase 7 | Configurar Webhook en GitHub | ⏳ Pendiente |
-| Fase 8 | Probar el pipeline completo | ⏳ Pendiente |
+| Fase 5 | Crear Job `tiempoya-deploy` en Jenkins | ✅ Completado |
+| Fase 5b | Subdominio `ci.tiempoya.net` con SSL | ✅ Completado |
+| Fase 6 | Deploy key agregado en GitHub | ✅ Completado |
+| Fase 7 | Configurar Job Pipeline con repo GitHub | ⏳ Pendiente — falta vincular repo en el Job |
+| Fase 8 | Configurar Webhook en GitHub | ⏳ Pendiente — dueño del repo debe agregarlo |
+| Fase 9 | Probar el pipeline completo | ⏳ Pendiente |
 
 ### Instalación de Jenkins (comando usado)
 
@@ -449,34 +503,27 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGi4x4DSASS50ygxbcW7dDHg0Cg2CEtGmK4bgVJhHkxR
 
 ### Pasos pendientes para terminar la configuración
 
-**Paso 1 — El dueño del repo debe hacer UNA de estas dos opciones:**
-
-**Opción A — Deploy key** (recomendada):
-- GitHub → repo → Settings → Deploy keys → Add deploy key
-- Title: `Jenkins VPS`
-- Key: la clave pública de arriba
-- Allow write access: NO
-
-**Opción B — Personal Access Token**:
-- GitHub → avatar → Settings → Developer settings → Personal access tokens → Tokens (classic)
-- Generate new token → scope: `repo` → sin expiración
-- Pasar el token al administrador de Jenkins
-
-**Paso 2 — En Jenkins**, una vez resuelto el acceso:
-- Ir al Job `tiempoya-deploy` → Configure → Pipeline
-- En Credentials seleccionar `github-ssh`
-- Verificar que la URL del repo no muestre error
+**Fase 7 — Vincular repo en el Job** (pendiente):
+- Jenkins → `tiempoya-deploy` → Configure → Pipeline
+- Definition: `Pipeline script from SCM`
+- SCM: `Git`
+- Repository URL: `git@github.com:marcusdesantis/AssistControl.git`
+- Credentials: `github-ssh`
+- Branch: `*/main`
+- Script Path: `Jenkinsfile`
 - Guardar
 
-**Paso 3 — Configurar Webhook en GitHub**:
+**Fase 8 — Webhook en GitHub** (el dueño del repo debe hacerlo):
 - GitHub → repo → Settings → Webhooks → Add webhook
-- Payload URL: `http://167.86.87.213:9090/github-webhook/`
+- Payload URL: `https://ci.tiempoya.net/github-webhook/`
 - Content type: `application/json`
+- SSL verification: Enable SSL verification
 - Trigger: `Just the push event`
+- Active: ✅
 
-**Paso 4 — Probar el pipeline**:
-- En Jenkins → Job `tiempoya-deploy` → Build Now
-- Verificar que los 4 stages (Pull, Migrar DB, Deploy Backend, Deploy Frontend) pasen en verde
+**Fase 9 — Probar el pipeline**:
+- Jenkins → Job `tiempoya-deploy` → Build Now
+- Verificar que los 4 stages pasen en verde: Pull → Migrar DB → Deploy Backend → Deploy Frontend
 
 ---
 

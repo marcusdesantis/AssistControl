@@ -1,4 +1,4 @@
-import { prisma } from '@attendance/shared'
+import { prisma, calcAttendanceStatus } from '@attendance/shared'
 import { DateTime } from 'luxon'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -11,23 +11,11 @@ function statusLabel(key: string) { return STATUS_LABEL[key] ?? key }
 function calcStatus(
   checkInUtc: Date,
   schedule: any | null,
-  lateToleranceMinutes: number,
+  _lateToleranceMinutes: number,
   tz: string,
+  employeeStartDate?: Date | null,
 ): { status: 'Present' | 'Late'; lateMinutes: number } {
-  if (!schedule || !Array.isArray(schedule.days)) return { status: 'Present', lateMinutes: 0 }
-
-  const local   = DateTime.fromJSDate(checkInUtc, { zone: tz })
-  const weekday = local.weekday % 7
-  const dayConf = (schedule.days as any[]).find((d: any) => d.day === weekday)
-
-  if (!dayConf?.isWorkDay || !dayConf.entryTime) return { status: 'Present', lateMinutes: 0 }
-
-  const [entryH, entryM] = dayConf.entryTime.split(':').map(Number)
-  const threshold = local.set({ hour: entryH, minute: entryM, second: 0, millisecond: 0 })
-    .plus({ minutes: lateToleranceMinutes })
-
-  if (local <= threshold) return { status: 'Present', lateMinutes: 0 }
-  return { status: 'Late', lateMinutes: Math.round(local.diff(threshold, 'minutes').minutes) }
+  return calcAttendanceStatus(checkInUtc, schedule, tz, employeeStartDate)
 }
 
 function hoursWorked(checkIn: Date | null, checkOut: Date | null): number | null {
@@ -235,7 +223,7 @@ export async function checkIn(
   })
   if (active) throw { code: 'ALREADY_CHECKED_IN', message: 'El empleado ya tiene una entrada activa. Debe registrar su salida primero.' }
 
-  const lateInfo = calcStatus(now, employee.schedule, employee.schedule?.lateToleranceMinutes ?? 0, tz)
+  const lateInfo = calcStatus(now, employee.schedule, employee.schedule?.lateToleranceMinutes ?? 0, tz, employee.scheduleStartDate ?? null)
 
   const record = await prisma.attendanceRecord.create({
     data: {
@@ -300,7 +288,7 @@ export async function updateRecord(
   let lateMinutes = record.lateMinutes
 
   if (data.checkInTime && record.employee?.schedule) {
-    const late  = calcStatus(new Date(data.checkInTime), record.employee.schedule, record.employee.schedule.lateToleranceMinutes, tz)
+    const late  = calcStatus(new Date(data.checkInTime), record.employee.schedule, record.employee.schedule.lateToleranceMinutes, tz, record.employee.scheduleStartDate ?? null)
     status      = late.status
     lateMinutes = late.lateMinutes
   }

@@ -33,6 +33,7 @@ export default function RegisterCompanyPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [error,       setError]       = useState<string | null>(null)
   const [success,     setSuccess]     = useState(false)
+  const [emailSent,   setEmailSent]   = useState(false)
   const [freePlanLimit, setFreePlanLimit] = useState<number | null>(null)
 
   const { register, handleSubmit, watch, setError: setFieldError, formState: { errors, isSubmitting } } = useForm<Form>()
@@ -49,18 +50,21 @@ export default function RegisterCompanyPage() {
   const onSubmit = async (data: Form) => {
     setError(null)
     try {
-      const locale   = navigator.language || navigator.languages?.[0] || ''
-      const country  = locale.includes('-') ? locale.split('-').pop()!.toUpperCase() : 'EC'
-      await api.post('/auth/register', {
+      const res = await api.post('/auth/register', {
         companyName: data.companyName.trim(),
         username:    data.username.trim().toLowerCase(),
         email:       data.email.trim().toLowerCase(),
         password:    data.password,
-        timeZone:    Intl.DateTimeFormat().resolvedOptions().timeZone,
-        country,
+        timeZone:    'America/Guayaquil',
+        country:     'EC',
       })
-      setSuccess(true)
-      setTimeout(() => navigate('/login', { replace: true }), 2000)
+      const hasEmailVerification = res.data?.data?.emailVerification === true
+      if (hasEmailVerification) {
+        setEmailSent(true)
+      } else {
+        setSuccess(true)
+        setTimeout(() => navigate('/login', { replace: true }), 2000)
+      }
     } catch (err: any) {
       const code = err?.response?.data?.code ?? err?.response?.data?.errorCode
       const msg  = err?.response?.data?.message
@@ -74,6 +78,21 @@ export default function RegisterCompanyPage() {
         setError(msg ?? 'No se pudo crear la cuenta. Intenta nuevamente.')
     }
   }
+
+  if (emailSent) return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-10 text-center max-w-sm w-full">
+        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-9 h-9 text-blue-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">¡Revisa tu correo!</h2>
+        <p className="text-gray-500 text-sm leading-relaxed">
+          Te enviamos un enlace de verificación. Haz clic en él para activar tu cuenta.
+          <br /><span className="text-gray-400 text-xs mt-2 block">El enlace es válido por 24 horas.</span>
+        </p>
+      </div>
+    </div>
+  )
 
   if (success) return (
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">

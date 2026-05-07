@@ -1,4 +1,4 @@
-import { prisma, verifyPassword, generatePin, sendEmail, generateQr } from '@attendance/shared'
+import { prisma, verifyPassword, generatePin, sendEmail, generateQr, calcAttendanceStatus, getScheduleDay, getScheduledMinutes } from '@attendance/shared'
 import { DateTime } from 'luxon'
 
 function hoursWorked(a: Date | null, b: Date | null) {
@@ -26,18 +26,6 @@ function recToDto(r: any) {
     latitude:       r.latitude  ?? null,
     longitude:      r.longitude ?? null,
   }
-}
-
-function calcStatus(checkInUtc: Date, schedule: any | null, tolerance: number, tz: string) {
-  if (!schedule || !Array.isArray(schedule.days)) return { status: 'Present' as const, lateMinutes: 0 }
-  const local   = DateTime.fromJSDate(checkInUtc, { zone: tz })
-  const weekday = local.weekday % 7
-  const day     = (schedule.days as any[]).find((d: any) => d.day === weekday)
-  if (!day?.isWorkDay || !day.entryTime) return { status: 'Present' as const, lateMinutes: 0 }
-  const [h, m] = day.entryTime.split(':').map(Number)
-  const threshold = local.set({ hour: h, minute: m, second: 0, millisecond: 0 }).plus({ minutes: tolerance })
-  if (local <= threshold) return { status: 'Present' as const, lateMinutes: 0 }
-  return { status: 'Late' as const, lateMinutes: Math.round(local.diff(threshold, 'minutes').minutes) }
 }
 
 async function buildStats(employeeId: string, todayStr: string) {
@@ -154,6 +142,14 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
   if (!verifyPassword(pin, emp.pinHash)) throw { code: 'INVALID_PIN', message: 'Clave incorrecta.' }
   if (!emp.scheduleId) throw { code: 'NO_SCHEDULE', message: 'No tienes un horario asignado.' }
 
+  if (emp.scheduleStartDate) {
+    const tz0         = tenant.timeZone ?? 'America/Guayaquil'
+    const todayStr    = DateTime.now().setZone(tz0).toFormat('yyyy-MM-dd')
+    const startStr    = DateTime.fromJSDate(emp.scheduleStartDate).toFormat('yyyy-MM-dd')
+    if (startStr > todayStr)
+      throw { code: 'SCHEDULE_NOT_YET', message: `Tu horario aún no está vigente. Estará activo a partir del ${DateTime.fromJSDate(emp.scheduleStartDate).setLocale('es').toFormat('dd/MM/yyyy')}.` }
+  }
+
   if (tenant.checkerRequires2FA) {
     if (!otpCode) throw { code: 'OTP_REQUIRED', message: 'Se requiere código de verificación.' }
     const otp = await prisma.checkerOtp.findFirst({
@@ -168,6 +164,13 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
   const now   = new Date()
   const today = DateTime.fromJSDate(now, { zone: tz }).toFormat('yyyy-MM-dd')
 
+  if (!emp.worksOnHolidays) {
+    const holiday = await prisma.holiday.findFirst({
+      where: { tenantId: tenant.id, date: today, isDeleted: false },
+    })
+    if (holiday) throw { code: 'HOLIDAY', message: `Hoy es un día inhábil (${holiday.name}). No es posible registrar asistencia.` }
+  }
+
   const active = await prisma.attendanceRecord.findFirst({
     where: { tenantId: tenant.id, employeeId: emp.id, date: today, checkOutTime: null, isDeleted: false },
   })
@@ -181,7 +184,7 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
       throw { code: 'PLAN_LIMIT', message: `Se ha alcanzado el límite de ${checkerLimit} empleado(s) con entrada activa simultánea. Comunícate con el administrador de la empresa.` }
   }
 
-  const lateInfo = calcStatus(now, emp.schedule, emp.schedule?.lateToleranceMinutes ?? 0, tz)
+  const lateInfo = calcAttendanceStatus(now, emp.schedule, tz, emp.scheduleStartDate ?? null)
   const record   = await prisma.attendanceRecord.create({
     data: { tenantId: tenant.id, employeeId: emp.id, date: today, checkInTime: now, status: lateInfo.status, lateMinutes: lateInfo.lateMinutes, registeredFrom: 'Checker' },
   })
@@ -250,7 +253,11 @@ export async function checkOut(checkerKey: string, employeeCode: string, pin: st
   }
 }
 
-function schedMins(day: any): number {
+function schedMins(day: any, schedule?: any): number {
+  return getScheduledMinutes(day, schedule ?? { type: 'Fixed', days: [], lateToleranceMinutes: 0 })
+}
+
+function _schedMinsLegacy(day: any): number {
   if (!day?.isWorkDay || !day.entryTime || !day.exitTime) return 0
   const [eh, em] = day.entryTime.split(':').map(Number)
   const [xh, xm] = day.exitTime.split(':').map(Number)
@@ -285,7 +292,6 @@ export async function getEmployeeReport(checkerKey: string, employeeId: string, 
   const tz       = tenant.timeZone ?? 'America/Guayaquil'
   const today    = DateTime.now().setZone(tz).toFormat('yyyy-MM-dd')
   const DAYS_ES  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-  const schedDays: any[] = emp.schedule ? (emp.schedule.days as any[]) : []
 
   const days: any[] = []
   let totalWorked = 0, totalLates = 0, totalAbsences = 0, totalEarlyDeps = 0, incompleteEvents = 0
@@ -298,9 +304,9 @@ export async function getEmployeeReport(checkerKey: string, employeeId: string, 
     const dateStr  = cur.toFormat('yyyy-MM-dd')
     const luxonDow = cur.weekday % 7
     const dayName  = DAYS_ES[luxonDow]
-    const schedDay = schedDays.find((d: any) => d.day === luxonDow)
+    const schedDay = emp.schedule ? getScheduleDay(emp.schedule as any, cur, emp.scheduleStartDate ?? null) : null
     const isWorkDay = schedDay?.isWorkDay ?? false
-    const sMin     = schedMins(schedDay)
+    const sMin     = schedMins(schedDay, emp.schedule)
 
     if (isWorkDay) { workdays++; schedWithAbs += sMin }
 
@@ -339,7 +345,8 @@ export async function getEmployeeReport(checkerKey: string, employeeId: string, 
     let delayMinutes: number | null = null
     let earlyLeaveMinutes: number | null = null
 
-    if (first.checkInTime && schedDay?.entryTime && emp.schedule) {
+    const isVariable = emp.schedule?.type === 'Variable'
+    if (!isVariable && first.checkInTime && schedDay?.entryTime && emp.schedule) {
       const [eh, em] = schedDay.entryTime.split(':').map(Number)
       const threshold = DateTime.fromJSDate(first.checkInTime, { zone: tz })
         .set({ hour: eh, minute: em, second: 0 })
@@ -348,7 +355,7 @@ export async function getEmployeeReport(checkerKey: string, employeeId: string, 
       if (checkInDt > threshold) { delayMinutes = Math.round(checkInDt.diff(threshold, 'minutes').minutes); totalLates++ }
     }
 
-    if (last.checkOutTime && schedDay?.exitTime) {
+    if (!isVariable && last.checkOutTime && schedDay?.exitTime) {
       const [xh, xm] = schedDay.exitTime.split(':').map(Number)
       const scheduledExit = DateTime.fromJSDate(last.checkOutTime, { zone: tz }).set({ hour: xh, minute: xm, second: 0 })
       const checkOutDt    = DateTime.fromJSDate(last.checkOutTime, { zone: tz })

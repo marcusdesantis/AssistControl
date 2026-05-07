@@ -37,8 +37,10 @@ type FormData = {
   hireDate:     string
   phone:        string
   status:       EmployeeStatus
-  scheduleId:   string
-  username:     string
+  scheduleId:        string
+  scheduleStartDate: string
+  worksOnHolidays:   boolean
+  username:          string
   password:     string
   newPassword:  string
   pin:          string
@@ -92,9 +94,10 @@ export default function EmployeesPage() {
   const [sendingNotif,    setSendingNotif]    = useState(false)
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormData>()
-  const watchedCode    = watch('employeeCode')
-  const watchedPass    = watch('password')
-  const watchedNewPass = watch('newPassword')
+  const watchedCode      = watch('employeeCode')
+  const watchedPass      = watch('password')
+  const watchedNewPass   = watch('newPassword')
+  const watchedScheduleId = watch('scheduleId')
 
   const load = useCallback(async (p = page) => {
     setLoading(true)
@@ -124,7 +127,7 @@ export default function EmployeesPage() {
     setCodeUnlocked(false)
     setFormError(null)
     setEditing(null)
-    reset({ status: 'Active', hireDate: new Date().toISOString().split('T')[0], scheduleId: schedules[0]?.id ?? '' })
+    reset({ status: 'Active', hireDate: new Date().toISOString().split('T')[0], scheduleId: schedules[0]?.id ?? '', scheduleStartDate: new Date().toISOString().split('T')[0], worksOnHolidays: true })
     setShowModal(true)
 
     setNextCodeLoading(true)
@@ -146,6 +149,8 @@ export default function EmployeesPage() {
       positionId:   emp.positionId   ?? '',
       email: emp.email, hireDate: emp.hireDate, phone: emp.phone ?? '',
       status: emp.status, scheduleId: emp.scheduleId ?? '',
+      scheduleStartDate: new Date().toISOString().split('T')[0],
+      worksOnHolidays: emp.worksOnHolidays ?? true,
       username:    emp.username        ?? '',
       newPassword: emp.passwordDisplay ?? '',
     })
@@ -162,6 +167,8 @@ export default function EmployeesPage() {
           positionId:   data.positionId   || null,
           email: data.email, hireDate: data.hireDate,
           status: data.status, scheduleId: data.scheduleId,
+          scheduleStartDate: watchedScheduleId !== editing.scheduleId ? data.scheduleStartDate : undefined,
+          worksOnHolidays: data.worksOnHolidays,
           phone:        data.phone        || undefined,
           pin:          data.pin          || undefined,
           clearPin:     data.clearPin,
@@ -178,6 +185,8 @@ export default function EmployeesPage() {
           departmentId: data.departmentId || null,
           positionId:   data.positionId   || null,
           email: data.email, hireDate: data.hireDate, scheduleId: data.scheduleId,
+          scheduleStartDate: data.scheduleStartDate || undefined,
+          worksOnHolidays: data.worksOnHolidays,
           username: data.username || undefined,
           password: data.password || undefined,
           phone: data.phone || undefined, pin: data.pin || undefined,
@@ -518,7 +527,7 @@ export default function EmployeesPage() {
                     <input {...register('hireDate', { required: 'Requerido' })} className="input-field" type="date" />
                     {errors.hireDate && <p className="text-red-500 text-xs mt-1">{errors.hireDate.message}</p>}
                   </div>
-                  <div className="col-span-2">
+                  <div className={editing ? 'col-span-2' : ''}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Horario *</label>
                     <select {...register('scheduleId', { required: 'Requerido' })} className="input-field">
                       <option value="">— Seleccionar horario —</option>
@@ -526,6 +535,21 @@ export default function EmployeesPage() {
                     </select>
                     {errors.scheduleId && <p className="text-red-500 text-xs mt-1">{errors.scheduleId.message}</p>}
                   </div>
+
+                  {/* Fecha de inicio del horario */}
+                  {(!editing || watchedScheduleId !== editing.scheduleId) && (
+                    <div className={editing ? 'col-span-2' : ''}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Horario aplica desde *
+                      </label>
+                      <input {...register('scheduleStartDate', { required: 'Requerido' })}
+                        className="input-field" type="date" />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Fecha desde la cual rige este horario para el empleado.
+                      </p>
+                      {errors.scheduleStartDate && <p className="text-red-500 text-xs mt-1">{errors.scheduleStartDate.message}</p>}
+                    </div>
+                  )}
                   {editing && (
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
@@ -625,6 +649,19 @@ export default function EmployeesPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Trabaja en días inhábiles */}
+                  <div className="col-span-2 border-t pt-4 mt-1">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" id="worksOnHolidays" {...register('worksOnHolidays')}
+                        className="w-4 h-4 text-primary-600 rounded shrink-0" />
+                      <label htmlFor="worksOnHolidays" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Puede registrar asistencia en días inhábiles
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 ml-7">Si está activo, el empleado podrá registrar entrada y salida en feriados desde el checador web y la app móvil.</p>
+                  </div>
+
                 </div>
               </div>
               <div className="flex justify-end gap-3 p-6 border-t shrink-0">

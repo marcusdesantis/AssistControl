@@ -1,9 +1,10 @@
-import { prisma, hashPassword, verifyPassword, signAdmin, getTenantCapabilities, DEFAULT_CAPABILITIES } from '@attendance/shared'
+import { prisma, hashPassword, verifyPassword, signAdmin, getTenantCapabilities, DEFAULT_CAPABILITIES, sendSystemEmail } from '@attendance/shared'
 import { v4 as uuidv4 } from 'uuid'
 import type { RegisterDto, LoginDto, ChangePasswordDto } from './auth.schema'
 
-const REFRESH_TOKEN_DAYS = 7
-const ACCESS_TOKEN_HOURS = 24
+const REFRESH_TOKEN_DAYS       = 7
+const ACCESS_TOKEN_HOURS       = 24
+const VERIFY_TOKEN_EXPIRY_HOURS = 24
 
 function refreshExpiresAt(): Date {
   const d = new Date()
@@ -15,6 +16,73 @@ function accessExpiresAt(): Date {
   const d = new Date()
   d.setHours(d.getHours() + ACCESS_TOKEN_HOURS)
   return d
+}
+
+function verifyTokenExpiry(): Date {
+  const d = new Date()
+  d.setHours(d.getHours() + VERIFY_TOKEN_EXPIRY_HOURS)
+  return d
+}
+
+function verificationEmailHtml(companyName: string, verifyUrl: string): string {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <!-- Header -->
+        <tr>
+          <td style="background:#1e3a5f;padding:32px 40px;text-align:center;">
+            <p style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:1px;">TiempoYa</p>
+            <p style="margin:6px 0 0;color:#9bb8d4;font-size:13px;">Sistema de Gestión de Asistencia</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:40px 40px 32px;">
+            <h2 style="margin:0 0 12px;color:#1e3a5f;font-size:22px;">Confirma tu correo electrónico</h2>
+            <p style="margin:0 0 8px;color:#444;font-size:15px;line-height:1.6;">
+              Hola, gracias por registrar <strong>${companyName}</strong> en TiempoYa.
+            </p>
+            <p style="margin:0 0 28px;color:#555;font-size:14px;line-height:1.6;">
+              Para activar tu cuenta, confirma tu dirección de correo haciendo clic en el botón de abajo.
+              El enlace es válido por <strong>24 horas</strong>.
+            </p>
+            <!-- CTA button -->
+            <table cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center" style="padding:0 0 28px;">
+                  <a href="${verifyUrl}"
+                     style="display:inline-block;background:#1e3a5f;color:#ffffff;font-size:15px;font-weight:600;
+                            text-decoration:none;padding:14px 36px;border-radius:8px;letter-spacing:0.3px;">
+                    ✓ Confirmar correo electrónico
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 8px;color:#888;font-size:12px;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+            <p style="margin:0;font-size:12px;word-break:break-all;">
+              <a href="${verifyUrl}" style="color:#1e3a5f;">${verifyUrl}</a>
+            </p>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e8ecf0;text-align:center;">
+            <p style="margin:0;color:#aaa;font-size:12px;">
+              Si no creaste esta cuenta, ignora este mensaje.<br>
+              © ${new Date().getFullYear()} TiempoYa — Sistema de Control de Asistencia
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
 }
 
 // ─── Register new tenant + admin ──────────────────────────────────────────────
@@ -34,8 +102,11 @@ export async function registerTenant(dto: RegisterDto) {
   ])
   if (!defaultPlan) throw { code: 'NO_DEFAULT_PLAN', message: 'No hay un plan por defecto configurado.' }
 
-  const requireApproval = settings?.requireApproval ?? false
+  const smtpReady       = !!(settings?.smtpEnabled && settings?.smtpHost && settings?.smtpUsername && settings?.smtpPassword)
+  const verificationToken = smtpReady ? uuidv4() : null
 
+  // Tenant siempre inactivo hasta verificar email (si hay SMTP).
+  // Si no hay SMTP, usamos el comportamiento anterior.
   const tenant = await prisma.tenant.create({
     data: {
       name:            dto.companyName.trim(),
@@ -43,18 +114,22 @@ export async function registerTenant(dto: RegisterDto) {
       country:         dto.country,
       checkerKey:      uuidv4(),
       selfRegistered:  true,
-      pendingApproval: requireApproval,
-      isActive:        !requireApproval,
+      // Con SMTP: siempre inactivo hasta verificar. Sin SMTP: comportamiento anterior.
+      isActive:          smtpReady ? false : !(settings?.requireApproval ?? false),
+      pendingApproval:   smtpReady ? false : (settings?.requireApproval ?? false),
+      emailVerified:     !smtpReady,  // si no hay SMTP, se considera verificado
+      emailVerificationToken:  verificationToken,
+      emailVerificationExpiry: verificationToken ? verifyTokenExpiry() : null,
     },
   })
 
   await prisma.user.create({
     data: {
-      tenantId:          tenant.id,
-      username:          dto.username.toLowerCase().trim(),
-      email:             dto.email.toLowerCase().trim(),
-      passwordHash:      hashPassword(dto.password),
-      role:              'Admin',
+      tenantId:           tenant.id,
+      username:           dto.username.toLowerCase().trim(),
+      email:              dto.email.toLowerCase().trim(),
+      passwordHash:       hashPassword(dto.password),
+      role:               'Admin',
       mustChangePassword: false,
     },
   })
@@ -63,18 +138,121 @@ export async function registerTenant(dto: RegisterDto) {
     data: { tenantId: tenant.id, planId: defaultPlan.id, billingCycle: 'monthly', status: 'active' },
   })
 
+  // Enviar email de verificación (solo si SMTP está configurado)
+  if (verificationToken) {
+    const frontendUrl = process.env.FRONTEND_URL ?? process.env.APP_URL ?? 'http://localhost:3000'
+    const verifyUrl   = `${frontendUrl}/verify-email?token=${verificationToken}`
+    try {
+      await sendSystemEmail({
+        to:      dto.email.toLowerCase().trim(),
+        subject: 'Confirma tu correo electrónico — TiempoYa',
+        html:    verificationEmailHtml(dto.companyName.trim(), verifyUrl),
+      })
+    } catch {
+      // Si falla el envío, eliminamos el tenant y lanzamos error
+      await prisma.tenant.delete({ where: { id: tenant.id } })
+      await prisma.user.deleteMany({ where: { tenantId: tenant.id } })
+      throw { code: 'EMAIL_SEND_ERROR', message: 'No se pudo enviar el correo de verificación. Intenta más tarde.' }
+    }
+  } else {
+    // Sin SMTP: notificación al superadmin como antes
+    const requireApproval = settings?.requireApproval ?? false
+    await prisma.notification.create({
+      data: {
+        forAdmin: true,
+        title:    'Nueva empresa registrada',
+        body:     requireApproval
+          ? `La empresa "${dto.companyName.trim()}" se registró y está pendiente de aprobación.`
+          : `La empresa "${dto.companyName.trim()}" se registró exitosamente en el sistema.`,
+        type: requireApproval ? 'warning' : 'info',
+      },
+    })
+  }
+
+  return {
+    registered:        true,
+    emailVerification: smtpReady,
+    pendingApproval:   smtpReady ? false : (settings?.requireApproval ?? false),
+  }
+}
+
+// ─── Resend verification email ────────────────────────────────────────────────
+export async function resendVerificationEmail(email: string) {
+  const user = await prisma.user.findFirst({
+    where: { email: email.toLowerCase().trim(), isDeleted: false },
+  })
+  if (!user) throw { code: 'EMAIL_NOT_FOUND', message: 'No existe una cuenta con ese correo electrónico.' }
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: user.tenantId },
+    select: { id: true, name: true, selfRegistered: true, emailVerified: true, isDeleted: true },
+  })
+
+  if (!tenant || tenant.isDeleted)
+    throw { code: 'TENANT_NOT_FOUND', message: 'Empresa no encontrada.' }
+  if (!tenant.selfRegistered)
+    throw { code: 'NOT_SELF_REGISTERED', message: 'Esta cuenta no requiere verificación de correo.' }
+  if (tenant.emailVerified)
+    throw { code: 'ALREADY_VERIFIED', message: 'Este correo ya fue verificado. Puedes iniciar sesión.' }
+
+  const newToken  = uuidv4()
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      emailVerificationToken:  newToken,
+      emailVerificationExpiry: verifyTokenExpiry(),
+    },
+  })
+
+  const frontendUrl = process.env.FRONTEND_URL ?? process.env.APP_URL ?? 'http://localhost:3000'
+  const verifyUrl   = `${frontendUrl}/verify-email?token=${newToken}`
+
+  await sendSystemEmail({
+    to:      email.toLowerCase().trim(),
+    subject: 'Nuevo enlace de verificación — TiempoYa',
+    html:    verificationEmailHtml(tenant.name, verifyUrl),
+  })
+
+  return { sent: true }
+}
+
+// ─── Verify email ──────────────────────────────────────────────────────────────
+export async function verifyEmail(token: string) {
+  const tenant = await prisma.tenant.findFirst({
+    where: { emailVerificationToken: token, emailVerified: false, isDeleted: false },
+  })
+
+  if (!tenant) throw { code: 'INVALID_TOKEN', message: 'El enlace de verificación no es válido o ya fue utilizado.' }
+
+  if (tenant.emailVerificationExpiry && tenant.emailVerificationExpiry < new Date())
+    throw { code: 'TOKEN_EXPIRED', message: 'El enlace de verificación ha expirado. Por favor regístrate de nuevo.' }
+
+  const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } })
+  const requireApproval = settings?.requireApproval ?? false
+
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      emailVerified:           true,
+      emailVerificationToken:  null,
+      emailVerificationExpiry: null,
+      pendingApproval:         requireApproval,
+      isActive:                !requireApproval,
+    },
+  })
+
   await prisma.notification.create({
     data: {
       forAdmin: true,
-      title:    'Nueva empresa registrada',
+      title:    'Nueva empresa verificada',
       body:     requireApproval
-        ? `La empresa "${dto.companyName.trim()}" se registró y está pendiente de aprobación.`
-        : `La empresa "${dto.companyName.trim()}" se registró exitosamente en el sistema.`,
+        ? `La empresa "${tenant.name}" verificó su correo y está pendiente de aprobación.`
+        : `La empresa "${tenant.name}" verificó su correo y ya está activa.`,
       type: requireApproval ? 'warning' : 'info',
     },
   })
 
-  return { registered: true, pendingApproval: requireApproval }
+  return { verified: true, requiresApproval: requireApproval }
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -89,7 +267,16 @@ export async function login(dto: LoginDto) {
   if (!user.isActive)
     throw { code: 'USER_INACTIVE', message: 'Tu usuario ha sido desactivado. Contacta al administrador.' }
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { isActive: true, pendingApproval: true, timeZone: true, country: true } })
+  const tenant = await prisma.tenant.findUnique({
+    where:  { id: user.tenantId },
+    select: { isActive: true, pendingApproval: true, timeZone: true, country: true, selfRegistered: true, emailVerified: true, emailVerificationToken: true },
+  })
+
+  // Solo bloquear si hay un token de verificación pendiente (registro nuevo via sign-up con SMTP)
+  // Usuarios antiguos o creados desde superadmin no tienen token → entran sin restricción
+  if (tenant?.selfRegistered && !tenant.emailVerified && tenant.emailVerificationToken)
+    throw { code: 'EMAIL_NOT_VERIFIED', message: 'Debes confirmar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.' }
+
   if (tenant?.pendingApproval)
     throw { code: 'TENANT_PENDING', message: 'Tu empresa está en proceso de validación. El administrador del sistema la aprobará pronto.' }
   if (!tenant?.isActive)

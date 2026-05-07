@@ -7,7 +7,7 @@ const _loginNotice = (() => {
 })()
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Clock, Eye, EyeOff, LogIn, AlertCircle, Lock, UserX, ClipboardCheck } from 'lucide-react'
+import { Clock, Eye, EyeOff, LogIn, AlertCircle, Lock, UserX, ClipboardCheck, Mail } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { authService } from './authService'
 import { useAuthStore } from '@/store/authStore'
@@ -21,14 +21,15 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPassword,          setShowPassword]          = useState(false)
+  const [error,                 setError]                 = useState<string | null>(null)
+  const [loading,               setLoading]               = useState(false)
+  const [deactivatedModal,      setDeactivatedModal]      = useState(false)
+  const [userDeactivatedModal,  setUserDeactivatedModal]  = useState(_loginNotice === 'user_inactive')
+  const [pendingModal,          setPendingModal]          = useState(false)
+  const [emailNotVerifiedModal, setEmailNotVerifiedModal] = useState(false)
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [deactivatedModal,     setDeactivatedModal]     = useState(false)
-  const [userDeactivatedModal, setUserDeactivatedModal] = useState(_loginNotice === 'user_inactive')
-  const [pendingModal,         setPendingModal]         = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>()
 
@@ -46,14 +47,19 @@ export default function LoginPage() {
       navigate(user.mustChangePassword ? '/change-password' : '/dashboard', { replace: true })
     } catch (err: any) {
       const code = err?.response?.data?.code ?? err?.response?.data?.errorCode
+      const msg  = err?.response?.data?.message
       if (code === 'TENANT_INACTIVE')
         setDeactivatedModal(true)
       else if (code === 'USER_INACTIVE')
         setUserDeactivatedModal(true)
       else if (code === 'TENANT_PENDING')
         setPendingModal(true)
+      else if (code === 'EMAIL_NOT_VERIFIED')
+        setEmailNotVerifiedModal(true)
+      else if (code === 'INVALID_CREDENTIALS')
+        setError(msg ?? 'Credenciales incorrectas.')
       else
-        setError('No se pudo conectar con el servidor. Verifica que el backend esté corriendo.')
+        setError(msg ?? 'No se pudo conectar con el servidor. Verifica que el backend esté corriendo.')
     } finally {
       setLoading(false)
     }
@@ -95,6 +101,30 @@ export default function LoginPage() {
         >
           Entendido
         </button>
+      </div>
+    </div>
+  )
+
+  if (emailNotVerifiedModal) return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center">
+        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <Mail className="w-7 h-7 text-blue-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Verifica tu correo</h2>
+        <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+          Debes confirmar tu dirección de correo electrónico antes de iniciar sesión.
+          <br /><span className="text-gray-400 text-xs mt-1 block">Revisa tu bandeja de entrada y haz clic en el enlace de verificación que te enviamos.</span>
+        </p>
+        <button
+          onClick={() => setEmailNotVerifiedModal(false)}
+          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors mb-2"
+        >
+          Entendido
+        </button>
+        <Link to="/verify-email" className="block text-xs text-center text-blue-500 hover:text-blue-700 font-medium transition mt-1">
+          ¿No recibiste el correo? Solicitar reenvío →
+        </Link>
       </div>
     </div>
   )

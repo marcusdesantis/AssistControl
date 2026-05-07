@@ -1,4 +1,4 @@
-import { prisma, verifyPassword, signEmployee, generatePin, sendEmail, generateQr } from '@attendance/shared'
+import { prisma, verifyPassword, signEmployee, generatePin, sendEmail, generateQr, calcAttendanceStatus } from '@attendance/shared'
 import { DateTime } from 'luxon'
 
 function hoursWorked(a: Date | null, b: Date | null) {
@@ -31,16 +31,8 @@ function recToDtoWithEmployee(r: any) {
   }
 }
 
-function calcStatus(checkInUtc: Date, schedule: any | null, tolerance: number, tz: string) {
-  if (!schedule || !Array.isArray(schedule.days)) return { status: 'Present' as const, lateMinutes: 0 }
-  const local   = DateTime.fromJSDate(checkInUtc, { zone: tz })
-  const weekday = local.weekday % 7
-  const day     = (schedule.days as any[]).find((d: any) => d.day === weekday)
-  if (!day?.isWorkDay || !day.entryTime) return { status: 'Present' as const, lateMinutes: 0 }
-  const [h, m] = day.entryTime.split(':').map(Number)
-  const threshold = local.set({ hour: h, minute: m, second: 0, millisecond: 0 }).plus({ minutes: tolerance })
-  if (local <= threshold) return { status: 'Present' as const, lateMinutes: 0 }
-  return { status: 'Late' as const, lateMinutes: Math.round(local.diff(threshold, 'minutes').minutes) }
+function calcStatus(checkInUtc: Date, schedule: any | null, _tolerance: number, tz: string, employeeStartDate?: Date | null) {
+  return calcAttendanceStatus(checkInUtc, schedule, tz, employeeStartDate)
 }
 
 export async function login(username: string, password: string) {
@@ -136,6 +128,13 @@ export async function checkIn(
   const tenant = await prisma.tenant.findFirst({ where: { id: tenantId } })
   const tz     = tenant?.timeZone ?? 'America/Guayaquil'
 
+  if (emp.scheduleStartDate) {
+    const todayStr = DateTime.now().setZone(tz).toFormat('yyyy-MM-dd')
+    const startStr = DateTime.fromJSDate(emp.scheduleStartDate).toFormat('yyyy-MM-dd')
+    if (startStr > todayStr)
+      throw { code: 'SCHEDULE_NOT_YET', message: `Tu horario aún no está vigente. Estará activo a partir del ${DateTime.fromJSDate(emp.scheduleStartDate).toFormat('dd/MM/yyyy')}.` }
+  }
+
   if (tenant?.checkerRequires2FA) {
     if (!opts?.otpCode) throw { code: 'OTP_REQUIRED', message: 'Se requiere código de verificación.' }
     const otp = await prisma.checkerOtp.findFirst({
@@ -148,6 +147,13 @@ export async function checkIn(
 
   const now   = new Date()
   const today = DateTime.fromJSDate(now, { zone: tz }).toFormat('yyyy-MM-dd')
+
+  if (!emp.worksOnHolidays) {
+    const holiday = await prisma.holiday.findFirst({
+      where: { tenantId, date: today, isDeleted: false },
+    })
+    if (holiday) throw { code: 'HOLIDAY', message: `Hoy es un día inhábil (${holiday.name}). No es posible registrar asistencia.` }
+  }
 
   const active = await prisma.attendanceRecord.findFirst({
     where: { tenantId, employeeId, date: today, checkOutTime: null, isDeleted: false },
@@ -168,7 +174,7 @@ export async function checkIn(
       throw { code: 'PLAN_LIMIT', message: `Se ha alcanzado el límite de ${checkerLimit} empleado(s) con entrada activa simultánea. Comunícate con el administrador de la empresa.` }
   }
 
-  const lateInfo = calcStatus(now, emp.schedule, emp.schedule?.lateToleranceMinutes ?? 0, tz)
+  const lateInfo = calcStatus(now, emp.schedule, emp.schedule?.lateToleranceMinutes ?? 0, tz, emp.scheduleStartDate ?? null)
   const record   = await prisma.attendanceRecord.create({
     data: { tenantId, employeeId, date: today, checkInTime: now, status: lateInfo.status, lateMinutes: lateInfo.lateMinutes, latitude: opts?.latitude ?? null, longitude: opts?.longitude ?? null, registeredFrom: 'Mobile' },
   })

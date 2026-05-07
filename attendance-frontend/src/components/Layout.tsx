@@ -4,7 +4,7 @@ import {
   Clock, LayoutDashboard, Users, CalendarCheck,
   BarChart3, Settings, Menu, X, ChevronRight,
   ScanLine, CalendarDays, MessageSquare, Building2, Network, Lock, ShieldOff,
-  AlertTriangle, Headset,
+  AlertTriangle, Headset, CalendarOff,
 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import ProfileMenu from './ProfileMenu'
@@ -29,6 +29,7 @@ const navItems: NavItem[] = [
   { to: '/employees',    icon: Users,            label: 'Empleados',    capability: 'employees'    },
   { to: '/attendance',   icon: CalendarCheck,    label: 'Asistencia',   capability: 'attendance'   },
   { to: '/schedules',    icon: CalendarDays,     label: 'Horarios',     capability: 'schedules'    },
+  { to: '/holidays',     icon: CalendarOff,      label: 'Días Inhábiles', capability: 'holidays'   },
   { to: '/organization', icon: Network,          label: 'Catálogos',    capability: 'organization' },
   { to: '/messages',     icon: MessageSquare,    label: 'Mensajes',     capability: 'messages'     },
   { to: '/reports',      icon: BarChart3,        label: 'Reportes',     capability: 'reports'      },

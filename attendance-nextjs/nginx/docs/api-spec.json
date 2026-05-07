@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "AssistControl API",
-    "description": "API de control de asistencia — 8 microservicios detrás de nginx.\n\n**Autenticación admin**: `Bearer <token>` obtenido en `/api/v1/auth/login`\n\n**Autenticación empleado (mobile)**: `Bearer <token>` obtenido en `/api/v1/mobile/login`\n\n**Autenticación superadmin**: `Bearer <token>` obtenido en `/api/v1/admin/auth/login`\n\n| Servicio | Puerto interno | Rutas |\n|---|---|---|\n| svc-core | 3001 | /auth, /company, /settings, /public, /notifications |\n| svc-employees | 3002 | /employees, /departments, /positions |\n| svc-attendance | 3003 | /attendance, /schedules |\n| svc-analytics | 3004 | /dashboard, /reports |\n| svc-mobile | 3005 | /mobile, /checker |\n| svc-comms | 3006 | /messages |\n| svc-billing | 3007 | /subscription, /plans, /invoices, /payment, /payment-methods |\n| svc-admin | 3008 | /admin/* |",
-    "version": "1.1.0"
+    "title": "TiempoYa API",
+    "description": "API de control de asistencia — 10 microservicios detrás de nginx.\n\n**Autenticación admin**: `Bearer <token>` obtenido en `/api/v1/auth/login`\n\n**Autenticación empleado (mobile)**: `Bearer <token>` obtenido en `/api/v1/mobile/login`\n\n**Autenticación superadmin**: `Bearer <token>` obtenido en `/api/v1/admin/auth/login`\n\n| Servicio | Puerto interno | Rutas |\n|---|---|---|\n| svc-core | 3001 | /auth, /company, /settings, /public, /notifications |\n| svc-employees | 3002 | /employees, /departments, /positions |\n| svc-attendance | 3003 | /attendance, /schedules, /holidays |\n| svc-analytics | 3004 | /dashboard, /reports |\n| svc-mobile | 3005 | /mobile, /checker |\n| svc-comms | 3006 | /messages |\n| svc-billing | 3007 | /subscription, /plans, /invoices, /payment, /payment-methods |\n| svc-admin | 3008 | /admin/* |\n| svc-support | 3009 | /support |\n| svc-landing | 3010 | landing SSR |",
+    "version": "1.2.0"
   },
   "servers": [
     { "url": "", "description": "Gateway (nginx — mismo origen)" }
@@ -58,7 +58,7 @@
       "post": {
         "tags": ["🔐 Auth"],
         "summary": "Auto-registro de empresa desde /sign-up",
-        "description": "Crea el tenant con auto-detección de zona horaria y país desde el navegador. Asigna el plan gratuito por defecto. Si `requireApproval` está activo en SystemSettings, el tenant queda en `pendingApproval=true` e `isActive=false` hasta ser aprobado por el superadmin. No devuelve JWT — el usuario debe hacer login por separado.",
+        "description": "Crea el tenant con zona horaria y país fijos (Ecuador). Asigna el plan gratuito por defecto.\n\n**Flujo de verificación de email**: si el SMTP del sistema está configurado, se envía un correo con enlace de verificación (`/verify-email?token=...`). El tenant queda con `isActive=false` hasta confirmar el email. La respuesta incluye `emailVerification: true` cuando se envió el correo.\n\n**Aprobación manual**: si `requireApproval` está activo en SystemSettings, después de verificar el email el tenant queda en `pendingApproval=true` e `isActive=false` hasta ser aprobado por el superadmin.\n\nNo devuelve JWT — el usuario debe hacer login por separado.",
         "requestBody": {
           "required": true,
           "content": {
@@ -68,8 +68,8 @@
                 "required": ["companyName","username","email","password"],
                 "properties": {
                   "companyName": { "type": "string", "example": "Mi Empresa S.A." },
-                  "timeZone":    { "type": "string", "example": "America/Guayaquil", "description": "Auto-detectado del navegador con Intl.DateTimeFormat()" },
-                  "country":     { "type": "string", "example": "EC", "description": "Código ISO 2 letras, auto-detectado de navigator.language" },
+                  "timeZone":    { "type": "string", "example": "America/Guayaquil", "description": "Fijo: America/Guayaquil" },
+                  "country":     { "type": "string", "example": "EC", "description": "Fijo: EC (Ecuador)" },
                   "username":    { "type": "string", "example": "admin" },
                   "email":       { "type": "string", "format": "email", "example": "admin@empresa.com" },
                   "password":    { "type": "string", "minLength": 6, "example": "Admin123!" }
@@ -79,7 +79,7 @@
           }
         },
         "responses": {
-          "200": { "description": "OK — `{ registered: true, pendingApproval: boolean }`. Si `pendingApproval=true` el tenant espera aprobación del superadmin." },
+          "200": { "description": "OK — `{ registered: true, pendingApproval: boolean, emailVerification: boolean }`. Si `emailVerification=true` se envió correo de verificación. Si `pendingApproval=true` el tenant espera aprobación del superadmin." },
           "400": { "description": "Error de validación — códigos: `USERNAME_TAKEN`, `EMAIL_TAKEN`, `COMPANY_NAME_TAKEN`, `NO_DEFAULT_PLAN`" }
         }
       }
@@ -106,7 +106,48 @@
         },
         "responses": {
           "200": { "description": "OK — `{ accessToken, refreshToken, user, capabilities }`" },
-          "401": { "description": "Credenciales inválidas o tenant/usuario inactivo — `errorCode`: `TENANT_INACTIVE` | `USER_INACTIVE` | `TENANT_PENDING` (empresa registrada en /sign-up pendiente de aprobación manual)" }
+          "401": { "description": "Credenciales inválidas o tenant/usuario inactivo — `errorCode`: `INVALID_CREDENTIALS` | `TENANT_INACTIVE` | `USER_INACTIVE` | `TENANT_PENDING` (empresa pendiente de aprobación manual) | `EMAIL_NOT_VERIFIED` (email aún no confirmado — solo para empresas auto-registradas)" }
+        }
+      }
+    },
+
+    "/api/v1/auth/verify-email": {
+      "get": {
+        "tags": ["🔐 Auth"],
+        "summary": "Verificar email mediante token (enlace del correo)",
+        "description": "Endpoint al que apunta el enlace enviado al email durante el registro. Valida el token y activa la empresa. Si `requireApproval` está habilitado en el sistema, la empresa queda en `pendingApproval=true` en lugar de activarse directamente.",
+        "parameters": [
+          { "in": "query", "name": "token", "required": true, "schema": { "type": "string" }, "description": "Token UUID de verificación (incluido en el correo de registro)" }
+        ],
+        "responses": {
+          "200": { "description": "OK — `{ requiresApproval: boolean }`. Si `requiresApproval=true` la empresa queda pendiente de aprobación." },
+          "400": { "description": "Token inválido o expirado — `errorCode`: `TOKEN_EXPIRED` | `INVALID_TOKEN`" }
+        }
+      }
+    },
+
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Reenviar correo de verificación de email",
+        "description": "Genera un nuevo token de verificación (válido 24 horas) y reenvía el correo. Solo funciona para tenants auto-registrados con email aún no verificado.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "admin@empresa.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — correo reenviado" },
+          "400": { "description": "Error — `errorCode`: `ALREADY_VERIFIED` (ya está verificado) | `NOT_FOUND` (email no encontrado)" }
         }
       }
     },
@@ -445,15 +486,17 @@
                 "type": "object",
                 "required": ["firstName","lastName","email"],
                 "properties": {
-                  "firstName":    { "type": "string" },
-                  "lastName":     { "type": "string" },
-                  "email":        { "type": "string", "format": "email" },
-                  "phone":        { "type": "string", "nullable": true },
-                  "departmentId": { "type": "string", "nullable": true },
-                  "positionId":   { "type": "string", "nullable": true },
-                  "scheduleId":   { "type": "string", "nullable": true },
-                  "hireDate":     { "type": "string", "example": "2024-01-15" },
-                  "status":       { "type": "string", "enum": ["Active","Inactive","OnLeave"] }
+                  "firstName":          { "type": "string" },
+                  "lastName":           { "type": "string" },
+                  "email":              { "type": "string", "format": "email" },
+                  "phone":              { "type": "string", "nullable": true },
+                  "departmentId":       { "type": "string", "nullable": true },
+                  "positionId":         { "type": "string", "nullable": true },
+                  "scheduleId":         { "type": "string", "nullable": true },
+                  "scheduleStartDate":  { "type": "string", "example": "2024-01-15", "nullable": true, "description": "Fecha desde la que aplica el horario asignado" },
+                  "worksOnHolidays":    { "type": "boolean", "default": false, "description": "Si true, el empleado trabaja en días feriados (aplica recargo extraordinario 100%)" },
+                  "hireDate":           { "type": "string", "example": "2024-01-15" },
+                  "status":             { "type": "string", "enum": ["Active","Inactive","OnLeave"] }
                 }
               }
             }
@@ -483,15 +526,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "firstName":    { "type": "string" },
-                  "lastName":     { "type": "string" },
-                  "email":        { "type": "string" },
-                  "phone":        { "type": "string", "nullable": true },
-                  "departmentId": { "type": "string", "nullable": true },
-                  "positionId":   { "type": "string", "nullable": true },
-                  "scheduleId":   { "type": "string", "nullable": true },
-                  "hireDate":     { "type": "string" },
-                  "status":       { "type": "string", "enum": ["Active","Inactive","OnLeave"] }
+                  "firstName":         { "type": "string" },
+                  "lastName":          { "type": "string" },
+                  "email":             { "type": "string" },
+                  "phone":             { "type": "string", "nullable": true },
+                  "departmentId":      { "type": "string", "nullable": true },
+                  "positionId":        { "type": "string", "nullable": true },
+                  "scheduleId":        { "type": "string", "nullable": true },
+                  "scheduleStartDate": { "type": "string", "nullable": true },
+                  "worksOnHolidays":   { "type": "boolean" },
+                  "hireDate":          { "type": "string" },
+                  "status":            { "type": "string", "enum": ["Active","Inactive","OnLeave"] }
                 }
               }
             }
@@ -716,7 +761,7 @@
                 "required": ["name","type","days"],
                 "properties": {
                   "name":                 { "type": "string" },
-                  "type":                 { "type": "string", "enum": ["Fixed","Flexible","Shift"] },
+                  "type":                 { "type": "string", "enum": ["Fixed","Variable","Rotativo"], "description": "Fixed: entrada/salida fija por día. Variable: horas requeridas sin horario fijo. Rotativo: turnos rotativos con semanas de trabajo configurables." },
                   "lateToleranceMinutes": { "type": "integer", "default": 0 },
                   "requiredHoursPerDay":  { "type": "number",  "nullable": true },
                   "days": {
@@ -918,6 +963,89 @@
       }
     },
 
+    "/api/v1/holidays": {
+      "get": {
+        "tags": ["📅 Feriados"],
+        "summary": "Listar días inhábiles del tenant",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "year", "schema": { "type": "integer", "example": 2025 }, "description": "Año a consultar (default: año actual)" }
+        ],
+        "responses": { "200": { "description": "OK — `[{ id, date, name, isGenerated }]`" } }
+      },
+      "post": {
+        "tags": ["📅 Feriados"],
+        "summary": "Crear día inhábil manualmente o generar automáticamente desde Nager.Date",
+        "description": "Dos modos:\n- **Manual** (`body.action` ausente o distinto a `generate`): crea un día puntual con `date` y `name`.\n- **Generar** (`body.action = 'generate'`): importa los feriados nacionales de Ecuador para el año indicado desde la API pública Nager.Date.",
+        "security": [{ "AdminBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "title": "Crear manual",
+                    "type": "object",
+                    "required": ["date","name"],
+                    "properties": {
+                      "date": { "type": "string", "format": "date", "example": "2025-12-25" },
+                      "name": { "type": "string", "example": "Navidad" }
+                    }
+                  },
+                  {
+                    "title": "Generar desde Nager.Date",
+                    "type": "object",
+                    "required": ["action"],
+                    "properties": {
+                      "action": { "type": "string", "enum": ["generate"] },
+                      "year":   { "type": "integer", "example": 2025, "description": "Año a importar (default: año actual)" }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — el día creado, o `{ created: N, skipped: M }` si fue generación masiva" },
+          "400": { "description": "Fecha y nombre son requeridos (modo manual)" }
+        }
+      }
+    },
+
+    "/api/v1/holidays/{id}": {
+      "put": {
+        "tags": ["📅 Feriados"],
+        "summary": "Actualizar día inhábil",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["date","name"],
+                "properties": {
+                  "date": { "type": "string", "format": "date", "example": "2025-12-25" },
+                  "name": { "type": "string", "example": "Navidad" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK — día actualizado" } }
+      },
+      "delete": {
+        "tags": ["📅 Feriados"],
+        "summary": "Eliminar día inhábil",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK — día eliminado" } }
+      }
+    },
+
     "/api/v1/dashboard/stats": {
       "get": {
         "tags": ["📊 Dashboard"],
@@ -933,10 +1061,10 @@
       "get": {
         "tags": ["📈 Reportes"],
         "summary": "Reporte de asistencia paginado",
-        "description": "**reportType**: `general` | `absences` | `lates` | `early-departures` | `halfday`",
+        "description": "**reportType**: `general` | `absences` | `lates` | `early-departures` | `overtime`\n\n- `overtime`: muestra únicamente días con horas extras (nocturnas 25%, suplementarias 50%, suplementarias nocturnas 100%, extraordinarias 100%). Aplica las reglas del Código del Trabajo de Ecuador (Art. 55).",
         "security": [{ "AdminBearer": [] }],
         "parameters": [
-          { "in": "path",  "name": "reportType", "required": true, "schema": { "type": "string", "enum": ["general","absences","lates","early-departures","halfday"] } },
+          { "in": "path",  "name": "reportType", "required": true, "schema": { "type": "string", "enum": ["general","absences","lates","early-departures","overtime"] } },
           { "in": "query", "name": "from",        "required": true, "schema": { "type": "string" }, "example": "2024-01-01" },
           { "in": "query", "name": "to",          "required": true, "schema": { "type": "string" }, "example": "2024-01-31" },
           { "in": "query", "name": "page",        "schema": { "type": "integer", "default": 1 } },
@@ -959,7 +1087,7 @@
           { "in": "query", "name": "employeeCode", "required": true, "schema": { "type": "string" }, "example": "EMP-001" },
           { "in": "query", "name": "from",          "required": true, "schema": { "type": "string" }, "example": "2024-01-01" },
           { "in": "query", "name": "to",            "required": true, "schema": { "type": "string" }, "example": "2024-01-31" },
-          { "in": "query", "name": "reportType",    "schema": { "type": "string", "enum": ["general","absences","lates","early-departures","halfday"], "default": "general" } }
+          { "in": "query", "name": "reportType",    "schema": { "type": "string", "enum": ["general","absences","lates","early-departures","overtime"], "default": "general" } }
         ],
         "responses": {
           "200": { "description": "OK — EmployeeDetailReportDto con days[], totales y estadísticas" }
@@ -2157,6 +2285,7 @@
     { "name": "🏗️ Departamentos",                 "description": "CRUD de departamentos — **svc-employees** (:3002)" },
     { "name": "💼 Cargos",                        "description": "CRUD de cargos/posiciones — **svc-employees** (:3002)" },
     { "name": "🕐 Horarios",                      "description": "CRUD de horarios — **svc-attendance** (:3003)" },
+    { "name": "📅 Feriados",                      "description": "Días inhábiles del tenant (manual o auto desde Nager.Date) — **svc-attendance** (:3003)" },
     { "name": "📋 Asistencia (admin)",             "description": "Gestión admin de asistencia, vistas día/período — **svc-attendance** (:3003)" },
     { "name": "📊 Dashboard",                     "description": "Estadísticas en tiempo real — **svc-analytics** (:3004)" },
     { "name": "📈 Reportes",                      "description": "Reportes por tipo y por empleado — **svc-analytics** (:3004)" },

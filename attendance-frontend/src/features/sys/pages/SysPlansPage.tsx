@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Loader2, X, Check, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { sysPlansService, type SysPlan, type PlanCapabilities } from '../sysService'
+import { REPORT_DEFINITIONS } from '@/types/report'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
 
@@ -12,6 +13,7 @@ const CAP_LABELS: { key: keyof PlanCapabilities; label: string; hint: string; ha
   { key: 'checker',      label: 'Reloj Checador',  hint: 'Acceso al checador web para marcar asistencia',          hasLimit: true,  limitLabel: 'Máx. registros/día' },
   { key: 'mobileApp',    label: 'App Móvil',        hint: 'Acceso a la aplicación móvil para marcar asistencia',   hasLimit: false,                dependsOn: 'checker' },
   { key: 'schedules',    label: 'Horarios',         hint: 'Gestión de horarios y turnos de trabajo por empleado',   hasLimit: true,  limitLabel: 'Máx. horarios'     },
+  { key: 'holidays',     label: 'Días Inhábiles',   hint: 'Gestión de días festivos y no laborables',               hasLimit: false, dependsOn: 'schedules'           },
   { key: 'messages',     label: 'Mensajes',         hint: 'Mensajería interna entre empleados y supervisores',      hasLimit: false                                   },
   { key: 'reports',      label: 'Reportes',         hint: 'Reportes y estadísticas avanzadas de asistencia',        hasLimit: false                                   },
   { key: 'settings',        label: 'Configuración',       hint: 'Acceso al módulo de configuración de la empresa',        hasLimit: false },
@@ -24,9 +26,10 @@ const DEFAULT_CAPS: PlanCapabilities = {
   checker:         { enabled: true  },
   mobileApp:       { enabled: false },
   schedules:       { enabled: true  },
+  holidays:        { enabled: false },
   organization:    { enabled: true  },
   messages:        { enabled: false },
-  reports:         { enabled: false },
+  reports:         { enabled: false, allowed: [] },
   settings:        { enabled: true  },
   prioritySupport: { enabled: false },
 }
@@ -49,6 +52,7 @@ function PlanModal({ plan, onClose, onSaved }: {
       checker:      { ...DEFAULT_CAPS.checker,      ...(plan?.capabilities?.checker      ?? {}) },
       mobileApp:    { ...DEFAULT_CAPS.mobileApp,    ...(plan?.capabilities?.mobileApp    ?? {}) },
       schedules:    { ...DEFAULT_CAPS.schedules,    ...(plan?.capabilities?.schedules    ?? {}) },
+      holidays:     { ...DEFAULT_CAPS.holidays,     ...(plan?.capabilities?.holidays     ?? {}) },
       organization: { ...DEFAULT_CAPS.organization, ...(plan?.capabilities?.organization ?? {}) },
       messages:     { ...DEFAULT_CAPS.messages,     ...(plan?.capabilities?.messages     ?? {}) },
       reports:      { ...DEFAULT_CAPS.reports,      ...(plan?.capabilities?.reports      ?? {}) },
@@ -163,6 +167,9 @@ function PlanModal({ plan, onClose, onSaved }: {
                           const checked = e.target.checked
                           setForm(p => {
                             const caps = { ...p.capabilities, [key]: { ...p.capabilities[key], enabled: checked } }
+                            if (key === 'reports' && checked) {
+                              caps.reports = { ...caps.reports, allowed: [] }
+                            }
                             if (!checked) {
                               CAP_LABELS.forEach(c => { if (c.dependsOn === key) caps[c.key] = { ...caps[c.key], enabled: false } })
                             }
@@ -195,6 +202,43 @@ function PlanModal({ plan, onClose, onSaved }: {
                           className="w-32 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
                         />
                         <span className="text-xs text-gray-400">{limitLabel} (vacío = ilimitado)</span>
+                      </div>
+                    )}
+                    {key === 'reports' && cap.enabled && !blocked && (
+                      <div className="mt-2 border-t border-gray-200 pt-2 space-y-1.5" style={{ marginLeft: '1.625rem' }}>
+                        <p className="text-xs text-gray-400 font-medium">Reportes incluidos:</p>
+                        {REPORT_DEFINITIONS.map(r => {
+                          const allowed = (form.capabilities.reports as { allowed?: string[] }).allowed
+                          const isChecked = !allowed || allowed.length === 0 || allowed.includes(r.id)
+                          return (
+                            <label key={r.id} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={e => {
+                                  const current = form.capabilities.reports.allowed ?? []
+                                  const effective = current.length === 0
+                                    ? REPORT_DEFINITIONS.map(x => x.id)
+                                    : [...current]
+                                  const newAllowed = e.target.checked
+                                    ? [...effective, r.id]
+                                    : effective.filter(x => x !== r.id)
+                                  const allIds = REPORT_DEFINITIONS.map(x => x.id)
+                                  const final = allIds.every(id => newAllowed.includes(id)) ? [] : newAllowed
+                                  setForm(p => ({
+                                    ...p,
+                                    capabilities: {
+                                      ...p.capabilities,
+                                      reports: { ...p.capabilities.reports, allowed: final },
+                                    },
+                                  }))
+                                }}
+                                className="w-3.5 h-3.5 rounded accent-slate-700"
+                              />
+                              <span className="text-xs text-gray-700">{r.icon} {r.label}</span>
+                            </label>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
