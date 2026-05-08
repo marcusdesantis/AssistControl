@@ -22,6 +22,7 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/services/svc-landing/.next/standalone ./
 COPY --from=builder /app/services/svc-landing/.next/static ./services/svc-landing/.next/static
+COPY --from=builder /app/services/svc-landing/public ./services/svc-landing/public
 USER nextjs
 EXPOSE 3010
 ENV PORT=3010
