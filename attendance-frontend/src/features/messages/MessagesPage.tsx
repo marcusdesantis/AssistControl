@@ -238,14 +238,14 @@ function MessagesPageInner() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div id="tour-msg-header" className="flex items-center justify-between">
+      <div id="tour-msg-header" className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mensajes personales</h1>
           <p className="text-gray-500 text-sm mt-0.5">Envía avisos individuales a empleados</p>
           <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
         <button id="tour-msg-new" onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          className="sm:ml-auto flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full sm:w-auto">
           <Plus className="w-4 h-4" /> Nuevo mensaje
         </button>
       </div>

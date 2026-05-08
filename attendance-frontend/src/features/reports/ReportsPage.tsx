@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import PlanGate from '@/components/PlanGate'
 import { createPortal } from 'react-dom'
-import { FileText, Search, Eye, X } from 'lucide-react'
+import { FileText, Search, Eye, X, ChevronDown, Check } from 'lucide-react'
 import Pagination from '@/components/Pagination'
 import { reportsService } from './reportsService'
 import { employeeService } from '../employees/employeeService'
@@ -231,6 +231,57 @@ function summaryLabel(reportType: ReportType) {
 }
 
 
+// ─── Report dropdown (móvil) ─────────────────────────────────────────────────
+
+function ReportDropdown({ reports, selected, onSelect }: {
+  reports: typeof REPORT_DEFINITIONS
+  selected: ReportType
+  onSelect: (id: ReportType) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const current = reports.find(r => r.id === selected)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-base">{current?.icon}</span>
+        <span className="flex-1 text-left">{current?.label}</span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+          {reports.map(r => (
+            <button
+              key={r.id}
+              onClick={() => { onSelect(r.id); setOpen(false) }}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left
+                ${selected === r.id
+                  ? 'bg-primary-50 text-primary-700 font-medium'
+                  : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              <span className="text-base">{r.icon}</span>
+              <span className="flex-1">{r.label}</span>
+              {selected === r.id && <Check className="w-3.5 h-3.5 text-primary-600 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function ReportsPageInner() {
@@ -370,20 +421,30 @@ function ReportsPageInner() {
 
         {/* Left panel — sidebar en desktop, barra horizontal en mobile */}
         <aside id="tour-rep-types" className="md:w-72 md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 md:overflow-y-auto">
+          {/* Desktop: título */}
           <div className="hidden md:block p-4 border-b border-gray-100">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tipos de reporte</p>
           </div>
-          <nav className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 md:gap-0 md:space-y-0.5 no-scrollbar">
+          {/* Móvil: dropdown personalizado */}
+          <div className="block md:hidden p-3">
+            <ReportDropdown
+              reports={visibleReports}
+              selected={selected}
+              onSelect={id => handleSelectReport(id)}
+            />
+          </div>
+          {/* Desktop: lista vertical */}
+          <nav className="hidden md:flex md:flex-col p-2 gap-0 space-y-0.5">
             {visibleReports.map(r => (
               <button
                 key={r.id}
                 onClick={() => handleSelectReport(r.id)}
-                className={`shrink-0 md:shrink md:w-full text-left px-3 py-2 md:py-2.5 rounded-lg text-sm transition-colors flex items-center md:items-start gap-2 whitespace-nowrap md:whitespace-normal
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-start gap-2
                   ${selected === r.id
                     ? 'bg-primary-50 text-primary-700 font-medium'
                     : 'text-gray-700 hover:bg-gray-50'}`}
               >
-                <span className="text-base leading-tight md:mt-0.5">{r.icon}</span>
+                <span className="text-base leading-tight mt-0.5">{r.icon}</span>
                 <span className="leading-snug">{r.label}</span>
               </button>
             ))}
@@ -395,21 +456,25 @@ function ReportsPageInner() {
 
           {/* Filters bar */}
           <div id="tour-rep-filters" className="bg-white border-b border-gray-200 px-4 py-4 shrink-0">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 font-medium">Desde</label>
-                <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
+              {/* Desde / Hasta — misma fila 50/50 en móvil */}
+              <div className="flex gap-3 sm:contents">
+                <div className="flex flex-col gap-1 flex-1 sm:flex-none">
+                  <label className="text-xs text-gray-500 font-medium">Desde</label>
+                  <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                </div>
+                <div className="flex flex-col gap-1 flex-1 sm:flex-none">
+                  <label className="text-xs text-gray-500 font-medium">Hasta</label>
+                  <input type="date" value={to} onChange={e => setTo(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 font-medium">Hasta</label>
-                <input type="date" value={to} onChange={e => setTo(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
-              </div>
-              <div className="flex flex-col gap-1">
+              {/* Departamento — 100% en móvil */}
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
                 <label className="text-xs text-gray-500 font-medium">Departamento</label>
                 <select value={department} onChange={e => setDepartment(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                  className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                   {departments.map(d => <option key={d}>{d}</option>)}
                 </select>
               </div>
@@ -425,7 +490,7 @@ function ReportsPageInner() {
                 </div>
               </div>
               <button onClick={handleGenerate} disabled={loading}
-                className="px-5 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors">
+                className="w-full sm:w-auto px-5 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors">
                 {loading ? 'Buscando…' : 'Buscar'}
               </button>
             </div>
@@ -515,19 +580,19 @@ function ReportsPageInner() {
 
           {/* Floating action bar */}
           {selectedCodes.size > 0 && (
-            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20
+            <div className="absolute bottom-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-max z-20
               bg-gray-900 text-white rounded-xl shadow-xl px-4 py-2.5
-              flex items-center gap-4 text-sm whitespace-nowrap">
+              flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 text-sm">
               <button onClick={() => setSelectedCodes(new Set())}
                 className="text-gray-400 hover:text-white transition-colors">
                 ✕ Limpiar
               </button>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
               <span className="font-medium">
                 {selectedCodes.size} empleado{selectedCodes.size !== 1 ? 's' : ''} seleccionado{selectedCodes.size !== 1 ? 's' : ''}
               </span>
               <button onClick={openSelectedViewer}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-600 hover:bg-primary-500 rounded-lg font-medium transition-colors">
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 bg-primary-600 hover:bg-primary-500 rounded-lg font-medium transition-colors">
                 <FileText className="w-4 h-4" />
                 Generar reporte
               </button>

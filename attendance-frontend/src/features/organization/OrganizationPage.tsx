@@ -234,20 +234,20 @@ function OrganizationPageInner() {
           </p>
           <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
-        <div className="sm:ml-auto flex flex-wrap gap-3">
-          <div className="relative">
+        <div className="sm:ml-auto flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-52">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               value={searchInput}
               onChange={e => handleSearchInput(e.target.value)}
               placeholder={`Buscar ${label.toLowerCase()}...`}
-              className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-52"
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <button
             id="tour-org-new"
             onClick={() => { setModalError(null); setModalItem('new') }}
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" /> Nuevo {label}
           </button>
@@ -255,7 +255,7 @@ function OrganizationPageInner() {
       </div>
 
       {/* Tabs */}
-      <div id="tour-org-tabs" className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div id="tour-org-tabs" className="flex gap-1 bg-gray-100 rounded-xl p-1 w-full sm:w-fit">
         {([
           { key: 'departments', label: 'Departamentos', icon: Building },
           { key: 'positions',   label: 'Cargos',        icon: Briefcase },
@@ -263,7 +263,7 @@ function OrganizationPageInner() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
               tab === key ? 'bg-white shadow-sm text-primary-700' : 'text-gray-500 hover:text-gray-700'
             }`}
           >

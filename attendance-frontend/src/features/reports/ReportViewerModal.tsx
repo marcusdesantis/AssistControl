@@ -4,8 +4,12 @@ import { X, ChevronLeft, ChevronRight, ChevronDown, Copy, Download, Printer, Zoo
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import XLSXStyle from 'xlsx-js-style'
+import { toast } from 'sonner'
+import { Filesystem, Directory } from '@capacitor/filesystem'
+import { Share } from '@capacitor/share'
 import { reportsService } from './reportsService'
 import type { EmployeeDetailReport, ReportDay, ReportType } from '@/types/report'
+import { isNative } from '@/utils/platform'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -623,6 +627,7 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
   const [copying,      setCopying]      = useState(false)
   const [saving,       setSaving]       = useState(false)
   const [printing,     setPrinting]     = useState(false)
+  const [sharing,      setSharing]      = useState(false)
   const [exportFormat, setExportFormat] = useState<'pdf' | 'excel'>('pdf')
   const [formatOpen,   setFormatOpen]   = useState(false)
   const contentRef = useRef<HTMLDivElement>(null!)
@@ -686,7 +691,7 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
   const renderReportToCanvas = async (empReport: EmployeeDetailReport): Promise<HTMLCanvasElement> => {
     return new Promise((resolve, reject) => {
       const container = document.createElement('div')
-      container.style.cssText = 'position:fixed;top:0;left:-9999px;width:794px;background:white;z-index:-1;'
+      container.style.cssText = 'position:fixed;top:0;left:0;width:794px;background:white;z-index:9999;opacity:0.001;pointer-events:none;'
       document.body.appendChild(container)
 
       const root = createRoot(container)
@@ -694,10 +699,17 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
         <ReportContent report={empReport} fontSize={13} contentRef={{ current: null! }} />
       )
 
-      // Double rAF ensures React has painted before capture
-      requestAnimationFrame(() => requestAnimationFrame(async () => {
+      // setTimeout da más tiempo al WebView nativo para renderizar vs rAF
+      setTimeout(async () => {
         try {
-          const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#fff' })
+          const canvas = await html2canvas(container, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#fff',
+            logging: false,
+            width: 794,
+          })
           resolve(canvas)
         } catch (err) {
           reject(err)
@@ -705,8 +717,161 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
           root.unmount()
           document.body.removeChild(container)
         }
-      }))
+      }, 600)
     })
+  }
+
+  const shareFileNative = async (base64: string, fileName: string) => {
+    try {
+      await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache, recursive: true })
+    } catch (e) { throw new Error(`WriteFile: ${e}`) }
+
+    let uri = ''
+    try {
+      const r = await Filesystem.getUri({ path: fileName, directory: Directory.Cache })
+      uri = r.uri
+    } catch (e) { throw new Error(`GetUri: ${e}`) }
+
+    try {
+      await Share.share({ title: fileName, url: uri, dialogTitle: 'Guardar o compartir' })
+    } catch (e) {
+      // El usuario canceló el diálogo — no es un error real
+      const msg = String(e).toLowerCase()
+      if (msg.includes('cancel') || msg.includes('abort') || msg.includes('dismiss')) return
+      throw new Error(`Share: ${e}`)
+    }
+  }
+
+  // PDF generado con jsPDF puro (sin html2canvas) — funciona en cualquier WebView
+  const buildPdfNative = (empReport: EmployeeDetailReport): jsPDF => {
+    const pdf    = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+    const pageW  = pdf.internal.pageSize.getWidth()
+    const pageH  = pdf.internal.pageSize.getHeight()
+    const mg     = 28
+    const cw     = pageW - mg * 2
+    const DARK   = [30, 58, 95]   as [number,number,number]
+    const LIGHT  = [240,244,248]  as [number,number,number]
+    const ALT    = [247,249,251]  as [number,number,number]
+    let y = mg
+
+    const checkPage = (need = 20) => {
+      if (y + need > pageH - mg) { pdf.addPage(); y = mg }
+    }
+
+    // ── Encabezado ──────────────────────────────────────────────────────────
+    pdf.setFillColor(...DARK)
+    pdf.rect(mg, y, cw, 36, 'F')
+    pdf.setTextColor(255,255,255)
+    pdf.setFontSize(13)
+    pdf.setFont('helvetica','bold')
+    pdf.text(reportTitle(empReport.reportType), pageW/2, y+14, { align:'center' })
+    pdf.setFontSize(9)
+    pdf.setFont('helvetica','normal')
+    pdf.text(`Período: ${fmtDate(empReport.from)} — ${fmtDate(empReport.to)}`, pageW/2, y+28, { align:'center' })
+    y += 40
+
+    // ── Info empleado ────────────────────────────────────────────────────────
+    pdf.setFillColor(...LIGHT)
+    pdf.rect(mg, y, cw, 28, 'F')
+    pdf.setTextColor(60,60,60)
+    pdf.setFontSize(8)
+    pdf.text(`Empleado: ${empReport.employeeName}`,  mg+4, y+10)
+    pdf.text(`Código: ${empReport.employeeCode}`,     mg+4, y+21)
+    pdf.text(`Depto.: ${empReport.department}`,       mg+cw/2+4, y+10)
+    pdf.text(`Horario: ${empReport.scheduleName}`,    mg+cw/2+4, y+21)
+    y += 32
+
+    // ── Tabla ────────────────────────────────────────────────────────────────
+    const isOT   = empReport.reportType === 'overtime'
+    const showEn = empReport.reportType === 'general'
+    const hdrs   = isOT
+      ? ['Fecha','Día','Entrada','Salida','Trabaj.','Estatus']
+      : showEn
+        ? ['Fecha','Día','Entrada','Salida','Trabaj.','Program.','Balance','Estatus']
+        : ['Fecha','Día','Program.','Balance','Estatus']
+    const ww = cw / hdrs.length
+    const ROW = 14
+
+    // Header fila
+    pdf.setFillColor(...DARK)
+    pdf.rect(mg, y, cw, ROW+2, 'F')
+    pdf.setTextColor(255,255,255)
+    pdf.setFont('helvetica','bold')
+    pdf.setFontSize(7.5)
+    hdrs.forEach((h,i) => pdf.text(h, mg + ww*i + 2, y+10))
+    y += ROW+2
+
+    // Filas de datos
+    empReport.days.forEach((day, di) => {
+      checkPage(ROW+2)
+      const bg = di % 2 === 0 ? [255,255,255] as [number,number,number] : ALT
+      pdf.setFillColor(...bg)
+      pdf.rect(mg, y, cw, ROW, 'F')
+      pdf.setTextColor(60,60,60)
+      pdf.setFont('helvetica','normal')
+      pdf.setFontSize(7)
+      const first = day.entries?.[0]
+      const last  = day.entries?.[day.entries.length-1]
+      const cells = isOT
+        ? [fmtDate(day.date), day.dayName, fmtDateTime(first?.checkInTime), fmtDateTime(last?.checkOutTime), fmtMins(day.totalWorkedMinutes), day.dayStatus]
+        : showEn
+          ? [fmtDate(day.date), day.dayName, fmtDateTime(first?.checkInTime), fmtDateTime(last?.checkOutTime), fmtMins(day.totalWorkedMinutes), fmtMins(day.scheduledMinutes), fmtMins(day.balanceMinutes), day.dayStatus]
+          : [fmtDate(day.date), day.dayName, fmtMins(day.scheduledMinutes), fmtMins(day.balanceMinutes), day.dayStatus]
+      cells.forEach((c,i) => pdf.text(String(c ?? '—').slice(0,18), mg + ww*i + 2, y+10))
+      y += ROW
+    })
+    y += 14
+
+    // ── Resumen ──────────────────────────────────────────────────────────────
+    checkPage(80)
+    pdf.setFillColor(...DARK)
+    pdf.rect(mg, y, cw, 14, 'F')
+    pdf.setTextColor(255,255,255)
+    pdf.setFont('helvetica','bold')
+    pdf.setFontSize(8)
+    pdf.text('RESUMEN DEL PERÍODO', mg+4, y+10)
+    y += 16
+
+    const sumRows: [string,string][] = [
+      ['Días laborables',     String(empReport.totalWorkdays)],
+      ['Días asistidos',      String(empReport.workdaysAttended)],
+      ['Faltas',              String(empReport.totalAbsences)],
+      ['Retardos',            String(empReport.totalLates)],
+      ['Salidas anticipadas', String(empReport.totalEarlyDepartures)],
+      ['% Asistencia',        `${empReport.attendancePercent}%`],
+      ['Total trabajado',     fmtMins(empReport.totalWorkedMinutes)],
+      ['Balance',             fmtMins(empReport.balanceMinutesNoAbsences)],
+    ]
+    pdf.setTextColor(60,60,60)
+    pdf.setFont('helvetica','normal')
+    pdf.setFontSize(8)
+    sumRows.forEach(([label, val], i) => {
+      checkPage(12)
+      const bg = i%2===0 ? [255,255,255] as [number,number,number] : ALT
+      pdf.setFillColor(...bg)
+      pdf.rect(mg, y, cw, 12, 'F')
+      pdf.text(label, mg+4, y+9)
+      pdf.text(val,   mg+cw-40, y+9)
+      y += 12
+    })
+    y += 20
+
+    // ── Firmas ───────────────────────────────────────────────────────────────
+    checkPage(40)
+    const half = cw/2 - 20
+    pdf.setDrawColor(150,150,150)
+    pdf.line(mg, y+20, mg+half, y+20)
+    pdf.line(mg+half+40, y+20, mg+cw, y+20)
+    pdf.setFontSize(7.5)
+    pdf.setTextColor(120,120,120)
+    pdf.text('Firma del empleado',   mg + half/2,       y+30, { align:'center' })
+    pdf.text('Firma del supervisor', mg + half+40+half/2, y+30, { align:'center' })
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    pdf.setFontSize(7)
+    pdf.text(`Generado el ${new Date().toLocaleDateString('es-MX')}`, pageW/2, pageH-12, { align:'center' })
+
+    return pdf
   }
 
   const addCanvasToPdf = (pdf: jsPDF, canvas: HTMLCanvasElement, isFirst: boolean) => {
@@ -739,29 +904,44 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
     }
   }
 
+  const buildPdf = async (): Promise<{ pdf: jsPDF; fileName: string }> => {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+    const cache: Record<string, EmployeeDetailReport> = {}
+    if (report) cache[currentCode] = report
+    for (let i = 0; i < employeeCodes.length; i++) {
+      const code = employeeCodes[i]
+      if (!cache[code]) cache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
+      const canvas = await renderReportToCanvas(cache[code])
+      addCanvasToPdf(pdf, canvas, i === 0)
+    }
+    const fileName = employeeCodes.length === 1
+      ? `reporte-${employeeCodes[0]}-${from}.pdf`
+      : `reportes-${from}-${to}.pdf`
+    return { pdf, fileName }
+  }
+
+
   const handleSavePdf = async () => {
     setSaving(true)
     try {
-      const pdf      = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-      const reportsCache: Record<string, EmployeeDetailReport> = {}
-      if (report) reportsCache[currentCode] = report
-
-      for (let i = 0; i < employeeCodes.length; i++) {
-        const code = employeeCodes[i]
-
-        // Use cached report or fetch
-        if (!reportsCache[code]) {
-          reportsCache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
-        }
-
-        const canvas = await renderReportToCanvas(reportsCache[code])
-        addCanvasToPdf(pdf, canvas, i === 0)
+      if (isNative) {
+        if (!report) throw new Error('report null')
+        const pdf      = buildPdfNative(report)
+        // datauristring devuelve "data:application/pdf;base64,XXX" — extraemos solo el base64
+        const dataUri  = pdf.output('datauristring') as string
+        const b64      = dataUri.split(',')[1]
+        if (!b64) throw new Error('PDF base64 vacío')
+        const safe     = currentCode.replace(/[^a-zA-Z0-9-_]/g, '_')
+        const fileName = `reporte-${safe}-${from}.pdf`
+        await shareFileNative(b64, fileName)
+      } else {
+        const { pdf, fileName } = await buildPdf()
+        pdf.save(fileName)
       }
-
-      const fileName = employeeCodes.length === 1
-        ? `reporte-${employeeCodes[0]}-${from}.pdf`
-        : `reportes-${from}-${to}.pdf`
-      pdf.save(fileName)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('PDF error:', msg)
+      toast.error(msg, { duration: 10000 })
     } finally {
       setSaving(false)
     }
@@ -772,46 +952,68 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
     try {
       const cache: Record<string, EmployeeDetailReport> = {}
       if (report) cache[currentCode] = report
-
       for (const code of employeeCodes) {
-        if (!cache[code]) {
-          cache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
-        }
+        if (!cache[code]) cache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
       }
-
       const wb = XLSXStyle.utils.book_new()
       for (const code of employeeCodes) {
-        const ws = buildExcelSheet(cache[code])
-        XLSXStyle.utils.book_append_sheet(wb, ws, code.slice(0, 31))
+        XLSXStyle.utils.book_append_sheet(wb, buildExcelSheet(cache[code]), code.slice(0, 31))
       }
-
       const fileName = employeeCodes.length === 1
         ? `reporte-${employeeCodes[0]}-${from}.xlsx`
         : `reportes-${from}-${to}.xlsx`
 
-      XLSXStyle.writeFile(wb, fileName)
+      if (isNative) {
+        // type:'base64' devuelve string base64 directamente — sin necesidad de conversión
+        const b64 = XLSXStyle.write(wb, { bookType: 'xlsx', type: 'base64' }) as string
+        if (!b64) throw new Error('Excel base64 vacío')
+        const safe = (employeeCodes[0] ?? 'reporte').replace(/[^a-zA-Z0-9-_]/g, '_')
+        const safeFileName = employeeCodes.length === 1
+          ? `reporte-${safe}-${from}.xlsx`
+          : `reportes-${from}-${to}.xlsx`
+        await shareFileNative(b64, safeFileName)
+      } else {
+        XLSXStyle.writeFile(wb, fileName)
+      }
     } catch (err) {
-      console.error('Excel export error:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Excel error:', msg)
+      toast.error(msg, { duration: 10000 })
     } finally {
       setSaving(false)
     }
   }
 
   const handlePrint = async () => {
+    if (isNative) {
+      setSharing(true)
+      try {
+        if (!report) throw new Error('Sin reporte')
+        const pdf     = buildPdfNative(report)
+        const dataUri = pdf.output('datauristring') as string
+        const b64     = dataUri.split(',')[1]
+        if (!b64) throw new Error('PDF base64 vacío')
+        const safe    = currentCode.replace(/[^a-zA-Z0-9-_]/g, '_')
+        await shareFileNative(b64, `reporte-${safe}-${from}.pdf`)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('Share error:', msg)
+        toast.error(msg, { duration: 10000 })
+      } finally {
+        setSharing(false)
+      }
+      return
+    }
+
     setPrinting(true)
     try {
       const cache: Record<string, EmployeeDetailReport> = {}
       if (report) cache[currentCode] = report
-
       for (const code of employeeCodes) {
-        if (!cache[code]) {
-          cache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
-        }
+        if (!cache[code]) cache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
       }
-
       const printWindow = window.open('', '_blank', 'width=900,height=700')
       if (!printWindow) return
-
       printWindow.document.write(`<!DOCTYPE html><html><head>
         <meta charset="utf-8"/>
         <title>Reporte de Asistencia</title>
@@ -819,38 +1021,22 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: Arial, sans-serif; background: white; }
           .page-break { page-break-after: always; }
-          @media print {
-            .page-break:last-child { page-break-after: avoid; }
-          }
+          @media print { .page-break:last-child { page-break-after: avoid; } }
         </style>
       </head><body><div id="print-root"></div></body></html>`)
       printWindow.document.close()
-
       const rootEl = printWindow.document.getElementById('print-root')!
-      const root   = createRoot(rootEl)
-
+      const root = createRoot(rootEl)
       root.render(
         <>
           {employeeCodes.map((code, i) => (
-            <div
-              key={code}
-              className={i < employeeCodes.length - 1 ? 'page-break' : ''}
-            >
-              <ReportContent
-                report={cache[code]}
-                fontSize={13}
-                contentRef={{ current: null! }}
-              />
+            <div key={code} className={i < employeeCodes.length - 1 ? 'page-break' : ''}>
+              <ReportContent report={cache[code]} fontSize={13} contentRef={{ current: null! }} />
             </div>
           ))}
         </>
       )
-
-      // Wait for React to paint then trigger print dialog
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        printWindow.focus()
-        printWindow.print()
-      }))
+      requestAnimationFrame(() => requestAnimationFrame(() => { printWindow.focus(); printWindow.print() }))
     } finally {
       setPrinting(false)
     }
@@ -866,124 +1052,89 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
         <div className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-w-5xl max-h-[95vh]">
 
           {/* ── Toolbar ───────────────────────────────────────────────────── */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 shrink-0 bg-gray-50 rounded-t-xl">
-            {/* Navigation */}
-            {total > 1 && (
-              <div className="flex items-center gap-1 mr-2">
-                <button
-                  onClick={prev}
-                  disabled={currentIndex <= 0}
-                  className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-40 transition-colors"
-                  title="Anterior"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="text-sm text-gray-600 min-w-[70px] text-center">
-                  {currentIndex + 1} de {total}
-                </span>
-                <button
-                  onClick={next}
-                  disabled={currentIndex >= total - 1}
-                  className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-40 transition-colors"
-                  title="Siguiente"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+          <div className="border-b border-gray-200 shrink-0 bg-gray-50 rounded-t-xl">
 
-            <div className="flex-1 truncate text-sm font-medium text-gray-700">
-              {report ? `${report.employeeName} — ${report.employeeCode}` : 'Cargando…'}
-            </div>
-
-            {/* Font size */}
-            <button
-              onClick={() => setFontSize(s => Math.max(10, s - 1))}
-              className="p-1.5 rounded hover:bg-gray-200 transition-colors"
-              title="Texto más pequeño"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setFontSize(s => Math.min(18, s + 1))}
-              className="p-1.5 rounded hover:bg-gray-200 transition-colors"
-              title="Texto más grande"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-
-            <div className="w-px h-5 bg-gray-300 mx-1" />
-
-            {/* Copy */}
-            <button
-              onClick={handleCopy}
-              disabled={copying || !report}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 transition-colors"
-              title="Copiar imagen"
-            >
-              {copying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-              Copiar
-            </button>
-
-            {/* Download — split button */}
-            <div className="relative flex items-stretch">
-              <button
-                onClick={exportFormat === 'pdf' ? handleSavePdf : handleSaveExcel}
-                disabled={saving || !report}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors rounded-l-lg"
-                title={exportFormat === 'pdf' ? 'Guardar PDF' : 'Guardar Excel'}
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                {exportFormat === 'pdf' ? 'PDF' : 'Excel'}
-              </button>
-              <button
-                onClick={() => setFormatOpen(v => !v)}
-                disabled={saving || !report}
-                className="flex items-center px-2 bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50 transition-colors rounded-r-lg border-l border-primary-500"
-                title="Cambiar formato"
-              >
-                <ChevronDown className="w-3 h-3" />
-              </button>
-              {formatOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setFormatOpen(false)} />
-                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[90px] overflow-hidden">
-                    {(['pdf', 'excel'] as const).map(fmt => (
-                      <button
-                        key={fmt}
-                        onClick={() => { setExportFormat(fmt); setFormatOpen(false) }}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors
-                          ${exportFormat === fmt ? 'font-semibold text-primary-600' : 'text-gray-700'}`}
-                      >
-                        {fmt === 'pdf' ? 'PDF' : 'Excel'}
-                      </button>
-                    ))}
-                  </div>
-                </>
+            {/* Fila 1: nombre + cerrar — siempre visible */}
+            <div className="flex items-center gap-2 px-4 py-2.5">
+              {total > 1 && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={prev} disabled={currentIndex <= 0}
+                    className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-40 transition-colors" title="Anterior">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs text-gray-600 min-w-[55px] text-center">{currentIndex + 1}/{total}</span>
+                  <button onClick={next} disabled={currentIndex >= total - 1}
+                    className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-40 transition-colors" title="Siguiente">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               )}
+              <div className="flex-1 truncate text-sm font-medium text-gray-700">
+                {report ? `${report.employeeName} — ${report.employeeCode}` : 'Cargando…'}
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded hover:bg-gray-200 transition-colors shrink-0" title="Cerrar">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Print */}
-            <button
-              onClick={handlePrint}
-              disabled={printing || !report}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 transition-colors"
-              title="Imprimir"
-            >
-              {printing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-              Imprimir
-            </button>
+            {/* Fila 2: acciones */}
+            <div className="flex items-center gap-1 px-4 pb-2.5">
+              {/* Font size */}
+              <button onClick={() => setFontSize(s => Math.max(10, s - 1))}
+                className="p-1.5 rounded hover:bg-gray-200 transition-colors" title="Texto más pequeño">
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <button onClick={() => setFontSize(s => Math.min(18, s + 1))}
+                className="p-1.5 rounded hover:bg-gray-200 transition-colors" title="Texto más grande">
+                <ZoomIn className="w-4 h-4" />
+              </button>
 
-            <div className="w-px h-5 bg-gray-300 mx-1" />
+              <div className="w-px h-5 bg-gray-300 mx-1" />
 
-            {/* Close */}
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded hover:bg-gray-200 transition-colors"
-              title="Cerrar"
-            >
-              <X className="w-4 h-4" />
-            </button>
+              {/* Copy — ícono en móvil, texto en desktop */}
+              <button onClick={handleCopy} disabled={copying || !report}
+                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 transition-colors" title="Copiar imagen">
+                {copying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                <span className="hidden sm:inline">Copiar</span>
+              </button>
+
+              {/* Download — split button, ícono en móvil, texto en desktop */}
+              <div className="relative flex items-stretch">
+                <button onClick={exportFormat === 'pdf' ? handleSavePdf : handleSaveExcel}
+                  disabled={saving || !report}
+                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors rounded-l-lg"
+                  title={exportFormat === 'pdf' ? 'Guardar PDF' : 'Guardar Excel'}>
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {exportFormat === 'pdf' ? 'PDF' : 'Excel'}
+                </button>
+                <button onClick={() => setFormatOpen(v => !v)} disabled={saving || !report}
+                  className="flex items-center px-1.5 bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50 transition-colors rounded-r-lg border-l border-primary-500"
+                  title="Cambiar formato">
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+                {formatOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setFormatOpen(false)} />
+                    <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[90px] overflow-hidden">
+                      {(['pdf', 'excel'] as const).map(fmt => (
+                        <button key={fmt} onClick={() => { setExportFormat(fmt); setFormatOpen(false) }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${exportFormat === fmt ? 'font-semibold text-primary-600' : 'text-gray-700'}`}>
+                          {fmt === 'pdf' ? 'PDF' : 'Excel'}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Imprimir — solo visible en desktop */}
+              <button onClick={handlePrint} disabled={sharing || printing || !report}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                title="Imprimir">
+                {(sharing || printing) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                Imprimir
+              </button>
+            </div>
           </div>
 
           {/* ── Content ───────────────────────────────────────────────────── */}

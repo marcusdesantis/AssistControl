@@ -16,3 +16,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Capacitor — plataformas nativas (generadas, no subir al repo)
+android/
+ios/

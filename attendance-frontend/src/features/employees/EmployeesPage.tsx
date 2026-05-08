@@ -321,22 +321,26 @@ export default function EmployeesPage() {
             {loading ? '…' : `${totalCount} empleados registrados`}
           </p>
         </div>
-        <div className="sm:ml-auto flex flex-wrap gap-3">
-          <div className="relative">
+        <div className="sm:ml-auto flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full sm:w-auto">
+          {/* Búsqueda — ancho completo en móvil */}
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               value={searchInput} onChange={e => setSearchInput(e.target.value)}
-              placeholder="Buscar nombre, código..." className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-52"
+              placeholder="Buscar nombre, código..." className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-full sm:w-52"
             />
           </div>
-          <select value={statusFilter} onChange={e => handleStatusChange(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-            {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          <button id="tour-emp-new" onClick={openCreate}
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" /> Nuevo
-          </button>
+          {/* Filtro + Nuevo — mitad/mitad en móvil */}
+          <div className="flex gap-3 sm:contents">
+            <select value={statusFilter} onChange={e => handleStatusChange(e.target.value)}
+              className="flex-1 sm:flex-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+              {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <button id="tour-emp-new" onClick={openCreate}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" /> Nuevo
+            </button>
+          </div>
         </div>
       </div>
 

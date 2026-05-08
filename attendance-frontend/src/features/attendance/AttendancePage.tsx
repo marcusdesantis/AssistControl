@@ -538,7 +538,7 @@ function PeriodView() {
           <input type="date" value={to} min={from} max={today} onChange={e => { setTo(e.target.value); setPage(1) }}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
         </div>
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             value={search}
@@ -548,11 +548,11 @@ function PeriodView() {
               setSearch(e.target.value)
             }}
             placeholder="Buscar empleado..."
-            className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <select value={deptFilter} onChange={e => handleDept(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
+          className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
           {departments.map(d => <option key={d}>{d}</option>)}
         </select>
       </div>
@@ -777,28 +777,30 @@ export default function AttendancePage() {
           <p className="text-gray-500 text-sm mt-0.5">Registro de asistencia</p>
           <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
-        <div className="sm:ml-auto flex flex-wrap items-center gap-2">
-          <div id="tour-att-toggle" className="flex rounded-lg border border-gray-300 overflow-hidden bg-white">
+        <div className="sm:ml-auto flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto">
+          {/* Toggle Día/Período — ancho completo en móvil, mitad/mitad */}
+          <div id="tour-att-toggle" className="flex rounded-lg border border-gray-300 overflow-hidden bg-white w-full sm:w-auto">
             <button
               onClick={() => setView('day')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${view === 'day' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium transition-colors ${view === 'day' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
               Día
             </button>
             <button
               onClick={() => setView('period')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${view === 'period' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium transition-colors ${view === 'period' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
               Período
             </button>
           </div>
 
+          {/* Selector de fecha — ancho completo en móvil */}
           {view === 'day' && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button onClick={prevDay} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50">
                 <ChevronLeft className="w-4 h-4 text-gray-600" />
               </button>
-              <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white">
+              <div className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white flex-1 sm:flex-none">
                 <Calendar className="w-4 h-4 text-gray-400 shrink-0" />{dateStr}
               </div>
               <button onClick={nextDay} disabled={isToday} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40">
@@ -852,8 +854,9 @@ export default function AttendancePage() {
           )}
 
           {/* Filtros + selector de tamaño */}
-          <div id="tour-att-filters" className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[160px] max-w-xs">
+          <div id="tour-att-filters" className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-center">
+            {/* Búsqueda — ancho completo en móvil */}
+            <div className="relative w-full sm:flex-1 sm:min-w-[160px] sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 placeholder="Buscar empleado..."
@@ -865,18 +868,21 @@ export default function AttendancePage() {
                 }}
               />
             </div>
-            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
-              <option value="All">Todos los estados</option>
-              <option value="Present">Presente</option>
-              <option value="Late">Tarde</option>
-              <option value="Absent">Ausente</option>
-              <option value="None">Sin registro</option>
-            </select>
-            <select value={deptFilter} onChange={e => { setDeptFilter(e.target.value); setPage(1) }}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
-              {departments.map(d => <option key={d}>{d}</option>)}
-            </select>
+            {/* Selects — mitad/mitad en móvil */}
+            <div className="flex gap-3 sm:contents">
+              <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+                className="flex-1 sm:flex-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
+                <option value="All">Todos los estados</option>
+                <option value="Present">Presente</option>
+                <option value="Late">Tarde</option>
+                <option value="Absent">Ausente</option>
+                <option value="None">Sin registro</option>
+              </select>
+              <select value={deptFilter} onChange={e => { setDeptFilter(e.target.value); setPage(1) }}
+                className="flex-1 sm:flex-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
+                {departments.map(d => <option key={d}>{d}</option>)}
+              </select>
+            </div>
             {(search || statusFilter !== 'All' || deptFilter !== 'Todos') && (
               <button onClick={() => { setSearch(''); setStatusFilter('All'); setDeptFilter('Todos'); setPage(1) }}
                 className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100">

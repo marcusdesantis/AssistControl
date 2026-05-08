@@ -15,6 +15,7 @@ import { DEFAULT_CAPABILITIES } from '@/types/auth'
 import type { Subscription } from '@/types/billing'
 import clsx from 'clsx'
 import { countryToLocale } from '@/utils/locale'
+import { isNative } from '@/utils/platform'
 
 interface NavItem {
   to:         string
@@ -188,11 +189,19 @@ export default function Layout() {
               <p className="text-primary-300 text-xs truncate">{roleLabel[user?.role ?? ''] ?? user?.role}</p>
             </div>
           </div>
-          <a href="/checker" target="_blank" rel="noopener noreferrer"
-            className="w-full flex items-center gap-2 px-3 py-2 text-primary-200 hover:text-white hover:bg-primary-800 rounded-lg text-sm transition-colors">
-            <ScanLine className="w-4 h-4" />
-            Reloj Checador
-          </a>
+          {isNative ? (
+            <NavLink to="/checker" onClick={() => setSidebarOpen(false)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-primary-200 hover:text-white hover:bg-primary-800 rounded-lg text-sm transition-colors">
+              <ScanLine className="w-4 h-4" />
+              Reloj Checador
+            </NavLink>
+          ) : (
+            <a href="/checker" target="_blank" rel="noopener noreferrer"
+              className="w-full flex items-center gap-2 px-3 py-2 text-primary-200 hover:text-white hover:bg-primary-800 rounded-lg text-sm transition-colors">
+              <ScanLine className="w-4 h-4" />
+              Reloj Checador
+            </a>
+          )}
         </div>
       </aside>
 
@@ -251,7 +260,7 @@ export default function Layout() {
         })()}
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

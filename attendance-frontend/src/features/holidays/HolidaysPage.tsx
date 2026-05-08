@@ -190,14 +190,14 @@ function HolidaysPageInner() {
           <p className="text-gray-500 text-sm mt-0.5">Fechas en que todos los empleados descansan (feriados oficiales y propios).</p>
           <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
-        <div className="sm:ml-auto flex gap-2 flex-wrap">
+        <div className="sm:ml-auto flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button id="tour-hol-generate" onClick={handleGenerate} disabled={generating}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 transition">
+            className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 transition">
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-amber-500" />}
             Generar feriados del país
           </button>
           <button id="tour-hol-new" onClick={() => { setEditing(null); setShowModal(true) }}
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+            className="flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
             <Plus className="w-4 h-4" /> Nuevo día inhábil
           </button>
         </div>

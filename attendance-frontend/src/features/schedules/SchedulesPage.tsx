@@ -693,7 +693,7 @@ function SchedulesPageInner() {
         </div>
         <button id="tour-sched-new"
           onClick={() => { setEditing(null); setShowModal(true) }}
-          className="sm:ml-auto flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          className="sm:ml-auto flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           <Plus className="w-4 h-4" /> Nuevo Horario
         </button>
       </div>

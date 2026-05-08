@@ -14,6 +14,7 @@ import type { PlanCapabilities } from '@/types/auth'
 import { fmtDate as _fmtDate, fmtMoney as _fmtMoney, countryToLocale as _countryToLocale } from '@/utils/locale'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
+import { isIOS } from '@/utils/platform'
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   // Suscripción
@@ -367,6 +368,10 @@ export default function SubscriptionTab() {
   }
 
   async function handleSelectPlan(plan: Plan) {
+    if (isIOS && !plan.isFree) {
+      toast.info('Para gestionar tu suscripción, visita tiempoya.net desde Safari.', { duration: 6000 })
+      return
+    }
     setSubscribingId(plan.id)
     try {
       // Solo calcular prorrateo — no activa nada en el backend
@@ -658,8 +663,11 @@ export default function SubscriptionTab() {
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-2 flex items-center justify-center gap-1.5">
-          <CreditCard className="w-3 h-3" />
-          Pagos procesados de forma segura a través de Payphone
+          {isIOS ? (
+            <><ExternalLink className="w-3 h-3" /> Para pagar, visita tiempoya.net desde Safari</>
+          ) : (
+            <><CreditCard className="w-3 h-3" /> Pagos procesados de forma segura a través de Payphone</>
+          )}
         </p>
       </div>
 
@@ -672,8 +680,8 @@ export default function SubscriptionTab() {
               <RefreshCw className="w-3 h-3" /> Actualizar
             </button>
           </div>
-          <div className="rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">N° Comprobante</th>
