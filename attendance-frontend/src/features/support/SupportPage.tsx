@@ -119,7 +119,7 @@ function NewTicketForm({ onCreated, onCancel }: { onCreated: (t: Ticket) => void
           Cancelar
         </button>
         <button onClick={handleSubmit} disabled={saving}
-          className="flex-1 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+          className="flex-1 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           Enviar
         </button>
@@ -219,7 +219,7 @@ function TicketView({ ticket: initial, onBack }: { ticket: Ticket; onBack: () =>
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 resize-none" />
           <div className="flex justify-end">
             <button onClick={handleReply} disabled={sending || !reply.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Responder
             </button>
@@ -281,15 +281,25 @@ export default function SupportPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div id="tour-support-header" className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Soporte</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Contacta con soporte</p>
-          <div className="mt-1"><HelpButton onClick={runTour} /></div>
+      <div id="tour-support-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Soporte</h1>
+            <p className="text-gray-500 text-sm mt-0.5">Contacta con soporte</p>
+            <div className="mt-1"><HelpButton onClick={runTour} /></div>
+          </div>
+          {/* Botón desktop — derecha del título */}
+          {hasPrioritySupport && !showForm && (
+            <button onClick={() => setShowForm(true)}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+              <Plus className="w-4 h-4" /> Nuevo ticket
+            </button>
+          )}
         </div>
+        {/* Botón móvil — debajo del título, 100% ancho */}
         {hasPrioritySupport && !showForm && (
           <button onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-900 transition-colors">
+            className="sm:hidden mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors">
             <Plus className="w-4 h-4" /> Nuevo ticket
           </button>
         )}
@@ -366,6 +376,7 @@ export default function SupportPage() {
           {info && <ContactCard info={info} />}
         </div>
       </div>
+
     </div>
   )
 }

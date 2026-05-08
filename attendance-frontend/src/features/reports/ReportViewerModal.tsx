@@ -688,39 +688,6 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
     }
   }
 
-  const renderReportToCanvas = async (empReport: EmployeeDetailReport): Promise<HTMLCanvasElement> => {
-    return new Promise((resolve, reject) => {
-      const container = document.createElement('div')
-      container.style.cssText = 'position:fixed;top:0;left:0;width:794px;background:white;z-index:9999;opacity:0.001;pointer-events:none;'
-      document.body.appendChild(container)
-
-      const root = createRoot(container)
-      root.render(
-        <ReportContent report={empReport} fontSize={13} contentRef={{ current: null! }} />
-      )
-
-      // setTimeout da más tiempo al WebView nativo para renderizar vs rAF
-      setTimeout(async () => {
-        try {
-          const canvas = await html2canvas(container, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#fff',
-            logging: false,
-            width: 794,
-          })
-          resolve(canvas)
-        } catch (err) {
-          reject(err)
-        } finally {
-          root.unmount()
-          document.body.removeChild(container)
-        }
-      }, 600)
-    })
-  }
-
   const shareFileNative = async (base64: string, fileName: string) => {
     try {
       await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache, recursive: true })
@@ -742,14 +709,16 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
     }
   }
 
-  // PDF generado con jsPDF puro (sin html2canvas) — funciona en cualquier WebView
-  const buildPdfNative = (empReport: EmployeeDetailReport): jsPDF => {
-    const pdf    = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+  // Dibuja una página de reporte en el pdf recibido (sin html2canvas — funciona en web y WebView)
+  const buildReportPage = (pdf: jsPDF, empReport: EmployeeDetailReport): void => {
     const pageW  = pdf.internal.pageSize.getWidth()
     const pageH  = pdf.internal.pageSize.getHeight()
     const mg     = 28
     const cw     = pageW - mg * 2
     const DARK   = [30, 58, 95]   as [number,number,number]
+    const GREEN  = [46, 107, 79]  as [number,number,number]
+    const BROWN  = [123, 63, 0]   as [number,number,number]
+    const PURPLE = [109, 40, 217] as [number,number,number]
     const LIGHT  = [240,244,248]  as [number,number,number]
     const ALT    = [247,249,251]  as [number,number,number]
     let y = mg
@@ -775,6 +744,7 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
     pdf.rect(mg, y, cw, 28, 'F')
     pdf.setTextColor(60,60,60)
     pdf.setFontSize(8)
+    pdf.setFont('helvetica','normal')
     pdf.text(`Empleado: ${empReport.employeeName}`,  mg+4, y+10)
     pdf.text(`Código: ${empReport.employeeCode}`,     mg+4, y+21)
     pdf.text(`Depto.: ${empReport.department}`,       mg+cw/2+4, y+10)
@@ -789,10 +759,9 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
       : showEn
         ? ['Fecha','Día','Entrada','Salida','Trabaj.','Program.','Balance','Estatus']
         : ['Fecha','Día','Program.','Balance','Estatus']
-    const ww = cw / hdrs.length
+    const ww  = cw / hdrs.length
     const ROW = 14
 
-    // Header fila
     pdf.setFillColor(...DARK)
     pdf.rect(mg, y, cw, ROW+2, 'F')
     pdf.setTextColor(255,255,255)
@@ -801,7 +770,6 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
     hdrs.forEach((h,i) => pdf.text(h, mg + ww*i + 2, y+10))
     y += ROW+2
 
-    // Filas de datos
     empReport.days.forEach((day, di) => {
       checkPage(ROW+2)
       const bg = di % 2 === 0 ? [255,255,255] as [number,number,number] : ALT
@@ -817,125 +785,128 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
         : showEn
           ? [fmtDate(day.date), day.dayName, fmtDateTime(first?.checkInTime), fmtDateTime(last?.checkOutTime), fmtMins(day.totalWorkedMinutes), fmtMins(day.scheduledMinutes), fmtMins(day.balanceMinutes), day.dayStatus]
           : [fmtDate(day.date), day.dayName, fmtMins(day.scheduledMinutes), fmtMins(day.balanceMinutes), day.dayStatus]
-      cells.forEach((c,i) => pdf.text(String(c ?? '—').slice(0,18), mg + ww*i + 2, y+10))
+      cells.forEach((c,i) => pdf.text(String(c ?? '—').slice(0,20), mg + ww*i + 2, y+10))
       y += ROW
     })
     y += 14
 
-    // ── Resumen ──────────────────────────────────────────────────────────────
-    checkPage(80)
-    pdf.setFillColor(...DARK)
-    pdf.rect(mg, y, cw, 14, 'F')
-    pdf.setTextColor(255,255,255)
-    pdf.setFont('helvetica','bold')
-    pdf.setFontSize(8)
-    pdf.text('RESUMEN DEL PERÍODO', mg+4, y+10)
-    y += 16
+    // ── Resumen (cajas lado a lado) ──────────────────────────────────────────
+    const GAP  = 4
+    const ROWH = 12
 
-    const sumRows: [string,string][] = [
-      ['Días laborables',     String(empReport.totalWorkdays)],
-      ['Días asistidos',      String(empReport.workdaysAttended)],
-      ['Faltas',              String(empReport.totalAbsences)],
-      ['Retardos',            String(empReport.totalLates)],
-      ['Salidas anticipadas', String(empReport.totalEarlyDepartures)],
-      ['% Asistencia',        `${empReport.attendancePercent}%`],
-      ['Total trabajado',     fmtMins(empReport.totalWorkedMinutes)],
-      ['Balance',             fmtMins(empReport.balanceMinutesNoAbsences)],
-    ]
-    pdf.setTextColor(60,60,60)
-    pdf.setFont('helvetica','normal')
-    pdf.setFontSize(8)
-    sumRows.forEach(([label, val], i) => {
-      checkPage(12)
-      const bg = i%2===0 ? [255,255,255] as [number,number,number] : ALT
-      pdf.setFillColor(...bg)
-      pdf.rect(mg, y, cw, 12, 'F')
-      pdf.text(label, mg+4, y+9)
-      pdf.text(val,   mg+cw-40, y+9)
-      y += 12
-    })
-    y += 20
+    const drawBox = (bx: number, bw: number, color: [number,number,number], title: string, rows: [string,string][]) => {
+      pdf.setFillColor(...color)
+      pdf.rect(bx, y, bw, 14, 'F')
+      pdf.setTextColor(255,255,255)
+      pdf.setFont('helvetica','bold')
+      pdf.setFontSize(6.5)
+      pdf.text(title, bx+3, y+10)
+      rows.forEach((row, ri) => {
+        const ry = y + 14 + ri * ROWH
+        pdf.setFillColor(...(ri%2===0 ? [255,255,255] as [number,number,number] : ALT))
+        pdf.rect(bx, ry, bw, ROWH, 'F')
+        pdf.setTextColor(80,80,80)
+        pdf.setFont('helvetica','normal')
+        pdf.setFontSize(7)
+        pdf.text(row[0], bx+3, ry+9)
+        pdf.text(row[1], bx+bw-3, ry+9, { align:'right' })
+      })
+    }
+
+    if (isOT) {
+      const BOX1 = (cw - GAP) * 0.38
+      const BOX2 = cw - BOX1 - GAP
+      const periodoRows: [string,string][] = [
+        ['Días laborables', String(empReport.totalWorkdays)],
+        ['Días asistidos',  String(empReport.workdaysAttended)],
+        ['% Asistencia',    `${empReport.attendancePercent}%`],
+      ]
+      const extraRows: [string,string][] = [
+        ['Recargo nocturno (25%)',  fmtMins(empReport.totalNocturnalMinutes ?? 0)],
+        ['Suplementaria (50%)',     fmtMins(empReport.totalSupplementaryMinutes ?? 0)],
+        ['Supl. nocturna (100%)',   fmtMins(empReport.totalSupplementaryNightMinutes ?? 0)],
+        ['Extraordinaria (100%)',   fmtMins(empReport.totalExtraordinaryMinutes ?? 0)],
+        ['Total extras',            fmtMins((empReport.totalSupplementaryMinutes ?? 0) + (empReport.totalSupplementaryNightMinutes ?? 0) + (empReport.totalExtraordinaryMinutes ?? 0))],
+      ]
+      checkPage(14 + Math.max(periodoRows.length, extraRows.length) * ROWH + 20)
+      drawBox(mg,           BOX1, DARK,   'RESUMEN DEL PERÍODO',    periodoRows)
+      drawBox(mg+BOX1+GAP,  BOX2, PURPLE, 'HORAS EXTRAS (Art. 55)', extraRows)
+      y += 14 + Math.max(periodoRows.length, extraRows.length) * ROWH + 16
+    } else {
+      const BOX = (cw - GAP*2) / 3
+      const box1: [string,string][] = [
+        ['Días laborables',     String(empReport.totalWorkdays)],
+        ['Días asistidos',      String(empReport.workdaysAttended)],
+        ['Faltas',              String(empReport.totalAbsences)],
+        ['Retardos',            String(empReport.totalLates)],
+        ['Salidas anticipadas', String(empReport.totalEarlyDepartures)],
+        ['% Asistencia',        `${empReport.attendancePercent}%`],
+      ]
+      const box2: [string,string][] = [
+        ['Trabajado',  fmtMins(empReport.totalWorkedMinutes)],
+        ['Programado', fmtMins(empReport.scheduledMinutesNoAbsences)],
+        ['Extras',     fmtMins(empReport.extraMinutesNoAbsences)],
+        ['Balance',    fmtMins(empReport.balanceMinutesNoAbsences)],
+      ]
+      const box3: [string,string][] = [
+        ['Trabajado',  fmtMins(empReport.totalWorkedMinutes)],
+        ['Programado', fmtMins(empReport.scheduledMinutesWithAbsences)],
+        ['Extras',     fmtMins(empReport.extraMinutesWithAbsences)],
+        ['Balance',    fmtMins(empReport.balanceMinutesWithAbsences)],
+      ]
+      const maxR = Math.max(box1.length, box2.length, box3.length)
+      checkPage(14 + maxR * ROWH + 20)
+      drawBox(mg,              BOX, DARK,  'RESUMEN DEL PERÍODO', box1)
+      drawBox(mg+BOX+GAP,      BOX, GREEN, 'TIEMPO (SIN FALTAS)', box2)
+      drawBox(mg+BOX*2+GAP*2,  BOX, BROWN, 'TIEMPO (CON FALTAS)', box3)
+      y += 14 + maxR * ROWH + 16
+    }
 
     // ── Firmas ───────────────────────────────────────────────────────────────
-    checkPage(40)
+    checkPage(50)
     const half = cw/2 - 20
     pdf.setDrawColor(150,150,150)
     pdf.line(mg, y+20, mg+half, y+20)
     pdf.line(mg+half+40, y+20, mg+cw, y+20)
     pdf.setFontSize(7.5)
     pdf.setTextColor(120,120,120)
-    pdf.text('Firma del empleado',   mg + half/2,       y+30, { align:'center' })
+    pdf.text('Firma del empleado',   mg + half/2,         y+30, { align:'center' })
     pdf.text('Firma del supervisor', mg + half+40+half/2, y+30, { align:'center' })
 
-    // ── Footer ───────────────────────────────────────────────────────────────
     pdf.setFontSize(7)
     pdf.text(`Generado el ${new Date().toLocaleDateString('es-MX')}`, pageW/2, pageH-12, { align:'center' })
-
-    return pdf
-  }
-
-  const addCanvasToPdf = (pdf: jsPDF, canvas: HTMLCanvasElement, isFirst: boolean) => {
-    const pageW = pdf.internal.pageSize.getWidth()
-    const pageH = pdf.internal.pageSize.getHeight()
-    const imgW  = pageW - 40
-    const imgH  = imgW / (canvas.width / canvas.height)
-
-    if (!isFirst) pdf.addPage()
-
-    if (imgH <= pageH - 40) {
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 20, 20, imgW, imgH)
-    } else {
-      // Split tall report across multiple pages
-      const sliceH = Math.floor((pageH - 40) / imgH * canvas.height)
-      let yPos = 0
-      let firstSlice = true
-      while (yPos < canvas.height) {
-        const sliceCanvas      = document.createElement('canvas')
-        sliceCanvas.width      = canvas.width
-        sliceCanvas.height     = Math.min(sliceH, canvas.height - yPos)
-        const ctx              = sliceCanvas.getContext('2d')!
-        ctx.drawImage(canvas, 0, -yPos)
-        if (!firstSlice) pdf.addPage()
-        const sliceImgH = sliceCanvas.height / canvas.width * imgW
-        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 20, 20, imgW, sliceImgH)
-        yPos      += sliceH
-        firstSlice = false
-      }
-    }
-  }
-
-  const buildPdf = async (): Promise<{ pdf: jsPDF; fileName: string }> => {
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-    const cache: Record<string, EmployeeDetailReport> = {}
-    if (report) cache[currentCode] = report
-    for (let i = 0; i < employeeCodes.length; i++) {
-      const code = employeeCodes[i]
-      if (!cache[code]) cache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
-      const canvas = await renderReportToCanvas(cache[code])
-      addCanvasToPdf(pdf, canvas, i === 0)
-    }
-    const fileName = employeeCodes.length === 1
-      ? `reporte-${employeeCodes[0]}-${from}.pdf`
-      : `reportes-${from}-${to}.pdf`
-    return { pdf, fileName }
   }
 
 
   const handleSavePdf = async () => {
     setSaving(true)
     try {
+      const cache: Record<string, EmployeeDetailReport> = {}
+      if (report) cache[currentCode] = report
+      for (const code of employeeCodes) {
+        if (!cache[code]) cache[code] = await reportsService.getEmployeeDetail(code, from, to, reportType)
+      }
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+      employeeCodes.forEach((code, i) => {
+        if (i > 0) pdf.addPage()
+        buildReportPage(pdf, cache[code])
+      })
+      const safe = (employeeCodes[0] ?? 'reporte').replace(/[^a-zA-Z0-9-_]/g, '_')
+      const fileName = employeeCodes.length === 1
+        ? `reporte-${safe}-${from}.pdf`
+        : `reportes-${from}-${to}.pdf`
+
       if (isNative) {
-        if (!report) throw new Error('report null')
-        const pdf      = buildPdfNative(report)
-        // datauristring devuelve "data:application/pdf;base64,XXX" — extraemos solo el base64
-        const dataUri  = pdf.output('datauristring') as string
-        const b64      = dataUri.split(',')[1]
+        const ab  = pdf.output('arraybuffer') as ArrayBuffer
+        const u8  = new Uint8Array(ab)
+        let   bin = ''
+        for (let i = 0; i < u8.length; i += 8192) {
+          bin += String.fromCharCode(...Array.from(u8.slice(i, i + 8192)))
+        }
+        const b64 = btoa(bin)
         if (!b64) throw new Error('PDF base64 vacío')
-        const safe     = currentCode.replace(/[^a-zA-Z0-9-_]/g, '_')
-        const fileName = `reporte-${safe}-${from}.pdf`
         await shareFileNative(b64, fileName)
       } else {
-        const { pdf, fileName } = await buildPdf()
         pdf.save(fileName)
       }
     } catch (err) {
@@ -964,8 +935,8 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
         : `reportes-${from}-${to}.xlsx`
 
       if (isNative) {
-        // type:'base64' devuelve string base64 directamente — sin necesidad de conversión
-        const b64 = XLSXStyle.write(wb, { bookType: 'xlsx', type: 'base64' }) as string
+        const bin = XLSXStyle.write(wb, { bookType: 'xlsx', type: 'binary' }) as string
+        const b64 = btoa(bin)
         if (!b64) throw new Error('Excel base64 vacío')
         const safe = (employeeCodes[0] ?? 'reporte').replace(/[^a-zA-Z0-9-_]/g, '_')
         const safeFileName = employeeCodes.length === 1
@@ -989,11 +960,17 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
       setSharing(true)
       try {
         if (!report) throw new Error('Sin reporte')
-        const pdf     = buildPdfNative(report)
-        const dataUri = pdf.output('datauristring') as string
-        const b64     = dataUri.split(',')[1]
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+        buildReportPage(pdf, report)
+        const ab  = pdf.output('arraybuffer') as ArrayBuffer
+        const u8  = new Uint8Array(ab)
+        let   bin = ''
+        for (let i = 0; i < u8.length; i += 8192) {
+          bin += String.fromCharCode(...Array.from(u8.slice(i, i + 8192)))
+        }
+        const b64  = btoa(bin)
         if (!b64) throw new Error('PDF base64 vacío')
-        const safe    = currentCode.replace(/[^a-zA-Z0-9-_]/g, '_')
+        const safe = currentCode.replace(/[^a-zA-Z0-9-_]/g, '_')
         await shareFileNative(b64, `reporte-${safe}-${from}.pdf`)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)

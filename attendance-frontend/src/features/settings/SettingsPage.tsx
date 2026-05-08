@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  Mail, Plus, X, Send, Copy, Check, Loader2, Save,
+  Mail, Plus, X, Send, Copy, Check, ChevronDown, Loader2, Save,
   Server, Eye, EyeOff, ToggleLeft, ToggleRight, KeyRound, RefreshCw, AlertTriangle, Lock, CreditCard,
 } from 'lucide-react'
 import { copyText } from '@/utils/clipboard'
@@ -118,6 +118,7 @@ export default function SettingsPage() {
   const [regenerating,     setRegenerating]     = useState(false)
   const [showCheckerKey,   setShowCheckerKey]   = useState(false)
   const [checkerUnlocked,  setCheckerUnlocked]  = useState(false)
+  const [tabDdOpen,        setTabDdOpen]        = useState(false)
   const [showPwdModal,     setShowPwdModal]     = useState(false)
   const [pwdInput,         setPwdInput]         = useState('')
   const [pwdError,         setPwdError]         = useState<string | null>(null)
@@ -310,7 +311,7 @@ export default function SettingsPage() {
           onClick={handleSave}
           id="tour-smtp-save"
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
         >
           {saving
             ? <><Loader2 className="w-4 h-4 animate-spin" />Guardando…</>
@@ -329,12 +330,57 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="flex border-b border-gray-200 overflow-x-auto">
+
+        {/* Dropdown móvil */}
+        {(() => {
+          const TAB_DEFS = [
+            { key: 'email'        as Tab, label: 'Configuración de correo', Icon: Server    },
+            { key: 'invitations'  as Tab, label: 'Envío de registro',        Icon: Mail      },
+            { key: 'checker'      as Tab, label: 'Checador',                  Icon: KeyRound  },
+            { key: 'subscription' as Tab, label: 'Planes - Suscripción',      Icon: CreditCard },
+          ]
+          const current = TAB_DEFS.find(t => t.key === activeTab)!
+          return (
+            <div className="sm:hidden relative p-3 border-b border-gray-200">
+              <button
+                onClick={() => setTabDdOpen(o => !o)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
+              >
+                <current.Icon className="w-4 h-4 text-gray-500" />
+                <span className="flex-1 text-left">{current.label}</span>
+                {activeTab === 'checker' && !checkerUnlocked && <Lock className="w-3 h-3 text-gray-400" />}
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${tabDdOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {tabDdOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setTabDdOpen(false)} />
+                  <div className="absolute left-3 right-3 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                    {TAB_DEFS.map(({ key, label, Icon }) => (
+                      <button key={key}
+                        onClick={() => { handleTabClick(key); setTabDdOpen(false) }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors
+                          ${activeTab === key ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="flex-1">{label}</span>
+                        {key === 'checker' && !checkerUnlocked && <Lock className="w-3 h-3 text-gray-400" />}
+                        {activeTab === key && <Check className="w-3.5 h-3.5 text-primary-600" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Tabs desktop */}
+        <div className="hidden sm:flex border-b border-gray-200">
           {([
-            { key: 'email',       label: 'Configuración de correo', Icon: Server   },
-            { key: 'invitations', label: 'Envío de registro',        Icon: Mail     },
-            { key: 'checker',      label: 'Checador',      Icon: KeyRound  },
-            { key: 'subscription', label: 'Planes - Suscripción',   Icon: CreditCard },
+            { key: 'email',       label: 'Configuración de correo', Icon: Server    },
+            { key: 'invitations', label: 'Envío de registro',        Icon: Mail      },
+            { key: 'checker',     label: 'Checador',                  Icon: KeyRound  },
+            { key: 'subscription',label: 'Planes - Suscripción',      Icon: CreditCard },
           ] as { key: Tab; label: string; Icon: React.ElementType }[]).map(({ key, label, Icon }) => (
             <button
               key={key}
