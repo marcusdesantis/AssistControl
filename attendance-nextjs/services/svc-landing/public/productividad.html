@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reduce Costos Laborales con Control de Asistencia Automático | TiempoYa</title>
+  <meta name="description" content="Descubre cuánto pierde tu empresa por falta de control de asistencia. TiempoYa automatiza reportes y detecta tardanzas en tiempo real. Empieza gratis.">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="TiempoYa">
+  <meta name="keywords" content="reducir costos laborales, calcular horas perdidas empresa, ROI control asistencia, software productividad laboral, tardanzas costo empresa, automatización RRHH, TiempoYa productividad, ausentismo laboral, optimización turnos trabajo, ahorro nómina empresa">
+  <meta name="theme-color" content="#4338ca">
+  <link rel="canonical" href="https://www.tiempoya.net/landing/tiempoya-landing3">
+
+  <meta property="og:title" content="Reduce Costos Laborales con Control de Asistencia Automático | TiempoYa">
+  <meta property="og:description" content="Descubre cuánto pierde tu empresa por falta de control de asistencia. TiempoYa automatiza reportes y detecta tardanzas en tiempo real. Empieza gratis.">
+  <meta property="og:image" content="https://www.tiempoya.net/assets/og-productividad.webp">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="https://www.tiempoya.net/landing/tiempoya-landing3">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TiempoYa">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Reduce Costos Laborales con Control de Asistencia | TiempoYa">
+  <meta name="twitter:description" content="Descubre cuánto pierde tu empresa por falta de control de asistencia. Empieza gratis.">
+  <meta name="twitter:image" content="https://www.tiempoya.net/assets/og-productividad.webp">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "TiempoYa — Productividad y Reducción de Costos Laborales",
+    "url": "https://www.tiempoya.net/landing/tiempoya-landing3",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, iOS, Android",
+    "description": "Reduce el ausentismo y los costos laborales con automatización de asistencia. Detecta tardanzas en tiempo real y calcula el ROI de tu equipo con TiempoYa.",
+    "featureList": [
+      "Cálculo automático de horas perdidas por tardanzas",
+      "Dashboard de productividad por empleado y departamento",
+      "Alertas de ausentismo recurrente",
+      "Análisis de ROI del control de asistencia",
+      "Reportes de costo laboral real vs esperado",
+      "Detección de patrones de inasistencia",
+      "Integración con nómina para cálculo de descuentos"
+    ],
+    "screenshot": "https://www.tiempoya.net/assets/og-productividad.webp",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Plan gratuito disponible sin tarjeta de crédito"
+    }
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .gradient-hero { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%); }
+    .card-hover { transition: transform .2s, box-shadow .2s; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,.1); }
+  </style>
+</head>
+<body class="font-sans text-gray-900 bg-white">
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm shadow-sm z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <a href="https://www.tiempoya.net" class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-indigo-700 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="text-xl font-bold text-indigo-700">TiempoYa</span>
+        </a>
+        <div class="hidden md:flex items-center gap-8">
+          <a href="https://www.tiempoya.net/#funcionalidades" class="text-gray-600 hover:text-indigo-700 font-medium transition">Funcionalidades</a>
+          <a href="https://www.tiempoya.net/precios" class="text-gray-600 hover:text-indigo-700 font-medium transition">Precios</a>
+          <a href="https://www.tiempoya.net/login" class="text-gray-600 hover:text-indigo-700 font-medium transition">Iniciar sesión</a>
+          <a href="https://www.tiempoya.net/sign-up" class="bg-indigo-700 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-800 transition min-h-[44px] flex items-center">Comenzar gratis</a>
+        </div>
+        <button id="menu-btn" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition" aria-label="Abrir menú">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+      <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-gray-100 pt-3 space-y-1">
+        <a href="https://www.tiempoya.net/#funcionalidades" class="block px-4 py-3 text-gray-600 hover:text-indigo-700 hover:bg-gray-50 rounded-lg font-medium">Funcionalidades</a>
+        <a href="https://www.tiempoya.net/precios" class="block px-4 py-3 text-gray-600 hover:text-indigo-700 hover:bg-gray-50 rounded-lg font-medium">Precios</a>
+        <a href="https://www.tiempoya.net/login" class="block px-4 py-3 text-gray-600 hover:text-indigo-700 hover:bg-gray-50 rounded-lg font-medium">Iniciar sesión</a>
+        <a href="https://www.tiempoya.net/sign-up" class="block mx-4 mt-2 bg-indigo-700 text-white px-4 py-3 rounded-lg font-semibold text-center hover:bg-indigo-800 transition">Comenzar gratis</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="gradient-hero pt-16 min-h-screen flex items-center">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-medium px-4 py-2 rounded-full mb-6">
+            <svg class="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Datos reales de 500+ empresas en LATAM
+          </div>
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
+            Tu empresa pierde hasta un <span class="text-yellow-300">23%</span> de horas productivas por falta de control de asistencia.<br>
+            <span class="text-indigo-200">¿Cuánto es eso en dinero?</span>
+          </h1>
+          <p class="text-xl text-indigo-200 mb-8 leading-relaxed">
+            TiempoYa elimina las tardanzas no detectadas, los reportes manuales y el desorden de horarios. El resultado: menos costos ocultos, más productividad medible y un ROI que se ve desde el primer mes.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a href="#calculadora" class="bg-yellow-400 text-gray-900 px-8 py-4 rounded-xl font-bold text-lg hover:bg-yellow-300 transition text-center min-h-[56px] flex items-center justify-center">
+              Calcula tu ahorro →
+            </a>
+            <a href="https://www.tiempoya.net/sign-up" class="border-2 border-white/50 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/10 transition text-center min-h-[56px] flex items-center justify-center">
+              Comenzar gratis
+            </a>
+          </div>
+          <div class="flex flex-wrap gap-x-6 gap-y-2 mt-5 text-indigo-200 text-sm">
+            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Sin tarjeta de crédito</span>
+            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Resultados desde el primer mes</span>
+            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Garantía de 30 días</span>
+          </div>
+        </div>
+        <!-- KPIs panel -->
+        <div class="hidden lg:block">
+          <div class="bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 shadow-2xl">
+            <div class="bg-white rounded-xl p-6">
+              <p class="text-sm text-gray-500 font-medium mb-4">Costos recuperados en los últimos 30 días</p>
+              <div class="space-y-4">
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Tardanzas detectadas y gestionadas</span>
+                    <span class="font-bold text-gray-900">$1,240</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-indigo-600 h-2 rounded-full" style="width:78%"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Horas de RRHH ahorradas en reportes</span>
+                    <span class="font-bold text-gray-900">$480</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full" style="width:55%"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Reducción de horas extra no autorizadas</span>
+                    <span class="font-bold text-gray-900">$670</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-green-500 h-2 rounded-full" style="width:63%"></div></div>
+                </div>
+              </div>
+              <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-500">Ahorro total estimado</p>
+                  <p class="text-3xl font-extrabold text-indigo-700">$2,390</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs text-gray-500">ROI del plan Pro</p>
+                  <p class="text-3xl font-extrabold text-green-600">82x</p>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mt-3 text-center">Empresa de 35 empleados — Sector servicios — Lima, Perú</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== COSTO DEL DESORDEN ===== -->
+  <section class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">No sabes cuánto te cuesta la impuntualidad hasta que lo mides</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Los números son contundentes. Y se acumulan mes a mes sin que nadie los frene.</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 card-hover">
+          <div class="text-5xl font-extrabold text-red-500 mb-2">15 min</div>
+          <p class="text-gray-600 text-sm">tardanza promedio por empleado por día en empresas sin sistema de control</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 card-hover">
+          <div class="text-5xl font-extrabold text-orange-500 mb-2">65 h</div>
+          <p class="text-gray-600 text-sm">perdidas por empleado al año si llega 15 min tarde todos los días</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 card-hover">
+          <div class="text-5xl font-extrabold text-yellow-500 mb-2">3 h</div>
+          <p class="text-gray-600 text-sm">que RRHH gasta cada mes armando reportes manuales de asistencia</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 text-center border border-gray-100 card-hover">
+          <div class="text-5xl font-extrabold text-indigo-600 mb-2">23%</div>
+          <p class="text-gray-600 text-sm">de horas productivas perdidas en empresas sin automatización de asistencia</p>
+        </div>
+      </div>
+      <div class="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-3xl mx-auto">
+        <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">El cálculo que nadie hace</h3>
+        <p class="text-gray-600 text-center mb-4">Si tenés 20 empleados y cada uno llega 15 minutos tarde en promedio:</p>
+        <div class="grid grid-cols-3 gap-4 text-center">
+          <div><p class="text-2xl font-extrabold text-gray-900">300 min</p><p class="text-xs text-gray-500">perdidos por día</p></div>
+          <div><p class="text-2xl font-extrabold text-gray-900">6,500 h</p><p class="text-xs text-gray-500">perdidas por año</p></div>
+          <div><p class="text-2xl font-extrabold text-red-600">$$$</p><p class="text-xs text-gray-500">que no volvés a recuperar</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CALCULADORA ===== -->
+  <section id="calculadora" class="py-20 bg-white">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Calculá cuánto perdés sin TiempoYa</h2>
+        <p class="text-xl text-gray-500">Ingresá los datos de tu empresa y ve el resultado al instante.</p>
+      </div>
+      <div class="bg-indigo-50 rounded-3xl p-8 border border-indigo-100">
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2" for="empleados">Número de empleados</label>
+            <input id="empleados" type="number" min="1" value="20" class="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-indigo-500 bg-white" placeholder="20">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2" for="tardanza">Tardanza promedio por día (minutos)</label>
+            <input id="tardanza" type="number" min="1" value="15" class="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-indigo-500 bg-white" placeholder="15">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2" for="salario">Salario mensual promedio (USD)</label>
+            <input id="salario" type="number" min="1" value="600" class="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-indigo-500 bg-white" placeholder="600">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2" for="dias">Días laborales por mes</label>
+            <input id="dias" type="number" min="1" value="22" class="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-indigo-500 bg-white" placeholder="22">
+          </div>
+        </div>
+        <button onclick="calcular()" class="w-full bg-indigo-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-800 transition mb-6">
+          Calcular pérdida mensual →
+        </button>
+        <div id="resultado" class="hidden bg-white rounded-2xl p-6 border-2 border-indigo-200">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <p id="res-minutos" class="text-3xl font-extrabold text-red-500">—</p>
+              <p class="text-xs text-gray-500 mt-1">minutos perdidos/mes</p>
+            </div>
+            <div>
+              <p id="res-horas" class="text-3xl font-extrabold text-orange-500">—</p>
+              <p class="text-xs text-gray-500 mt-1">horas perdidas/mes</p>
+            </div>
+            <div>
+              <p id="res-costo" class="text-3xl font-extrabold text-red-600">—</p>
+              <p class="text-xs text-gray-500 mt-1">costo mensual estimado</p>
+            </div>
+            <div>
+              <p id="res-anual" class="text-3xl font-extrabold text-indigo-700">—</p>
+              <p class="text-xs text-gray-500 mt-1">pérdida anual total</p>
+            </div>
+          </div>
+          <div class="mt-5 pt-5 border-t border-gray-100 text-center">
+            <p class="text-sm text-gray-600 mb-4">TiempoYa Pro cuesta <strong>$29/mes</strong> — ¿el ROI se justifica?</p>
+            <a href="https://www.tiempoya.net/sign-up" class="inline-block bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-800 transition">Empezar a recuperar ese dinero →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ROI MÉTRICAS ===== -->
+  <section class="py-20 bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">TiempoYa no es un gasto. Es la herramienta que te devuelve el dinero que ya estabas perdiendo.</h2>
+        <p class="text-xl text-gray-400 max-w-2xl mx-auto">Tres métricas que cambian desde el primer mes.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-gray-800 rounded-2xl p-8 text-center border border-gray-700">
+          <div class="w-16 h-16 bg-indigo-900 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <p class="text-4xl font-extrabold text-white mb-2">3 seg</p>
+          <h3 class="text-lg font-semibold text-indigo-300 mb-3">Tiempo ahorrado en reportes</h3>
+          <p class="text-gray-400 text-sm">El reporte mensual completo en un clic. De 3 horas de Excel a 3 segundos de TiempoYa. Cada mes.</p>
+        </div>
+        <div class="bg-indigo-800 rounded-2xl p-8 text-center border border-indigo-600">
+          <div class="w-16 h-16 bg-indigo-900 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
+          </div>
+          <p class="text-4xl font-extrabold text-white mb-2">-87%</p>
+          <h3 class="text-lg font-semibold text-yellow-300 mb-3">Reducción de tardanzas</h3>
+          <p class="text-indigo-200 text-sm">Cuando los empleados saben que la asistencia se registra automáticamente, la puntualidad mejora desde el primer día.</p>
+        </div>
+        <div class="bg-gray-800 rounded-2xl p-8 text-center border border-gray-700">
+          <div class="w-16 h-16 bg-indigo-900 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <p class="text-4xl font-extrabold text-white mb-2">$0.97</p>
+          <h3 class="text-lg font-semibold text-green-300 mb-3">Costo por empleado/mes</h3>
+          <p class="text-gray-400 text-sm">En el plan Pro para 30 empleados. Menos de $1 por persona al mes para tener control total de tu nómina.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CASOS DE USO ===== -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Las empresas más rentables de LATAM ya automatizaron su control de personal</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Tres industrias. Un mismo problema resuelto.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="rounded-2xl overflow-hidden border border-gray-200 card-hover">
+          <div class="bg-orange-500 p-6">
+            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold text-white">Retail</h3>
+            <p class="text-orange-100 text-sm">Tiendas y cadenas comerciales</p>
+          </div>
+          <div class="p-6">
+            <p class="text-sm text-red-600 font-semibold mb-2">Problema:</p>
+            <p class="text-gray-600 text-sm mb-4">Turnos rotativos imposibles de controlar. Empleados que no marcan salida. Cálculo de horas extra manual y lleno de errores.</p>
+            <p class="text-sm text-green-600 font-semibold mb-2">Con TiempoYa:</p>
+            <p class="text-gray-600 text-sm mb-4">Turnos configurados en minutos. Alertas automáticas por turno no cubierto. Reporte de horas extra listo antes del cierre del mes.</p>
+            <div class="bg-orange-50 rounded-xl p-3 text-center">
+              <p class="text-2xl font-extrabold text-orange-600">$1,800</p>
+              <p class="text-xs text-gray-500">ahorro mensual promedio en cadena de 5 locales</p>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-gray-200 card-hover">
+          <div class="bg-yellow-600 p-6">
+            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <h3 class="text-xl font-bold text-white">Construcción</h3>
+            <p class="text-yellow-100 text-sm">Obras y contratistas</p>
+          </div>
+          <div class="p-6">
+            <p class="text-sm text-red-600 font-semibold mb-2">Problema:</p>
+            <p class="text-gray-600 text-sm mb-4">Personal en múltiples obras simultáneas. Sin forma de verificar presencia en campo. Horas reportadas de forma manual y subjetiva.</p>
+            <p class="text-sm text-green-600 font-semibold mb-2">Con TiempoYa:</p>
+            <p class="text-gray-600 text-sm mb-4">Fichaje con geolocalización por obra. Supervisores ven en tiempo real quién está en qué ubicación. Payroll automatizado a fin de semana.</p>
+            <div class="bg-yellow-50 rounded-xl p-3 text-center">
+              <p class="text-2xl font-extrabold text-yellow-700">40%</p>
+              <p class="text-xs text-gray-500">reducción en tiempo de gestión de nómina</p>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-gray-200 card-hover">
+          <div class="bg-indigo-600 p-6">
+            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold text-white">Servicios</h3>
+            <p class="text-indigo-200 text-sm">Consultoras y equipos remotos</p>
+          </div>
+          <div class="p-6">
+            <p class="text-sm text-red-600 font-semibold mb-2">Problema:</p>
+            <p class="text-gray-600 text-sm mb-4">Equipos híbridos en distintas ciudades. Imposible saber quién está trabajando, cuándo y desde dónde. Sin trazabilidad.</p>
+            <p class="text-sm text-green-600 font-semibold mb-2">Con TiempoYa:</p>
+            <p class="text-gray-600 text-sm mb-4">Panel unificado de todo el equipo en tiempo real. Reportes individuales y por proyecto. Compliance laboral sin esfuerzo.</p>
+            <div class="bg-indigo-50 rounded-xl p-3 text-center">
+              <p class="text-2xl font-extrabold text-indigo-700">100%</p>
+              <p class="text-xs text-gray-500">visibilidad del equipo remoto por primera vez</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card geolocalización -->
+      <div class="mt-10 flex justify-center">
+        <div class="bg-blue-300 rounded-[2.5rem] px-10 py-10 text-center max-w-lg w-full">
+          <h3 class="text-xl sm:text-2xl font-bold text-indigo-900 mb-6 leading-snug">
+            Con geolocalización sabes si tus colaboradores llegaron al sitio de trabajo
+          </h3>
+          <div class="mb-6">
+            <img
+              src="https://cdn.shopify.com/s/files/1/0504/7094/4954/files/locating-on-phone_480x480.jpg?v=1715738668"
+              alt="Geolocalización en tiempo real con TiempoYa"
+              width="260" height="180"
+              class="mx-auto rounded-xl shadow-lg object-cover"
+            >
+          </div>
+          <a href="https://www.tiempoya.net/sign-up"
+             class="inline-block bg-indigo-600 text-white px-10 py-3 rounded-lg font-semibold border-2 border-white hover:bg-indigo-700 transition">
+            Comenzar gratis
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== COMPARATIVA ===== -->
+  <section class="py-20 bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Método manual vs. TiempoYa</h2>
+        <p class="text-xl text-gray-500">La diferencia no es solo de tiempo. Es de dinero, escala y tranquilidad.</p>
+      </div>
+      <div class="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+        <div class="grid grid-cols-3 bg-gray-100 py-4 px-6 font-semibold text-sm text-gray-500">
+          <div>Criterio</div>
+          <div class="text-center text-red-500">Control Manual</div>
+          <div class="text-center text-indigo-700">TiempoYa</div>
+        </div>
+        <div class="divide-y divide-gray-100">
+          <div class="grid grid-cols-3 py-4 px-6 items-center">
+            <div class="text-sm text-gray-700 font-medium">Tiempo en reportes</div>
+            <div class="text-center"><span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full font-semibold">3–4 horas/mes</span></div>
+            <div class="text-center"><span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-semibold">3 segundos</span></div>
+          </div>
+          <div class="grid grid-cols-3 py-4 px-6 items-center bg-gray-50">
+            <div class="text-sm text-gray-700 font-medium">Detección de tardanzas</div>
+            <div class="text-center"><span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full font-semibold">A fin de mes</span></div>
+            <div class="text-center"><span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-semibold">En tiempo real</span></div>
+          </div>
+          <div class="grid grid-cols-3 py-4 px-6 items-center">
+            <div class="text-sm text-gray-700 font-medium">Errores en datos</div>
+            <div class="text-center"><span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full font-semibold">Frecuentes</span></div>
+            <div class="text-center"><span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-semibold">Cero errores</span></div>
+          </div>
+          <div class="grid grid-cols-3 py-4 px-6 items-center bg-gray-50">
+            <div class="text-sm text-gray-700 font-medium">Escalabilidad</div>
+            <div class="text-center"><span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full font-semibold">Imposible</span></div>
+            <div class="text-center"><span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-semibold">Ilimitada</span></div>
+          </div>
+          <div class="grid grid-cols-3 py-4 px-6 items-center">
+            <div class="text-sm text-gray-700 font-medium">Costo mensual</div>
+            <div class="text-center"><span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full font-semibold">$$$$ oculto</span></div>
+            <div class="text-center"><span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-semibold">Desde $0</span></div>
+          </div>
+          <div class="grid grid-cols-3 py-4 px-6 items-center bg-gray-50">
+            <div class="text-sm text-gray-700 font-medium">Trabajo remoto</div>
+            <div class="text-center"><span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full font-semibold">Sin control</span></div>
+            <div class="text-center"><span class="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-semibold">Geolocalización</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRECIOS ===== -->
+  <section class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Un plan para cada empresa</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Empezá gratis. Escalá cuando lo necesites. Sin contratos largos.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+
+        <!-- Básico -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-8 flex flex-col">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-1">Básico</h3>
+            <p class="text-sm text-gray-500">Hasta 5 empleados</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold text-gray-900">Gratis</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Registro de entrada y salida</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Reporte mensual básico</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Acceso desde app móvil</li>
+          </ul>
+          <a href="https://www.tiempoya.net/sign-up" class="block text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-xl transition">Comenzar gratis</a>
+        </div>
+
+        <!-- Profesional -->
+        <div class="bg-white border-2 border-indigo-600 rounded-2xl p-8 flex flex-col relative">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">MÁS POPULAR</div>
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-1">Profesional</h3>
+            <p class="text-sm text-gray-500">Hasta 20 empleados</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold text-gray-900">$29</span>
+            <span class="text-gray-500 text-base">/mes</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Todo lo del plan Básico</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Geolocalización en tiempo real</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Reportes avanzados y exportación</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Soporte prioritario</li>
+          </ul>
+          <a href="https://www.tiempoya.net/sign-up" class="block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition">Elegir este plan</a>
+        </div>
+
+        <!-- Empresarial -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-8 flex flex-col">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-1">Empresarial</h3>
+            <p class="text-sm text-gray-500">Hasta 100 empleados</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold text-gray-900">$79</span>
+            <span class="text-gray-500 text-base">/mes</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Todo lo del plan Profesional</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Múltiples sucursales</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> Integración con nómina</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-indigo-500 font-bold mt-0.5">✓</span> API y acceso a desarrolladores</li>
+          </ul>
+          <a href="https://www.tiempoya.net/sign-up" class="block text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-xl transition">Elegir este plan</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== GARANTÍA ===== -->
+  <section class="py-20 bg-white">
+    <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <!-- Ícono escudo -->
+      <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5">
+        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <!-- Banner dorado -->
+      <div class="bg-amber-500 rounded-lg px-8 py-6 mb-6">
+        <p class="text-xl sm:text-2xl font-bold text-indigo-900 leading-snug">
+          Con TiempoYa mejora la productividad de tu Empresa
+        </p>
+      </div>
+      <!-- Botón -->
+      <a href="https://www.tiempoya.net/sign-up" class="inline-block bg-indigo-900 text-white px-20 py-4 rounded-xl font-bold text-lg hover:bg-indigo-800 transition mb-6">
+        Inicia Gratis
+      </a>
+      <!-- Señales de confianza -->
+      <div class="flex flex-wrap justify-center gap-5 text-gray-500 text-sm">
+        <span class="flex items-center gap-1"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Sin tarjeta de crédito para empezar</span>
+        <span class="flex items-center gap-1"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Cancela cuando quieras</span>
+        <span class="flex items-center gap-1"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Soporte en español para LATAM</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA FINAL ===== -->
+  <section class="py-20 gradient-hero">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">
+        Empieza a medir hoy.<br>
+        <span class="text-yellow-300">Cada día sin control es dinero que no recuperás.</span>
+      </h2>
+      <p class="text-xl text-indigo-200 mb-8">Un solo reporte de asistencia tarda 3 horas en Excel. Con TiempoYa tarda 3 segundos.</p>
+      <a href="https://www.tiempoya.net/sign-up" class="inline-block bg-yellow-400 text-gray-900 px-10 py-4 rounded-xl font-bold text-xl hover:bg-yellow-300 transition">
+        Comenzar gratis ahora →
+      </a>
+      <p class="text-indigo-300 text-sm mt-4">Configuración en minutos · Sin tarjeta de crédito · Plan gratuito disponible</p>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="bg-gray-900 text-gray-400 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-indigo-700 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <span class="text-white font-bold text-lg">TiempoYa</span>
+        </div>
+        <div class="flex flex-wrap justify-center gap-6 text-sm">
+          <a href="https://www.tiempoya.net/terminos" class="hover:text-white transition">Términos de uso</a>
+          <a href="https://www.tiempoya.net/privacidad" class="hover:text-white transition">Privacidad</a>
+          <a href="https://www.tiempoya.net/login" class="hover:text-white transition">Iniciar sesión</a>
+          <a href="https://www.tiempoya.net/sign-up" class="hover:text-white transition">Registrarse</a>
+        </div>
+        <p class="text-sm">© 2026 TiempoYa. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script defer>
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+
+    function calcular() {
+      const empleados = parseFloat(document.getElementById('empleados').value) || 0;
+      const tardanza  = parseFloat(document.getElementById('tardanza').value) || 0;
+      const salario   = parseFloat(document.getElementById('salario').value) || 0;
+      const dias      = parseFloat(document.getElementById('dias').value) || 0;
+
+      const minutosMes   = empleados * tardanza * dias;
+      const horasMes     = (minutosMes / 60).toFixed(1);
+      const costoHora    = salario / (dias * 8);
+      const costoMes     = (costoHora * (minutosMes / 60)).toFixed(0);
+      const costoAnual   = (costoMes * 12).toFixed(0);
+
+      document.getElementById('res-minutos').textContent = minutosMes.toLocaleString();
+      document.getElementById('res-horas').textContent   = horasMes + 'h';
+      document.getElementById('res-costo').textContent   = '$' + parseFloat(costoMes).toLocaleString();
+      document.getElementById('res-anual').textContent   = '$' + parseFloat(costoAnual).toLocaleString();
+
+      document.getElementById('resultado').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
