@@ -171,10 +171,25 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
     if (holiday) throw { code: 'HOLIDAY', message: `Hoy es un día inhábil (${holiday.name}). No es posible registrar asistencia.` }
   }
 
+  // Bloquear si hay un registro activo sin salida
   const active = await prisma.attendanceRecord.findFirst({
     where: { tenantId: tenant.id, employeeId: emp.id, date: today, checkOutTime: null, isDeleted: false },
   })
   if (active) throw { code: 'ALREADY_CHECKED_IN', message: 'Ya tienes una entrada activa. Registra tu salida primero.' }
+
+  // Detectar si es retorno de almuerzo o si el día ya está completo
+  const nowDt    = DateTime.fromJSDate(now, { zone: tz })
+  const schedDay = emp.schedule ? getScheduleDay(emp.schedule, nowDt, emp.scheduleStartDate ?? null) : null
+
+  const completeCount = await prisma.attendanceRecord.count({
+    where: { tenantId: tenant.id, employeeId: emp.id, date: today, checkOutTime: { not: null }, isDeleted: false },
+  })
+
+  // Si el horario tiene almuerzo, solo se permiten 2 registros completos por día
+  if (schedDay?.hasLunch && completeCount >= 2)
+    throw { code: 'DAY_COMPLETE', message: 'Ya completaste todos tus registros del día.' }
+
+  const isPostLunch = completeCount > 0 && !!(schedDay?.hasLunch && schedDay.lunchEnd)
 
   if (checkerLimit != null && checkerLimit > 0) {
     const activeCount = await prisma.attendanceRecord.count({
@@ -184,7 +199,7 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
       throw { code: 'PLAN_LIMIT', message: `Se ha alcanzado el límite de ${checkerLimit} empleado(s) con entrada activa simultánea. Comunícate con el administrador de la empresa.` }
   }
 
-  const lateInfo = calcAttendanceStatus(now, emp.schedule, tz, emp.scheduleStartDate ?? null)
+  const lateInfo = calcAttendanceStatus(now, emp.schedule, tz, emp.scheduleStartDate ?? null, isPostLunch)
   const record   = await prisma.attendanceRecord.create({
     data: { tenantId: tenant.id, employeeId: emp.id, date: today, checkInTime: now, status: lateInfo.status, lateMinutes: lateInfo.lateMinutes, registeredFrom: 'Checker' },
   })

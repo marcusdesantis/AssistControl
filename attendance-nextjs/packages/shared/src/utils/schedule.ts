@@ -95,12 +95,14 @@ export function getScheduledMinutes(
 /**
  * Calcula el estado de asistencia (Present/Late) en el momento del check-in.
  * Para Variable: siempre Present (no hay hora fija de entrada).
+ * isPostLunch=true: compara contra lunchEnd en vez de entryTime (retorno de almuerzo).
  */
 export function calcAttendanceStatus(
   checkInUtc:         Date,
   schedule:           ScheduleLike | null,
   tz:                 string,
   employeeStartDate?: Date | null,
+  isPostLunch?:       boolean,
 ): { status: 'Present' | 'Late'; lateMinutes: number } {
   if (!schedule) return { status: 'Present', lateMinutes: 0 }
 
@@ -110,7 +112,24 @@ export function calcAttendanceStatus(
   const local    = DateTime.fromJSDate(checkInUtc, { zone: tz })
   const schedDay = getScheduleDay(schedule, local, employeeStartDate)
 
-  if (!schedDay?.isWorkDay || !schedDay.entryTime) return { status: 'Present', lateMinutes: 0 }
+  if (!schedDay?.isWorkDay) return { status: 'Present', lateMinutes: 0 }
+
+  // Retorno de almuerzo: comparar contra lunchEnd
+  if (isPostLunch && schedDay.hasLunch && schedDay.lunchEnd) {
+    const [lh, lm] = schedDay.lunchEnd.split(':').map(Number)
+    const threshold = local
+      .set({ hour: lh, minute: lm, second: 0, millisecond: 0 })
+      .plus({ minutes: schedule.lateToleranceMinutes ?? 0 })
+
+    if (local <= threshold) return { status: 'Present', lateMinutes: 0 }
+    return {
+      status:      'Late',
+      lateMinutes: Math.round(local.diff(threshold, 'minutes').minutes),
+    }
+  }
+
+  // Entrada normal: comparar contra entryTime
+  if (!schedDay.entryTime) return { status: 'Present', lateMinutes: 0 }
 
   const [h, m]  = schedDay.entryTime.split(':').map(Number)
   const threshold = local

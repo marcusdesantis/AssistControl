@@ -1,4 +1,4 @@
-import { prisma, calcAttendanceStatus } from '@attendance/shared'
+import { prisma, calcAttendanceStatus, getScheduleDay } from '@attendance/shared'
 import { DateTime } from 'luxon'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -14,8 +14,9 @@ function calcStatus(
   _lateToleranceMinutes: number,
   tz: string,
   employeeStartDate?: Date | null,
+  isPostLunch?: boolean,
 ): { status: 'Present' | 'Late'; lateMinutes: number } {
-  return calcAttendanceStatus(checkInUtc, schedule, tz, employeeStartDate)
+  return calcAttendanceStatus(checkInUtc, schedule, tz, employeeStartDate, isPostLunch)
 }
 
 function hoursWorked(checkIn: Date | null, checkOut: Date | null): number | null {
@@ -218,12 +219,26 @@ export async function checkIn(
   const now    = new Date()
   const today  = DateTime.fromJSDate(now, { zone: tz }).toFormat('yyyy-MM-dd')
 
+  // Bloquear si hay un registro activo sin salida
   const active = await prisma.attendanceRecord.findFirst({
     where: { tenantId, employeeId, date: today, checkOutTime: null, isDeleted: false },
   })
   if (active) throw { code: 'ALREADY_CHECKED_IN', message: 'El empleado ya tiene una entrada activa. Debe registrar su salida primero.' }
 
-  const lateInfo = calcStatus(now, employee.schedule, employee.schedule?.lateToleranceMinutes ?? 0, tz, employee.scheduleStartDate ?? null)
+  // Detectar si es retorno de almuerzo o día ya completo
+  const nowDt    = DateTime.fromJSDate(now, { zone: tz })
+  const schedDay = employee.schedule ? getScheduleDay(employee.schedule, nowDt, employee.scheduleStartDate ?? null) : null
+
+  const completeCount = await prisma.attendanceRecord.count({
+    where: { tenantId, employeeId, date: today, checkOutTime: { not: null }, isDeleted: false },
+  })
+
+  // Si el horario tiene almuerzo, solo se permiten 2 registros completos por día
+  if (schedDay?.hasLunch && completeCount >= 2)
+    throw { code: 'DAY_COMPLETE', message: 'El empleado ya completó todos sus registros del día.' }
+
+  const isPostLunch = completeCount > 0 && !!(schedDay?.hasLunch && schedDay.lunchEnd)
+  const lateInfo = calcStatus(now, employee.schedule, employee.schedule?.lateToleranceMinutes ?? 0, tz, employee.scheduleStartDate ?? null, isPostLunch)
 
   const record = await prisma.attendanceRecord.create({
     data: {
