@@ -1,4 +1,6 @@
+import { mobileService } from '@/services/mobileService'
 import { useAuthStore } from '@/store/authStore'
+import { registerForPushNotifications } from '@/utils/notifications'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
@@ -6,6 +8,24 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function ProfileScreen() {
   const { fullName, employeeCode, email, clearAuth } = useAuthStore()
+
+  const testPushToken = async () => {
+    try {
+      const token = await registerForPushNotifications()
+      if (!token) {
+        Alert.alert('Sin token', 'registerForPushNotifications() retornó null.\nVerifica permisos de notificación.')
+        return
+      }
+      try {
+        await mobileService.updatePushToken(token)
+        Alert.alert('✅ Token guardado', `Token registrado:\n${token.slice(0, 40)}...`)
+      } catch (e: any) {
+        Alert.alert('❌ Error al guardar token', `Token obtenido pero fallo al guardar:\n${e?.message ?? e}`)
+      }
+    } catch (e: any) {
+      Alert.alert('❌ Error al obtener token', `registerForPushNotifications() lanzó error:\n${e?.message ?? e}`)
+    }
+  }
 
   const doLogout = async () => {
     await clearAuth()
@@ -50,6 +70,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        <TouchableOpacity style={styles.testBtn} onPress={testPushToken}>
+          <Ionicons name="notifications-outline" size={20} color="#3b82f6" />
+          <Text style={styles.testText}>Probar notificaciones</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#ef4444" />
           <Text style={styles.logoutText}>Cerrar sesión</Text>
@@ -81,6 +106,13 @@ const styles = StyleSheet.create({
   divider:      { height: 1, backgroundColor: '#334155' },
   infoLabel:    { fontSize: 13, color: '#64748b', width: 60 },
   infoValue:    { flex: 1, fontSize: 14, color: '#f1f5f9', fontWeight: '500', textAlign: 'right' },
+  testBtn:      {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#1e3a5f', borderRadius: 12,
+    paddingHorizontal: 24, paddingVertical: 14, width: '100%',
+    justifyContent: 'center', marginBottom: 12,
+  },
+  testText:     { color: '#3b82f6', fontSize: 15, fontWeight: '700' },
   logoutBtn:    {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#450a0a', borderRadius: 12,
