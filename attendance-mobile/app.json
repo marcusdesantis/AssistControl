@@ -48,7 +48,16 @@
       ],
       "expo-notifications",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ],
+      "./plugins/withKotlinVersion"
     ],
     "scheme": "attendance",
     "extra": {

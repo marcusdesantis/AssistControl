@@ -1,7 +1,9 @@
 node_modules/
-android/
 ios/
 .expo/
 dist/
 *.log
 generate-assets.cjs
+android/app/build/
+android/.gradle/
+android/build/
