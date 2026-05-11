@@ -177,19 +177,44 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
   })
   if (active) throw { code: 'ALREADY_CHECKED_IN', message: 'Ya tienes una entrada activa. Registra tu salida primero.' }
 
-  // Detectar si es retorno de almuerzo o si el día ya está completo
+  // Detectar período actual y si es el primero en ese período
   const nowDt    = DateTime.fromJSDate(now, { zone: tz })
   const schedDay = emp.schedule ? getScheduleDay(emp.schedule, nowDt, emp.scheduleStartDate ?? null) : null
 
-  const completeCount = await prisma.attendanceRecord.count({
-    where: { tenantId: tenant.id, employeeId: emp.id, date: today, checkOutTime: { not: null }, isDeleted: false },
+  const todayCheckins = await prisma.attendanceRecord.findMany({
+    where:  { tenantId: tenant.id, employeeId: emp.id, date: today, isDeleted: false, checkInTime: { not: null } },
+    select: { checkInTime: true },
   })
 
-  // Si el horario tiene almuerzo, solo se permiten 2 registros completos por día
-  if (schedDay?.hasLunch && completeCount >= 2)
-    throw { code: 'DAY_COMPLETE', message: 'Ya completaste todos tus registros del día.' }
+  let isPostLunch  = false
+  let forcePresent = false
 
-  const isPostLunch = completeCount > 0 && !!(schedDay?.hasLunch && schedDay.lunchEnd)
+  const nowMin = nowDt.hour * 60 + nowDt.minute
+
+  // Check-in después de exitTime → siempre Present (horas extras)
+  if (schedDay?.exitTime) {
+    const [xh, xm] = schedDay.exitTime.split(':').map(Number)
+    if (nowMin >= xh * 60 + xm) { forcePresent = true }
+  }
+
+  if (!forcePresent) {
+    if (schedDay?.hasLunch && schedDay.lunchStart) {
+      const [lsh, lsm]   = schedDay.lunchStart.split(':').map(Number)
+      const lunchStartMin = lsh * 60 + lsm
+      const isAfternoon   = nowMin >= lunchStartMin
+
+      const inSamePeriod  = todayCheckins.filter(r => {
+        const local = DateTime.fromJSDate(r.checkInTime!, { zone: tz })
+        const mins  = local.hour * 60 + local.minute
+        return isAfternoon ? mins >= lunchStartMin : mins < lunchStartMin
+      }).length
+
+      isPostLunch  = isAfternoon && inSamePeriod === 0 && !!(schedDay.lunchEnd)
+      forcePresent = inSamePeriod > 0
+    } else {
+      forcePresent = todayCheckins.length > 0
+    }
+  }
 
   if (checkerLimit != null && checkerLimit > 0) {
     const activeCount = await prisma.attendanceRecord.count({
@@ -199,7 +224,9 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
       throw { code: 'PLAN_LIMIT', message: `Se ha alcanzado el límite de ${checkerLimit} empleado(s) con entrada activa simultánea. Comunícate con el administrador de la empresa.` }
   }
 
-  const lateInfo = calcAttendanceStatus(now, emp.schedule, tz, emp.scheduleStartDate ?? null, isPostLunch)
+  const lateInfo = forcePresent
+    ? { status: 'Present' as const, lateMinutes: 0 }
+    : calcAttendanceStatus(now, emp.schedule, tz, emp.scheduleStartDate ?? null, isPostLunch)
   const record   = await prisma.attendanceRecord.create({
     data: { tenantId: tenant.id, employeeId: emp.id, date: today, checkInTime: now, status: lateInfo.status, lateMinutes: lateInfo.lateMinutes, registeredFrom: 'Checker' },
   })

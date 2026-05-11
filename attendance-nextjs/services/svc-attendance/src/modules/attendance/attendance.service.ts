@@ -225,20 +225,48 @@ export async function checkIn(
   })
   if (active) throw { code: 'ALREADY_CHECKED_IN', message: 'El empleado ya tiene una entrada activa. Debe registrar su salida primero.' }
 
-  // Detectar si es retorno de almuerzo o día ya completo
+  // Detectar período actual y si es el primero en ese período
   const nowDt    = DateTime.fromJSDate(now, { zone: tz })
   const schedDay = employee.schedule ? getScheduleDay(employee.schedule, nowDt, employee.scheduleStartDate ?? null) : null
 
-  const completeCount = await prisma.attendanceRecord.count({
-    where: { tenantId, employeeId, date: today, checkOutTime: { not: null }, isDeleted: false },
+  const todayCheckins = await prisma.attendanceRecord.findMany({
+    where:  { tenantId, employeeId, date: today, isDeleted: false, checkInTime: { not: null } },
+    select: { checkInTime: true },
   })
 
-  // Si el horario tiene almuerzo, solo se permiten 2 registros completos por día
-  if (schedDay?.hasLunch && completeCount >= 2)
-    throw { code: 'DAY_COMPLETE', message: 'El empleado ya completó todos sus registros del día.' }
+  let isPostLunch  = false
+  let forcePresent = false
 
-  const isPostLunch = completeCount > 0 && !!(schedDay?.hasLunch && schedDay.lunchEnd)
-  const lateInfo = calcStatus(now, employee.schedule, employee.schedule?.lateToleranceMinutes ?? 0, tz, employee.scheduleStartDate ?? null, isPostLunch)
+  const nowMin = nowDt.hour * 60 + nowDt.minute
+
+  // Check-in después de exitTime → siempre Present (horas extras)
+  if (schedDay?.exitTime) {
+    const [xh, xm] = schedDay.exitTime.split(':').map(Number)
+    if (nowMin >= xh * 60 + xm) { forcePresent = true }
+  }
+
+  if (!forcePresent) {
+    if (schedDay?.hasLunch && schedDay.lunchStart) {
+      const [lsh, lsm]   = schedDay.lunchStart.split(':').map(Number)
+      const lunchStartMin = lsh * 60 + lsm
+      const isAfternoon   = nowMin >= lunchStartMin
+
+      const inSamePeriod  = todayCheckins.filter(r => {
+        const local = DateTime.fromJSDate(r.checkInTime!, { zone: tz })
+        const mins  = local.hour * 60 + local.minute
+        return isAfternoon ? mins >= lunchStartMin : mins < lunchStartMin
+      }).length
+
+      isPostLunch  = isAfternoon && inSamePeriod === 0 && !!(schedDay.lunchEnd)
+      forcePresent = inSamePeriod > 0
+    } else {
+      forcePresent = todayCheckins.length > 0
+    }
+  }
+
+  const lateInfo = forcePresent
+    ? { status: 'Present' as const, lateMinutes: 0 }
+    : calcStatus(now, employee.schedule, employee.schedule?.lateToleranceMinutes ?? 0, tz, employee.scheduleStartDate ?? null, isPostLunch)
 
   const record = await prisma.attendanceRecord.create({
     data: {
