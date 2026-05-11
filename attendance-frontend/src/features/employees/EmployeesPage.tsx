@@ -344,7 +344,7 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards */}
       <div id="tour-emp-list" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-48">
@@ -357,7 +357,79 @@ export default function EmployeesPage() {
           </div>
         ) : (
           <>
-            <div id="tour-emp-table" className="overflow-x-auto">
+            {/* ── Mobile: cards ── */}
+            <div className="sm:hidden divide-y divide-gray-100">
+              {employees.map(emp => (
+                <div key={emp.id} className="p-4 space-y-3">
+                  {/* Fila 1: nombre + editar */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{emp.fullName}</p>
+                      <p className="text-xs text-gray-400 font-mono mt-0.5">{emp.employeeCode} · {emp.email}</p>
+                    </div>
+                    <button onClick={() => openEdit(emp)}
+                      className="shrink-0 p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Fila 2: depto, cargo, horario */}
+                  <div className="flex flex-wrap gap-2">
+                    {emp.departmentName && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                        {emp.departmentName}
+                      </span>
+                    )}
+                    {emp.positionName && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                        {emp.positionName}
+                      </span>
+                    )}
+                    {emp.scheduleName && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 text-xs">
+                        {emp.scheduleName}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Fila 3: estado + acciones */}
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => handleToggle(emp)}
+                      disabled={togglingId === emp.id}
+                      className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${emp.status === 'Active' ? 'text-emerald-600' : 'text-gray-400'}`}
+                    >
+                      {togglingId === emp.id
+                        ? <Loader2 className="w-5 h-5 animate-spin" />
+                        : emp.status === 'Active'
+                          ? <ToggleRight className="w-5 h-5" />
+                          : <ToggleLeft className="w-5 h-5" />}
+                      {emp.status === 'Active' ? 'Activo' : 'Inactivo'}
+                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSendCredentials(emp.id, emp.email)}
+                        disabled={sendingCreds === emp.id}
+                        className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-40"
+                        title="Enviar credenciales"
+                      >
+                        {sendingCreds === emp.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => { setNotifyTarget(emp); setNotifyTitle(''); setNotifyBody(''); setNotifyType('info') }}
+                        className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                        title="Enviar notificación"
+                      >
+                        <Bell className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Desktop: tabla ── */}
+            <div id="tour-emp-table" className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
@@ -400,9 +472,7 @@ export default function EmployeesPage() {
                             className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors disabled:opacity-40"
                             title="Enviar credenciales por correo"
                           >
-                            {sendingCreds === emp.id
-                              ? <Loader2 className="w-4 h-4 animate-spin" />
-                              : <Send className="w-4 h-4" />}
+                            {sendingCreds === emp.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                           </button>
                           <button
                             onClick={() => { setNotifyTarget(emp); setNotifyTitle(''); setNotifyBody(''); setNotifyType('info') }}
@@ -421,6 +491,7 @@ export default function EmployeesPage() {
                 </tbody>
               </table>
             </div>
+
             <Pagination
               page={page} totalPages={totalPages} totalCount={totalCount} pageSize={pageSize}
               onPageChange={p => { setPage(p); load(p) }}

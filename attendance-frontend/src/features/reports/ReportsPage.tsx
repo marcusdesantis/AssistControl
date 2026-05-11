@@ -80,7 +80,7 @@ function DatesModal({ group, reportType, onClose }: { group: EmployeeGroup; repo
     absences:           'Días con falta',
     lates:              'Días con retardo',
     'early-departures': 'Días con salida anticipada',
-    halfday:            'Días de medio día',
+    overtime:           'Días con horas extras',
   }
 
   return createPortal(
@@ -405,16 +405,15 @@ function ReportsPageInner() {
   }
 
   return (
-    <div className="flex flex-col -mt-6 -mb-6 md:h-[calc(100vh-3.5rem)]">
+    <div className="flex flex-col -mb-6 md:-mt-6 md:h-[calc(100vh-3.5rem)]">
 
       {/* Header */}
-      <div id="tour-rep-header" className="py-2 sm:py-5 shrink-0 flex items-start justify-between">
+      <div id="tour-rep-header" className="pt-2 pb-2 sm:py-5 shrink-0 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-          <p className="text-gray-500 text-sm mt-0.5 hidden sm:block">Genera y consulta reportes de asistencia</p>
-          <div className="mt-1 hidden sm:block"><HelpButton onClick={runTour} /></div>
+          <p className="text-gray-500 text-sm mt-0.5">Genera y consulta reportes de asistencia</p>
+          <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
-        <div className="sm:hidden mt-1"><HelpButton onClick={runTour} /></div>
       </div>
 
       {/* Body */}
@@ -508,16 +507,16 @@ function ReportsPageInner() {
           {/* Table / Card area */}
           <div className="md:flex-1 md:overflow-y-auto md:min-h-0">
             {!generated ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
+              <div className="flex flex-col items-center justify-center min-h-[40vh] md:h-full text-gray-400 gap-3 py-12 md:py-0">
                 <FileText className="w-12 h-12 opacity-30" />
-                <p className="text-sm">Selecciona un rango de fechas y presiona <strong>Buscar</strong></p>
+                <p className="text-sm text-center px-4">Selecciona un rango de fechas y presiona <strong>Buscar</strong></p>
               </div>
             ) : loading ? (
-              <div className="flex items-center justify-center h-full text-gray-400">
+              <div className="flex items-center justify-center min-h-[40vh] md:h-full text-gray-400">
                 <p className="text-sm">Cargando reporte…</p>
               </div>
             ) : groups.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+              <div className="flex flex-col items-center justify-center min-h-[40vh] md:h-full text-gray-400 gap-2">
                 <p className="text-sm">Sin registros para los filtros seleccionados.</p>
               </div>
             ) : (
@@ -535,7 +534,7 @@ function ReportsPageInner() {
                     </span>
                   </div>
 
-                  {pagedGroups.map((g, idx) => {
+                  {pagedGroups.map((g) => {
                     const checked = selectedCodes.has(g.employeeCode)
                     return (
                       <div key={g.employeeCode}

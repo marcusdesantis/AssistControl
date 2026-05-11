@@ -189,7 +189,7 @@ export default function SettingsPage() {
         { element: '#tour-smtp-toggle',   title: '¿Para qué sirve el correo?',        description: 'Activa el envío de emails desde tu empresa. <b>Sin esto no se pueden enviar invitaciones ni credenciales a empleados</b>. El Checador con 2FA también depende de este módulo.' },
         { element: '#tour-smtp-provider', title: 'Elige tu proveedor',                description: 'Selecciona Gmail, Outlook u otro. Se rellenan automáticamente el servidor y puerto. Para Gmail <b>necesitas una Contraseña de Aplicación</b>, no tu contraseña normal.' },
         { element: '#tour-smtp-fields',   title: 'Datos de conexión',                 description: 'Ingresa el servidor, puerto, usuario y contraseña. El usuario es tu dirección de correo completa. Puerto 587 = STARTTLS (recomendado). Puerto 465 = SSL directo.' },
-        { element: '#tour-smtp-save',     title: 'Guarda los cambios',                description: 'Usa el botón <b>Guardar</b> en la parte superior derecha. Los cambios no se aplican hasta que guardes.' },
+        { element: '#tour-smtp-save',       title: 'Guarda los cambios',                description: 'Usa el botón <b>Guardar</b> cuando termines: arriba a la derecha en escritorio, o el botón circular <b>abajo a la derecha</b> en móvil. Los cambios no se aplican hasta que guardes.' },
       ],
       invitations: [
         { element: '#tour-inv-prefix',    title: 'Código de empleado',                description: 'Define el prefijo para los códigos (ej: EMP-001). <b>Depende de: nada</b> — puedes configurarlo en cualquier momento.' },
@@ -296,29 +296,31 @@ export default function SettingsPage() {
 
   return (
     <>
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 sm:pb-0">
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
-            {activeTab !== 'subscription' && <HelpButton onClick={runTour} />}
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
           <p className="text-gray-500 text-sm mt-0.5">Parámetros del sistema</p>
         </div>
-        <button
-          onClick={handleSave}
-          id="tour-smtp-save"
-          disabled={saving}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {saving
-            ? <><Loader2 className="w-4 h-4 animate-spin" />Guardando…</>
-            : saved
-            ? <><Save className="w-4 h-4" />¡Guardado!</>
-            : <><Save className="w-4 h-4" />Guardar</>}
-        </button>
+        <div className="flex items-center gap-2">
+          {activeTab !== 'subscription' && <HelpButton onClick={runTour} />}
+          {/* Botón guardar — solo desktop */}
+          {activeTab !== 'subscription' && (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="hidden sm:flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {saving
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Guardando…</>
+                : saved
+                ? <><Save className="w-4 h-4" />¡Guardado!</>
+                : <><Save className="w-4 h-4" />Guardar</>}
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -749,7 +751,7 @@ export default function SettingsPage() {
                 </div>
                 <p className="text-xs text-gray-400">
                   Puedes escribir tu propia clave o usar el botón "Regenerar" para crear una nueva aleatoria.
-                  Guarda los cambios con el botón <strong>Guardar</strong> de arriba.
+                  Guarda los cambios con el botón <strong>Guardar</strong> (arriba a la derecha en escritorio, o el botón circular abajo a la derecha en móvil).
                 </p>
               </div>
 
@@ -838,6 +840,22 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+
+    {/* ── FAB guardar — solo móvil ───────────────────────────────────────── */}
+    {activeTab !== 'subscription' && (
+      <button
+        id="tour-smtp-save"
+        onClick={handleSave}
+        disabled={saving}
+        className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 flex items-center justify-center bg-primary-600 hover:bg-primary-700 active:scale-95 disabled:opacity-60 text-white rounded-full shadow-lg shadow-primary-600/40 transition-all"
+      >
+        {saving
+          ? <Loader2 className="w-5 h-5 animate-spin" />
+          : saved
+          ? <Check className="w-5 h-5" />
+          : <Save className="w-5 h-5" />}
+      </button>
+    )}
 
     {/* ── Modal de verificación de contraseña ──────────────────────────── */}
 

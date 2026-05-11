@@ -16,6 +16,7 @@ import type { Subscription } from '@/types/billing'
 import clsx from 'clsx'
 import { countryToLocale } from '@/utils/locale'
 import { isNative } from '@/utils/platform'
+import { useAndroidBack } from '@/hooks/useAndroidBack'
 
 interface NavItem {
   to:         string
@@ -43,6 +44,7 @@ export default function Layout() {
   const { user, clearAuth, capabilities, tenantDeactivated, clearDeactivated } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sub, setSub] = useState<Subscription | null>(null)
+  useAndroidBack()
 
   const handleDeactivatedClose = () => {
     clearDeactivated()
@@ -180,15 +182,18 @@ export default function Layout() {
 
         {/* User info */}
         <div className="border-t border-primary-700 p-4">
-          <div className="flex items-center gap-3 mb-2">
+          <button
+            onClick={() => { navigate('/profile'); setSidebarOpen(false) }}
+            className="flex items-center gap-3 w-full mb-2 px-2 py-1.5 rounded-lg hover:bg-primary-800 transition-colors text-left"
+          >
             <div className="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-sm font-bold shrink-0">
               {user?.username?.charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate">{user?.username}</p>
               <p className="text-primary-300 text-xs truncate">{roleLabel[user?.role ?? ''] ?? user?.role}</p>
             </div>
-          </div>
+          </button>
           {isNative ? (
             <NavLink to="/checker" onClick={() => setSidebarOpen(false)}
               className="w-full flex items-center gap-2 px-3 py-2 text-primary-200 hover:text-white hover:bg-primary-800 rounded-lg text-sm transition-colors">

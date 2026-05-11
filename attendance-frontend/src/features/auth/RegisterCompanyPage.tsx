@@ -118,17 +118,17 @@ export default function RegisterCompanyPage() {
       </Helmet>
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-gray-900 text-lg">TiempoYa</span>
           </a>
-          <span className="text-sm text-gray-500">
-            ¿Ya tienes cuenta?{' '}
-            <Link to="/login" className="text-primary-600 font-semibold hover:underline">
+          <span className="text-sm text-gray-500 text-right">
+            <span className="hidden sm:inline">¿Ya tienes cuenta? </span>
+            <Link to="/login" className="text-primary-600 font-semibold hover:underline whitespace-nowrap">
               Inicia sesión
             </Link>
           </span>
@@ -214,7 +214,7 @@ export default function RegisterCompanyPage() {
               </div>
 
               {/* Usuario y email en fila */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Usuario admin</label>
                   <input

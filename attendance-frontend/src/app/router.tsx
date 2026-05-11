@@ -35,6 +35,9 @@ import SysSettingsPage      from '@/features/sys/pages/SysSettingsPage'
 import SysUsersPage         from '@/features/sys/pages/SysUsersPage'
 import SysSupportPage       from '@/features/sys/pages/SysSupportPage'
 import SupportPage          from '@/features/support/SupportPage'
+import ProfilePage          from '@/features/profile/ProfilePage'
+import ForgotPasswordPage  from '@/features/auth/ForgotPasswordPage'
+import ResetPasswordPage   from '@/features/auth/ResetPasswordPage'
 
 export const router = createBrowserRouter([
   { path: '/login',            element: <LoginPage />,                          errorElement: <ErrorPage /> },
@@ -42,7 +45,9 @@ export const router = createBrowserRouter([
   { path: '/verify-email',     element: <VerifyEmailPage />,                    errorElement: <ErrorPage /> },
   { path: '/terms',            element: <LegalPage type="terms" />,             errorElement: <ErrorPage /> },
   { path: '/privacy',          element: <LegalPage type="privacy" />,           errorElement: <ErrorPage /> },
-  { path: '/change-password',  element: <ChangePasswordPage />,  errorElement: <ErrorPage /> },
+  { path: '/change-password',   element: <ChangePasswordPage />,   errorElement: <ErrorPage /> },
+  { path: '/forgot-password',   element: <ForgotPasswordPage />,   errorElement: <ErrorPage /> },
+  { path: '/reset-password',    element: <ResetPasswordPage />,    errorElement: <ErrorPage /> },
   { path: '/checker',          element: <CheckerPage />,         errorElement: <ErrorPage /> },
   { path: '/register/:token',  element: <RegisterPage />,        errorElement: <ErrorPage /> },
 
@@ -68,6 +73,7 @@ export const router = createBrowserRouter([
           { path: '/settings',       element: <SettingsPage /> },
           { path: '/notifications',  element: <NotificationsPage /> },
           { path: '/support',        element: <SupportPage /> },
+          { path: '/profile',        element: <ProfilePage /> },
         ],
       },
     ],

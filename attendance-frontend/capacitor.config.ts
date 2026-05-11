@@ -7,6 +7,20 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
   },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: false,
+      launchFadeOutDuration: 500,
+      backgroundColor: '#1e40af',
+      showSpinner: false,
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
+    },
+  },
+  ios: {
+    allowsBackForwardNavigationGestures: true,
+  },
 }
 
 export default config

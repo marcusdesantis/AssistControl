@@ -286,7 +286,35 @@ function OrganizationPageInner() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* ── Mobile: cards ── */}
+            <div className="sm:hidden divide-y divide-gray-100">
+              {items.map(item => (
+                <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{item.name}</p>
+                    {item.description && (
+                      <p className="text-xs text-gray-400 truncate mt-0.5">{item.description}</p>
+                    )}
+                    <span className="inline-flex items-center gap-1 mt-1 text-xs text-gray-500">
+                      <Users className="w-3 h-3" /> {item.employeeCount} empleado{item.employeeCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => { setModalError(null); setModalItem(item) }}
+                      className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => openDelete(item)}
+                      className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Desktop: tabla ── */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
@@ -323,6 +351,7 @@ function OrganizationPageInner() {
                 </tbody>
               </table>
             </div>
+
             <Pagination
               page={page} totalPages={totalPages} totalCount={totalCount} pageSize={pageSize}
               onPageChange={handlePageChange}

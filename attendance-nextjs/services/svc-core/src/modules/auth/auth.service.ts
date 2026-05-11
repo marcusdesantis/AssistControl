@@ -1,6 +1,6 @@
 import { prisma, hashPassword, verifyPassword, signAdmin, getTenantCapabilities, DEFAULT_CAPABILITIES, sendSystemEmail } from '@attendance/shared'
 import { v4 as uuidv4 } from 'uuid'
-import type { RegisterDto, LoginDto, ChangePasswordDto } from './auth.schema'
+import type { RegisterDto, LoginDto, ChangePasswordDto, UpdateMeDto, ForgotPasswordDto, ResetPasswordDto } from './auth.schema'
 
 const REFRESH_TOKEN_DAYS       = 7
 const ACCESS_TOKEN_HOURS       = 24
@@ -376,6 +376,102 @@ export async function changePassword(userId: string, dto: ChangePasswordDto) {
   await prisma.user.update({
     where: { id: userId },
     data:  { passwordHash: hashPassword(dto.newPassword), mustChangePassword: false },
+  })
+}
+
+// ─── Update profile ───────────────────────────────────────────────────────────
+export async function updateMe(userId: string, dto: UpdateMeDto) {
+  const user = await prisma.user.findFirst({ where: { id: userId, isDeleted: false } })
+  if (!user) throw { code: 'USER_NOT_FOUND', message: 'Usuario no encontrado.' }
+  if (dto.email && dto.email.toLowerCase() !== user.email.toLowerCase()) {
+    const taken = await prisma.user.findFirst({ where: { email: dto.email.toLowerCase(), isDeleted: false } })
+    if (taken) throw { code: 'EMAIL_TAKEN', message: 'Este correo ya está en uso.' }
+  }
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data:  { ...(dto.email ? { email: dto.email.toLowerCase() } : {}) },
+  })
+  return { id: updated.id, username: updated.username, email: updated.email, role: updated.role }
+}
+
+// ─── Forgot password ──────────────────────────────────────────────────────────
+export async function forgotPassword(dto: ForgotPasswordDto, frontendUrl: string) {
+  const user = await prisma.user.findFirst({
+    where: { email: dto.email.toLowerCase(), isDeleted: false, isActive: true },
+  })
+  if (!user) throw { code: 'EMAIL_NOT_FOUND', message: 'No existe una cuenta asociada a este correo electrónico.' }
+
+  // Invalidar tokens anteriores
+  await prisma.passwordResetToken.updateMany({
+    where: { userId: user.id, isUsed: false },
+    data:  { isUsed: true },
+  })
+
+  const token     = uuidv4()
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
+
+  await prisma.passwordResetToken.create({
+    data: { userId: user.id, token, expiresAt },
+  })
+
+  const resetUrl = `${frontendUrl}/reset-password?token=${token}`
+
+  await sendSystemEmail({
+    to:      user.email,
+    subject: 'Recuperar contraseña — TiempoYa',
+    html: `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <tr><td style="background:#1e3a5f;padding:32px 40px;text-align:center;">
+          <p style="margin:0;color:#ffffff;font-size:26px;font-weight:700;">TiempoYa</p>
+          <p style="margin:6px 0 0;color:#9bb8d4;font-size:13px;">Sistema de Gestión de Asistencia</p>
+        </td></tr>
+        <tr><td style="padding:40px 40px 32px;">
+          <h2 style="margin:0 0 12px;color:#1e3a5f;font-size:22px;">Recuperar contraseña</h2>
+          <p style="margin:0 0 8px;color:#444;font-size:15px;line-height:1.6;">
+            Hola <strong>${user.username}</strong>, recibimos una solicitud para restablecer tu contraseña.
+          </p>
+          <p style="margin:0 0 28px;color:#555;font-size:14px;line-height:1.6;">
+            Haz clic en el botón de abajo para crear una nueva contraseña. El enlace es válido por <strong>1 hora</strong>.
+          </p>
+          <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center" style="padding:0 0 28px;">
+            <a href="${resetUrl}" style="display:inline-block;background:#1e3a5f;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:8px;">
+              Restablecer contraseña
+            </a>
+          </td></tr></table>
+          <p style="margin:0;color:#999;font-size:12px;">
+            Si no solicitaste este cambio, ignora este correo. Tu contraseña no será modificada.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f4f6f9;padding:20px 40px;text-align:center;">
+          <p style="margin:0;color:#aaa;font-size:11px;">© ${new Date().getFullYear()} TiempoYa · Todos los derechos reservados</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+  })
+}
+
+// ─── Reset password ───────────────────────────────────────────────────────────
+export async function resetPassword(dto: ResetPasswordDto) {
+  const record = await prisma.passwordResetToken.findUnique({ where: { token: dto.token } })
+  if (!record || record.isUsed || record.expiresAt < new Date())
+    throw { code: 'INVALID_TOKEN', message: 'El enlace de recuperación es inválido o ha expirado.' }
+
+  await prisma.user.update({
+    where: { id: record.userId },
+    data:  { passwordHash: hashPassword(dto.newPassword), mustChangePassword: false },
+  })
+  await prisma.passwordResetToken.update({
+    where: { id: record.id },
+    data:  { isUsed: true },
   })
 }
 

@@ -11,6 +11,7 @@ import { Clock, Eye, EyeOff, LogIn, AlertCircle, Lock, UserX, ClipboardCheck, Ma
 import { Link } from 'react-router-dom'
 import { authService } from './authService'
 import { useAuthStore } from '@/store/authStore'
+import { useAndroidBack } from '@/hooks/useAndroidBack'
 
 interface LoginForm {
   username: string
@@ -18,6 +19,7 @@ interface LoginForm {
 }
 
 export default function LoginPage() {
+  useAndroidBack()
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -196,9 +198,12 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Contraseña
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">Contraseña</label>
+                <Link to="/forgot-password" className="text-xs text-primary-600 hover:underline font-medium">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   {...register('password', { required: 'La contraseña es requerida' })}

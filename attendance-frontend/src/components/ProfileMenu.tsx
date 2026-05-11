@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, Settings, ChevronDown } from 'lucide-react'
+import { LogOut, Settings, ChevronDown, UserCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authService } from '@/features/auth/authService'
 
@@ -51,10 +51,15 @@ export default function ProfileMenu() {
             <p className="text-xs text-gray-400">{user?.email}</p>
           </div>
           <div className="py-1">
+            <button onClick={() => { setOpen(false); navigate('/profile') }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+              <UserCircle className="w-4 h-4 text-gray-400" /> Mi perfil
+            </button>
             <button onClick={() => { setOpen(false); navigate('/settings') }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
               <Settings className="w-4 h-4 text-gray-400" /> Configuración
             </button>
+            <div className="border-t border-gray-100 my-1" />
             <button onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
               <LogOut className="w-4 h-4" /> Cerrar sesión

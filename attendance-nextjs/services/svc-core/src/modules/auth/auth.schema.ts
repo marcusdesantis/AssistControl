@@ -31,6 +31,27 @@ export const verifyPasswordSchema = z.object({
   password: z.string().min(1),
 })
 
+export const updateMeSchema = z.object({
+  email: z.string().email().optional(),
+})
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+})
+
+export const resetPasswordSchema = z.object({
+  token:           z.string().min(1),
+  newPassword:     z.string().min(6),
+  confirmPassword: z.string().min(1),
+}).refine(d => d.newPassword === d.confirmPassword, {
+  message: 'Las contraseñas no coinciden.',
+  path: ['confirmPassword'],
+})
+
+export type UpdateMeDto       = z.infer<typeof updateMeSchema>
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>
+export type ResetPasswordDto  = z.infer<typeof resetPasswordSchema>
+
 export type RegisterDto       = z.infer<typeof registerSchema>
 export type LoginDto          = z.infer<typeof loginSchema>
 export type ChangePasswordDto = z.infer<typeof changePasswordSchema>

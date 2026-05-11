@@ -20,6 +20,8 @@ export interface Employee {
   hasPin: boolean
   scheduleId?: string
   scheduleName?: string
+  scheduleStartDate?: string | null
+  worksOnHolidays?: boolean
   username: string
   passwordDisplay: string
   pinDisplay?: string | null
@@ -34,6 +36,8 @@ export interface CreateEmployeeRequest {
   email: string
   hireDate: string
   scheduleId: string
+  scheduleStartDate?: string
+  worksOnHolidays?: boolean
   username?: string
   password?: string
   phone?: string
@@ -49,6 +53,8 @@ export interface UpdateEmployeeRequest {
   hireDate: string
   status: EmployeeStatus
   scheduleId: string
+  scheduleStartDate?: string
+  worksOnHolidays?: boolean
   phone?: string
   pin?: string
   clearPin?: boolean

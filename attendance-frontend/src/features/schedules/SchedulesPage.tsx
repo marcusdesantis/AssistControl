@@ -42,17 +42,6 @@ const DEFAULT_WEEKS = (n: number): ScheduleDayInput[][] => Array.from({ length: 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function minsToHHMM(mins: number): string {
-  const h = Math.floor(mins / 60).toString().padStart(2, '0')
-  const m = (mins % 60).toString().padStart(2, '0')
-  return `${h}:${m}`
-}
-
-function hhmmToMins(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map(Number)
-  return (h || 0) * 60 + (m || 0)
-}
-
 // ─── DayTable ─────────────────────────────────────────────────────────────────
 
 function DayTable({
@@ -201,13 +190,7 @@ function ScheduleModal({
   const [name,      setName]      = useState(editing?.name ?? '')
   const [type,      setType]      = useState<ScheduleType>(editing?.type ?? 'Fixed')
   const [tolerance, setTolerance] = useState(editing?.lateToleranceMinutes ?? 0)
-  const [reqHours,  setReqHours]  = useState(editing?.requiredHoursPerDay ?? 8)
   const [rotWeeks,  setRotWeeks]  = useState(editing?.rotationWeeks ?? 2)
-  const [rotStart,  setRotStart]  = useState(
-    editing?.rotationStartDate
-      ? editing.rotationStartDate.substring(0, 10)
-      : new Date().toISOString().substring(0, 10)
-  )
   const [activeWeek, setActiveWeek] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState<string | null>(null)
