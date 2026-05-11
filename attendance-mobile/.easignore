@@ -1,0 +1,7 @@
+node_modules/
+android/
+ios/
+.expo/
+dist/
+*.log
+generate-assets.cjs

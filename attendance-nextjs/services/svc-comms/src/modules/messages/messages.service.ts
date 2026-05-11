@@ -1,4 +1,4 @@
-import { prisma } from '@attendance/shared'
+import { prisma, sendExpoPush } from '@attendance/shared'
 
 function toDto(m: any) {
   return {
@@ -57,6 +57,20 @@ export async function send(
       senderName: data.senderName, subject: data.subject, body: data.body, allowDelete: data.allowDelete,
     })),
   })
+
+  // Push a cada empleado destinatario
+  const emps = await prisma.employee.findMany({
+    where: { id: { in: targetIds }, isDeleted: false },
+    select: { expoPushToken: true },
+  })
+  for (const emp of emps) {
+    sendExpoPush(emp.expoPushToken, {
+      title: `📩 Mensaje de ${data.senderName}`,
+      body:  data.subject,
+      data:  { screen: 'messages' },
+    })
+  }
+
   return targetIds.length  // .NET returns the count directly (not wrapped)
 }
 

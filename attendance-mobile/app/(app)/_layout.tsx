@@ -1,7 +1,9 @@
 import { mobileService, type MobileNotification } from '@/services/mobileService'
 import { useAuthStore } from '@/store/authStore'
 import { emitter } from '@/utils/eventEmitter'
+import { registerForPushNotifications } from '@/utils/notifications'
 import { Ionicons } from '@expo/vector-icons'
+import * as Notifications from 'expo-notifications'
 import { Redirect, Tabs, router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
@@ -177,6 +179,34 @@ export default function AppLayout() {
     }
     setPopupNotif(null)
   }, [popupNotif])
+
+  // Registrar token push al montar y añadir listeners
+  useEffect(() => {
+    if (!token) return
+
+    // Registrar token Expo y enviarlo al backend
+    registerForPushNotifications().then(pushToken => {
+      if (pushToken) mobileService.updatePushToken(pushToken).catch(() => {})
+    })
+
+    // Listener: notificación recibida con app en primer plano
+    const foregroundSub = Notifications.addNotificationReceivedListener(() => {
+      loadUnread()
+    })
+
+    // Listener: usuario toca la notificación (app en background/cerrada)
+    const tapSub = Notifications.addNotificationResponseReceivedListener(response => {
+      const screen = response.notification.request.content.data?.screen as string | undefined
+      if (screen === 'messages') router.navigate('/notifications')
+      else router.navigate('/')
+      loadUnread()
+    })
+
+    return () => {
+      foregroundSub.remove()
+      tapSub.remove()
+    }
+  }, [token])
 
   useEffect(() => {
     if (!token) return

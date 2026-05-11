@@ -44,7 +44,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   const token = await Notifications.getExpoPushTokenAsync({
-    projectId: 'your-eas-project-id', // Reemplazar con el ID real del proyecto EAS
+    projectId: '03665f3e-8e79-489e-9984-5480c7486d79',
   })
 
   return token.data

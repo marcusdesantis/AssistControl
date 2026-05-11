@@ -1,4 +1,4 @@
-import { prisma, verifyPassword, signEmployee, generatePin, sendEmail, generateQr, calcAttendanceStatus, getScheduleDay } from '@attendance/shared'
+import { prisma, verifyPassword, signEmployee, generatePin, sendEmail, generateQr, calcAttendanceStatus, getScheduleDay, sendExpoPush } from '@attendance/shared'
 import { DateTime } from 'luxon'
 
 function hoursWorked(a: Date | null, b: Date | null) {
@@ -220,6 +220,13 @@ export async function checkIn(
     data: { tenantId, employeeId, date: today, checkInTime: now, status: lateInfo.status, lateMinutes: lateInfo.lateMinutes, latitude: opts?.latitude ?? null, longitude: opts?.longitude ?? null, registeredFrom: 'Mobile' },
   })
 
+  // Push de confirmación de entrada
+  const timeStr = DateTime.fromJSDate(now, { zone: tz }).toFormat('hh:mm a')
+  const pushBody = lateInfo.lateMinutes > 0
+    ? `Entrada registrada a las ${timeStr} — ${lateInfo.lateMinutes} min de retraso`
+    : `Entrada registrada a las ${timeStr} — Presente`
+  sendExpoPush(emp.expoPushToken, { title: '✅ Entrada registrada', body: pushBody, data: { screen: 'home' } })
+
   const messages = await prisma.employeeMessage.findMany({
     where: { employeeId, tenantId, isDeleted: false },
     orderBy: { createdAt: 'desc' },
@@ -244,7 +251,14 @@ export async function checkOut(employeeId: string, tenantId: string) {
   })
   if (!record) throw { code: 'NO_ACTIVE_CHECKIN', message: 'No tienes una entrada activa hoy.' }
 
-  const updated  = await prisma.attendanceRecord.update({ where: { id: record.id }, data: { checkOutTime: new Date() } })
+  const checkOutNow = new Date()
+  const updated  = await prisma.attendanceRecord.update({ where: { id: record.id }, data: { checkOutTime: checkOutNow } })
+
+  // Push de confirmación de salida
+  const emp = await prisma.employee.findFirst({ where: { id: employeeId }, select: { expoPushToken: true } })
+  const outTimeStr = DateTime.fromJSDate(checkOutNow, { zone: tz }).toFormat('hh:mm a')
+  sendExpoPush(emp?.expoPushToken, { title: '👋 Salida registrada', body: `Salida registrada a las ${outTimeStr}`, data: { screen: 'home' } })
+
   const messages = await prisma.employeeMessage.findMany({
     where: { employeeId, tenantId, isDeleted: false },
     orderBy: { createdAt: 'desc' },
