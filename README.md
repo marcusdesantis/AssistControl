@@ -588,20 +588,33 @@ Cuando se adquiera el dominio `tiempoya.net`:
 
 Jenkins accesible en: `https://ci.tiempoya.net` (también `http://167.86.87.213:9090`)
 
+> **Estado: ✅ OPERATIVO** — Cada `git push` a `main` dispara el pipeline automáticamente vía webhook de GitHub.
+
 ### Estado de la configuración
 
 | Fase | Descripción | Estado |
 |---|---|---|
 | Fase 1 | Instalar Jenkins en el servidor | ✅ Completado |
 | Fase 2 | Instalar plugins (GitHub Integration + SSH Agent) | ✅ Completado |
-| Fase 3 | Credenciales en Jenkins (DATABASE_URL + github-ssh) | ✅ Completado |
+| Fase 3 | Credenciales en Jenkins (github-ssh) | ✅ Completado |
 | Fase 4 | Crear Jenkinsfile en la raíz del repo | ✅ Completado |
 | Fase 5 | Crear Job `tiempoya-deploy` en Jenkins | ✅ Completado |
 | Fase 5b | Subdominio `ci.tiempoya.net` con SSL | ✅ Completado |
 | Fase 6 | Deploy key agregado en GitHub | ✅ Completado |
-| Fase 7 | Configurar Job Pipeline con repo GitHub | ⏳ Pendiente — falta vincular repo en el Job |
-| Fase 8 | Configurar Webhook en GitHub | ⏳ Pendiente — dueño del repo debe agregarlo |
-| Fase 9 | Probar el pipeline completo | ⏳ Pendiente |
+| Fase 7 | Configurar Job Pipeline con repo GitHub | ✅ Completado |
+| Fase 8 | Webhook en GitHub configurado | ✅ Completado |
+| Fase 9 | Pipeline probado y funcionando | ✅ Completado — Build #10 exitoso |
+
+### Pipeline (Jenkinsfile)
+
+4 stages que corren en orden:
+
+| Stage | Qué hace |
+|---|---|
+| **Pull** | `git pull origin main` con clave SSH (`sshagent github-ssh`) |
+| **Migrar DB** | `prisma db push` vía `docker run node:20-alpine` con `--add-host=host.docker.internal:host-gateway` |
+| **Deploy Backend** | `docker compose down && docker compose up -d --build` en `attendance-nextjs/` |
+| **Deploy Frontend** | `docker build` + `docker stop/rm/run` en `attendance-frontend/` |
 
 ### Instalación de Jenkins (comando usado)
 
@@ -618,42 +631,53 @@ docker run -d \
   jenkins/jenkins:lts
 ```
 
+### Dependencias instaladas en el contenedor Jenkins
+
+Estas herramientas fueron instaladas manualmente dentro del contenedor. Si Jenkins se reinicia o se recrea el contenedor, hay que reinstalarlas:
+
+```bash
+# Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs
+
+# Docker CLI
+apt-get install -y docker.io
+
+# Docker Compose v2
+curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+  -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+mkdir -p /usr/local/lib/docker/cli-plugins
+ln -sf /usr/local/bin/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
+
+# Docker Buildx
+curl -fsSL https://github.com/docker/buildx/releases/download/v0.19.3/buildx-v0.19.3.linux-amd64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+
+# GitHub known_hosts
+ssh-keyscan -t ed25519,rsa github.com >> /root/.ssh/known_hosts
+```
+
+> **Tip:** Para evitar tener que reinstalar en cada reinicio, se recomienda crear un `Dockerfile` personalizado para Jenkins que incluya todas estas dependencias.
+
 ### Credenciales configuradas en Jenkins
 
 | ID | Tipo | Descripción |
 |---|---|---|
-| `DATABASE_URL` | Secret text | Conexión a PostgreSQL de producción |
 | `github-ssh` | SSH Username with private key | Clave SSH para acceder al repo de GitHub |
 
-### Clave pública SSH (para agregar en GitHub como Deploy key)
+### Clave pública SSH (Deploy key en GitHub)
 
 ```
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGi4x4DSASS50ygxbcW7dDHg0Cg2CEtGmK4bgVJhHkxR jenkins@tiempoya
 ```
 
-### Pasos pendientes para terminar la configuración
+### Webhook de GitHub
 
-**Fase 7 — Vincular repo en el Job** (pendiente):
-- Jenkins → `tiempoya-deploy` → Configure → Pipeline
-- Definition: `Pipeline script from SCM`
-- SCM: `Git`
-- Repository URL: `git@github.com:marcusdesantis/AssistControl.git`
-- Credentials: `github-ssh`
-- Branch: `*/main`
-- Script Path: `Jenkinsfile`
-- Guardar
-
-**Fase 8 — Webhook en GitHub** (el dueño del repo debe hacerlo):
-- GitHub → repo → Settings → Webhooks → Add webhook
-- Payload URL: `https://ci.tiempoya.net/github-webhook/`
-- Content type: `application/json`
-- SSL verification: Enable SSL verification
-- Trigger: `Just the push event`
-- Active: ✅
-
-**Fase 9 — Probar el pipeline**:
-- Jenkins → Job `tiempoya-deploy` → Build Now
-- Verificar que los 4 stages pasen en verde: Pull → Migrar DB → Deploy Backend → Deploy Frontend
+- **Payload URL:** `https://ci.tiempoya.net/github-webhook/`
+- **Content type:** `application/json`
+- **Trigger:** `Just the push event`
 
 ---
 
