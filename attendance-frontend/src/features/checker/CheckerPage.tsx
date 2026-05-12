@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import { Clock, LogIn, LogOut, CheckCircle, XCircle, AlertCircle, Settings, X, Users, Mail, BarChart2, List, Eye, EyeOff, Loader2, Lock, HelpCircle } from 'lucide-react'
+import { Clock, LogIn, LogOut, CheckCircle, XCircle, AlertCircle, Settings, X, Users, Mail, BarChart2, List, Eye, EyeOff, Loader2, Lock, HelpCircle, ChevronLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { checkerService } from './checkerService'
 import { createTour } from '@/utils/tour'
 import type { CheckerEmployeeReport, CheckerReportDay } from './checkerService'
@@ -388,7 +389,7 @@ function ReportPanel({ checkerKey, employeeId, employeeName, onBack }: ReportPan
 }
 
 // ─── Setup Modal ──────────────────────────────────────────────────────────────
-function SetupModal({ onSave }: { onSave: (key: string) => void }) {
+function SetupModal({ onSave, onBack }: { onSave: (key: string) => void; onBack: () => void }) {
   const [value,   setValue]   = useState('')
   const [showKey, setShowKey] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -419,7 +420,14 @@ function SetupModal({ onSave }: { onSave: (key: string) => void }) {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl text-center">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl text-center relative">
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          title="Volver"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
         <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Settings className="w-7 h-7 text-primary-600" />
         </div>
@@ -516,6 +524,7 @@ function FeedbackOverlay({ fb, onClose }: { fb: FeedbackState; onClose: () => vo
 
 // ─── Main Kiosk Page ──────────────────────────────────────────────────────────
 export default function CheckerPage() {
+  const navigate = useNavigate()
   const [checkerKey,    setCheckerKey]    = useState<string | null>(() => localStorage.getItem(CHECKER_KEY_STORAGE))
   const [planBlocked,   setPlanBlocked]   = useState<boolean | null>(null) // null = verificando
   const [deactivated,   _setDeactivated]  = useState(false)
@@ -535,6 +544,7 @@ export default function CheckerPage() {
   const [feedPageSize,  setFeedPageSize]  = useState(20)
   const [activeTab,     setActiveTab]     = useState<'feed' | 'report'>('feed')
   const [reportTarget,  setReportTarget]  = useState<{ id: string; name: string } | null>(null)
+  const [mobileView,    setMobileView]    = useState<'form' | 'feed'>('form')
 
   // ── OTP 2FA ──────────────────────────────────────────────────────────────────
   const [otpModal,      setOtpModal]      = useState(false)
@@ -726,81 +736,23 @@ export default function CheckerPage() {
   const openReport = useCallback((id: string, name: string) => {
     setReportTarget({ id, name })
     setActiveTab('report')
+    setMobileView('feed')
   }, [])
 
-  // Precalcular todas las filas (aplanar en eventos individuales, luego ordenar por hora real)
-  const allFeedRows = useMemo(() => {
-    // 1. Convertir cada registro en eventos individuales (entrada y/o salida)
-    type FeedEvent = { key: string; time: string; r: typeof feed[0]; type: 'in' | 'out' }
+  // Aplanar en eventos individuales ordenados por hora (más reciente primero)
+  type FeedEvent = { key: string; time: string; r: typeof feed[0]; type: 'in' | 'out' }
+  const allFeedEvents = useMemo<FeedEvent[]>(() => {
     const events: FeedEvent[] = []
     for (const r of feed) {
       if (r.checkInTime)  events.push({ key: `${r.id}-in`,  time: r.checkInTime,  r, type: 'in'  })
       if (r.checkOutTime) events.push({ key: `${r.id}-out`, time: r.checkOutTime, r, type: 'out' })
     }
-
-    // 2. Ordenar todos los eventos por su hora real (más reciente primero)
     events.sort((a, b) => b.time.localeCompare(a.time))
-
-    // 3. Renderizar cada evento como una fila
-    return events.map(({ key, r, type }, idx) => {
-      const handleClick = () => openReport(r.employeeId, r.employeeName)
-      const n = idx + 1
-
-      if (type === 'in') {
-        return (
-          <tr key={key}
-            onClick={handleClick}
-            title="Ver reporte"
-            className="hover:bg-primary-50 cursor-pointer transition-colors group">
-            <td className="px-4 py-3 text-gray-400 tabular-nums text-xs">{n}</td>
-            <td className="px-4 py-3">
-              <p className="font-medium text-gray-900 group-hover:text-primary-700">{r.employeeName}</p>
-              <p className="text-xs text-gray-400">{r.department}</p>
-            </td>
-            <td className="px-4 py-3">
-              <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
-                <LogIn className="w-3 h-3" /> Entrada
-              </span>
-            </td>
-            <td className="px-4 py-3 font-mono text-gray-700 text-sm">{formatTime(r.checkInTime)}</td>
-            <td className="px-4 py-3">
-              {r.status === 'Late' && r.lateMinutes > 0
-                ? <span className="text-yellow-600 font-mono text-xs font-semibold">
-                    {r.lateMinutes >= 60
-                      ? `${Math.floor(r.lateMinutes / 60)}h ${r.lateMinutes % 60}m`
-                      : `${r.lateMinutes} min`}
-                  </span>
-                : <span className="text-gray-300 text-xs">—</span>
-              }
-            </td>
-          </tr>
-        )
-      } else {
-        return (
-          <tr key={key}
-            onClick={handleClick}
-            title="Ver reporte"
-            className="hover:bg-primary-50 cursor-pointer transition-colors group">
-            <td className="px-4 py-3 text-gray-400 tabular-nums text-xs">{n}</td>
-            <td className="px-4 py-3">
-              <p className="font-medium text-gray-900 group-hover:text-primary-700">{r.employeeName}</p>
-              <p className="text-xs text-gray-400">{r.department}</p>
-            </td>
-            <td className="px-4 py-3">
-              <span className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 text-xs font-semibold px-2 py-1 rounded-full">
-                <LogOut className="w-3 h-3" /> Salida
-              </span>
-            </td>
-            <td className="px-4 py-3 font-mono text-gray-700 text-sm">{formatTime(r.checkOutTime)}</td>
-            <td className="px-4 py-3 text-gray-300 text-xs">—</td>
-          </tr>
-        )
-      }
-    })
-  }, [feed, openReport])
+    return events
+  }, [feed])
 
   // ── Early return: si no hay clave, mostrar modal de configuración ──────────
-  if (!checkerKey) return <SetupModal onSave={handleSaveTenant} />
+  if (!checkerKey) return <SetupModal onSave={handleSaveTenant} onBack={() => navigate('/')} />
 
   // Estas son variables regulares (no hooks), pueden ir después del early return
   function runTour() {
@@ -819,9 +771,9 @@ export default function CheckerPage() {
   const late       = feed.filter(r => r.status === 'Late').length
   const checkedOut = feed.filter(r => r.checkOutTime).length
 
-  const totalFeedRows = allFeedRows.length
-  const pagedFeedRows = allFeedRows.slice((feedPage - 1) * feedPageSize, feedPage * feedPageSize)
-  const feedTotalPages = Math.ceil(totalFeedRows / feedPageSize) || 1
+  const totalFeedRows  = allFeedEvents.length
+  const pagedFeedEvents = allFeedEvents.slice((feedPage - 1) * feedPageSize, feedPage * feedPageSize)
+  const feedTotalPages  = Math.ceil(totalFeedRows / feedPageSize) || 1
 
   if (deactivated) return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
@@ -871,18 +823,31 @@ export default function CheckerPage() {
     <div className="h-screen bg-gray-100 flex flex-col select-none overflow-hidden">
 
       {/* ─── Header ──────────────────────────────────────────────── */}
-      <header className="bg-primary-700 text-white px-6 py-3 flex items-center gap-3 shadow-md">
-        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+      <header className="bg-primary-700 text-white px-4 lg:px-6 py-3 flex items-center gap-3 shadow-md">
+        {/* Botón volver al dashboard — solo mobile */}
+        <button
+          onClick={() => navigate('/')}
+          className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-primary-200 hover:text-white transition-colors shrink-0"
+          title="Volver al dashboard"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
           <Clock className="w-5 h-5 text-white" />
         </div>
         <div>
           <p className="font-bold text-sm leading-tight">TiempoYa</p>
-          <p className="text-primary-200 text-xs capitalize">{dateStr}</p>
+          {/* Fecha: oculta en mobile, visible en desktop */}
+          <p className="hidden lg:block text-primary-200 text-xs capitalize">{dateStr}</p>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <div className="flex items-center gap-1.5 bg-white/10 rounded-lg px-3 py-1.5">
             <Users className="w-3.5 h-3.5 text-primary-200" />
-            <span className="text-sm font-medium">{feed.length} hoy</span>
+            {/* Mobile: solo número — Desktop: número + "hoy" */}
+            <span className="text-sm font-medium">
+              {feed.length}<span className="hidden lg:inline"> hoy</span>
+            </span>
           </div>
           <button
             onClick={() => setShowSetup(s => !s)}
@@ -911,8 +876,9 @@ export default function CheckerPage() {
       {/* ─── Main area ───────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden min-h-0">
 
-        {/* LEFT: Input panel */}
-        <div className="relative lg:w-[400px] shrink-0 bg-white border-r border-gray-200 flex flex-col shadow-sm overflow-hidden min-h-0">
+        {/* LEFT: Input panel — oculto en mobile cuando se ve el feed */}
+        <div className={`relative flex-1 lg:flex-none lg:w-[400px] bg-white border-r border-gray-200 flex-col shadow-sm overflow-hidden min-h-0
+          ${mobileView === 'form' ? 'flex' : 'hidden'} lg:flex`}>
 
           {feedback && (
             <FeedbackOverlay fb={feedback} onClose={() => setFeedback(null)} />
@@ -923,6 +889,8 @@ export default function CheckerPage() {
             <p className="text-5xl font-bold font-mono tracking-tight text-primary-800 tabular-nums">
               {timeStr}
             </p>
+            {/* Fecha — solo mobile, debajo de la hora, alineada a la izquierda */}
+            <p className="lg:hidden mt-1.5 text-xs text-primary-500 capitalize self-start">{dateStr}</p>
           </div>
 
           {/* Form */}
@@ -1049,16 +1017,35 @@ export default function CheckerPage() {
               </button>
             </div>
           )}
+          {/* Botón "Ver registros" — mobile, pegado al fondo del panel */}
+          <button
+            onClick={() => setMobileView('feed')}
+            className="lg:hidden shrink-0 flex items-center justify-between px-5 py-4 bg-primary-600 active:bg-primary-700 text-white text-sm font-semibold"
+          >
+            <span className="flex items-center gap-2"><List className="w-4 h-4" /> Ver registros del día</span>
+            <span className="flex items-center gap-1 text-primary-200">
+              {totalFeedRows} <span className="text-lg leading-none">›</span>
+            </span>
+          </button>
         </div>
 
-        {/* RIGHT: Tabs — Feed / Reporte */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white min-h-0">
+        {/* RIGHT: Tabs — Feed / Reporte — oculto en mobile cuando se ve el form */}
+        <div className={`flex-1 flex-col overflow-hidden bg-white min-h-0 w-full
+          ${mobileView === 'feed' ? 'flex' : 'hidden'} lg:flex`}>
 
           {/* Tab bar */}
           <div className="flex items-center border-b border-gray-200 shrink-0">
+            {/* Botón volver — solo mobile */}
+            <button
+              onClick={() => setMobileView('form')}
+              className="lg:hidden flex items-center gap-1.5 px-3 py-3.5 text-sm font-medium text-primary-600"
+            >
+              <span className="text-lg leading-none">‹</span> Volver
+            </button>
+            <div className="lg:hidden w-px h-5 bg-gray-200 mx-1" />
             <button
               onClick={() => setActiveTab('feed')}
-              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-colors
+              className={`flex items-center gap-2 px-4 lg:px-5 py-3.5 text-sm font-medium border-b-2 transition-colors
                 ${activeTab === 'feed'
                   ? 'border-primary-600 text-primary-700'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
@@ -1071,7 +1058,7 @@ export default function CheckerPage() {
             </button>
             <button
               onClick={() => setActiveTab('report')}
-              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-colors
+              className={`flex items-center gap-2 px-4 lg:px-5 py-3.5 text-sm font-medium border-b-2 transition-colors
                 ${activeTab === 'report'
                   ? 'border-primary-600 text-primary-700'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
@@ -1082,7 +1069,7 @@ export default function CheckerPage() {
             <button
               onClick={runTour}
               title="¿Cómo funciona?"
-              className="ml-auto mr-4 flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-800 font-medium transition-colors"
+              className="ml-auto mr-4 hidden lg:flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-800 font-medium transition-colors"
             >
               <HelpCircle className="w-4 h-4" />
               ¿Cómo funciona?
@@ -1099,18 +1086,97 @@ export default function CheckerPage() {
                     <p className="text-sm">Sin registros por el momento</p>
                   </div>
                 ) : (
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-white border-b border-gray-200 shadow-sm">
-                      <tr>
-                        {['#', 'Empleado', 'Tipo', 'Hora', 'Retardo'].map(h => (
-                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {pagedFeedRows}
-                    </tbody>
-                  </table>
+                  <>
+                    {/* Tabla — desktop */}
+                    <table className="hidden lg:table w-full text-sm">
+                      <thead className="sticky top-0 bg-white border-b border-gray-200 shadow-sm">
+                        <tr>
+                          {['#', 'Empleado', 'Tipo', 'Hora', 'Retardo'].map(h => (
+                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {pagedFeedEvents.map(({ key, r, type }, idx) => {
+                          const n = (feedPage - 1) * feedPageSize + idx + 1
+                          const handleClick = () => { openReport(r.employeeId, r.employeeName) }
+                          return type === 'in' ? (
+                            <tr key={key} onClick={handleClick} title="Ver reporte"
+                              className="hover:bg-primary-50 cursor-pointer transition-colors group">
+                              <td className="px-4 py-3 text-gray-400 tabular-nums text-xs">{n}</td>
+                              <td className="px-4 py-3">
+                                <p className="font-medium text-gray-900 group-hover:text-primary-700">{r.employeeName}</p>
+                                <p className="text-xs text-gray-400">{r.department}</p>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
+                                  <LogIn className="w-3 h-3" /> Entrada
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-gray-700 text-sm">{formatTime(r.checkInTime)}</td>
+                              <td className="px-4 py-3">
+                                {r.status === 'Late' && r.lateMinutes > 0
+                                  ? <span className="text-yellow-600 font-mono text-xs font-semibold">
+                                      {r.lateMinutes >= 60 ? `${Math.floor(r.lateMinutes/60)}h ${r.lateMinutes%60}m` : `${r.lateMinutes} min`}
+                                    </span>
+                                  : <span className="text-gray-300 text-xs">—</span>}
+                              </td>
+                            </tr>
+                          ) : (
+                            <tr key={key} onClick={handleClick} title="Ver reporte"
+                              className="hover:bg-primary-50 cursor-pointer transition-colors group">
+                              <td className="px-4 py-3 text-gray-400 tabular-nums text-xs">{n}</td>
+                              <td className="px-4 py-3">
+                                <p className="font-medium text-gray-900 group-hover:text-primary-700">{r.employeeName}</p>
+                                <p className="text-xs text-gray-400">{r.department}</p>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 text-xs font-semibold px-2 py-1 rounded-full">
+                                  <LogOut className="w-3 h-3" /> Salida
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-gray-700 text-sm">{formatTime(r.checkOutTime)}</td>
+                              <td className="px-4 py-3 text-gray-300 text-xs">—</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+
+                    {/* Cards — mobile */}
+                    <div className="lg:hidden divide-y divide-gray-100">
+                      {pagedFeedEvents.map(({ key, r, type }, idx) => {
+                        const n = (feedPage - 1) * feedPageSize + idx + 1
+                        const isIn = type === 'in'
+                        return (
+                          <div key={key}
+                            onClick={() => { openReport(r.employeeId, r.employeeName) }}
+                            className="flex items-center gap-3 px-4 py-3 active:bg-primary-50 cursor-pointer">
+                            <span className="text-gray-300 tabular-nums text-xs w-5 shrink-0">{n}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900 text-sm truncate">{r.employeeName}</p>
+                              <p className="text-xs text-gray-400 truncate">{r.department}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full
+                                ${isIn ? 'bg-green-50 text-green-700' : 'bg-primary-50 text-primary-700'}`}>
+                                {isIn ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
+                                {isIn ? 'Entrada' : 'Salida'}
+                              </span>
+                              <span className="font-mono text-sm font-bold text-gray-800">
+                                {isIn ? formatTime(r.checkInTime) : formatTime(r.checkOutTime)}
+                              </span>
+                              {isIn && r.status === 'Late' && r.lateMinutes > 0 && (
+                                <span className="text-yellow-600 font-mono text-xs font-semibold">
+                                  +{r.lateMinutes >= 60 ? `${Math.floor(r.lateMinutes/60)}h ${r.lateMinutes%60}m` : `${r.lateMinutes}m`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
               <Pagination

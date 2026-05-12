@@ -1,5 +1,6 @@
 import { api } from '@/services/api'
 import { normalizePage } from '@/services/normalizePage'
+import { downloadReceiptAsPdf } from '@/utils/downloadReceipt'
 import type { Plan, Subscription, Invoice } from '@/types/billing'
 import type { PagedResult } from '@/types/pagination'
 
@@ -58,9 +59,6 @@ export const billingService = {
 
   openReceipt: async (invoiceId: string): Promise<void> => {
     const res = await api.get<string>(`/invoices/${invoiceId}/receipt`, { responseType: 'text' })
-    const blob = new Blob([res.data], { type: 'text/html; charset=utf-8' })
-    const url  = URL.createObjectURL(blob)
-    window.open(url, '_blank')
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    await downloadReceiptAsPdf(res.data, invoiceId)
   },
 }

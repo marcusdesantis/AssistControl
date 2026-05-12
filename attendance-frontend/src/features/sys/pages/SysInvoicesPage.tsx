@@ -66,7 +66,7 @@ export default function SysInvoicesPage() {
     try {
       await sysInvoicesService.openReceipt(inv.id)
     } catch {
-      toast.error('No se pudo abrir el comprobante')
+      toast.error('No se pudo descargar el comprobante')
     }
   }
 

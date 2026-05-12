@@ -158,7 +158,7 @@ export default function NotificationsPage({ variant = 'tenant' }: { variant?: 't
         <div className="flex gap-2 flex-wrap">
           {TYPE_FILTERS.map(f => (
             <button key={f.value} onClick={() => changeType(f.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                 typeFilter === f.value
                   ? 'bg-slate-800 text-white border-slate-800'
                   : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -176,7 +176,7 @@ export default function NotificationsPage({ variant = 'tenant' }: { variant?: 't
             value={searchInput}
             onChange={e => handleSearch(e.target.value)}
             placeholder="Buscar por título..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>
 
@@ -190,14 +190,14 @@ export default function NotificationsPage({ variant = 'tenant' }: { variant?: 't
           dateFormat="dd/MM/yyyy"
           isClearable
           wrapperClassName="w-full sm:w-44"
-          className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 text-gray-600"
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 text-gray-600"
           calendarClassName="text-sm"
         />
 
         {/* Limpiar filtros */}
         {hasFilters && (
           <button onClick={clearFilters}
-            className="flex items-center justify-center gap-1 w-full sm:w-auto px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            className="flex items-center justify-center gap-1 w-full sm:w-auto px-2.5 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <X className="w-3 h-3" /> Limpiar filtros
           </button>
         )}

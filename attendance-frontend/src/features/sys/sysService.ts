@@ -1,4 +1,5 @@
 import { sysApi } from '@/services/sysApi'
+import { downloadReceiptAsPdf } from '@/utils/downloadReceipt'
 import axios from 'axios'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
@@ -327,9 +328,6 @@ export const sysInvoicesService = {
 
   openReceipt: async (invoiceId: string): Promise<void> => {
     const res = await sysApi.get<string>('/invoices/receipt', { params: { invoiceId }, responseType: 'text' })
-    const blob = new Blob([res.data], { type: 'text/html; charset=utf-8' })
-    const url  = URL.createObjectURL(blob)
-    window.open(url, '_blank')
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    await downloadReceiptAsPdf(res.data, invoiceId)
   },
 }

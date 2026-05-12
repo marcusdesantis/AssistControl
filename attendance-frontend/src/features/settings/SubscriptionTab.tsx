@@ -680,8 +680,9 @@ export default function SubscriptionTab() {
               <RefreshCw className="w-3 h-3" /> Actualizar
             </button>
           </div>
-          <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
+          {/* Tabla — visible en sm+ */}
+          <div className="hidden sm:block rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">N° Comprobante</th>
@@ -706,8 +707,8 @@ export default function SubscriptionTab() {
                       <div className="flex items-center justify-end gap-2">
                         {inv.invoiceNumber && inv.status === 'paid' && (
                           <button
-                            onClick={() => billingService.openReceipt(inv.id).catch(() => toast.error('No se pudo abrir el comprobante'))}
-                            title="Ver comprobante"
+                            onClick={() => billingService.openReceipt(inv.id).catch(() => toast.error('No se pudo descargar el comprobante'))}
+                            title="Descargar comprobante"
                             className="text-gray-400 hover:text-primary-600 inline-flex"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -725,6 +726,43 @@ export default function SubscriptionTab() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Tarjetas — visible solo en móvil */}
+          <div className="sm:hidden space-y-2">
+            {invoices.map(inv => (
+              <div key={inv.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-mono text-gray-500">{inv.invoiceNumber ?? '—'}</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-0.5">{inv.planName ?? '—'}</p>
+                  </div>
+                  <StatusBadge status={inv.status} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>{inv.billingCycle === 'annual' ? 'Anual' : 'Mensual'} · {fmtDate(inv.paidAt ?? inv.createdAt)}</span>
+                  <span className="font-semibold text-gray-900 text-sm">{fmtMoney(inv.amount, inv.currency)}</span>
+                </div>
+                <div className="flex items-center gap-3 pt-1 border-t border-gray-100">
+                  {inv.invoiceNumber && inv.status === 'paid' && (
+                    <button
+                      onClick={() => billingService.openReceipt(inv.id).catch(() => toast.error('No se pudo descargar el comprobante'))}
+                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary-600"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Descargar comprobante
+                    </button>
+                  )}
+                  {inv.hostedInvoiceUrl && (
+                    <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary-600">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Ver factura
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -181,14 +181,21 @@ docker compose up -d
 
 ---
 
-### 2. `attendance-frontend` — Dashboard Web
+### 2. `attendance-frontend` — Dashboard Web + App Admin (Android)
 
-Panel de administración para empresas, supervisores y empleados. Se sirve como contenedor Docker independiente en el puerto 80, actuando también como proxy hacia el backend.
+Panel de administración para empresas, supervisores y empleados. Se sirve como contenedor Docker en el puerto 80 (web) y también como APK Android vía Capacitor (para administradores en móvil).
 
 **Stack:**
-- React 18 · Vite · TypeScript · Tailwind CSS
-- Zustand (persistido en `localStorage` con clave `attendance-auth`)
-- React Query · React Hook Form · Zod · Axios · React Router v6
+- React 18 · Vite 4 · TypeScript · Tailwind CSS
+- Zustand · React Query · React Hook Form · Zod · Axios · React Router v6
+- **Capacitor 6** (Android/iOS) — empaqueta la SPA como app nativa
+- jsPDF · xlsx-js-style · html2canvas (reportes exportables)
+- Capacitor plugins: App · Filesystem · Share · SplashScreen
+
+**Datos de la app (Capacitor):**
+- App ID: `com.abisoft.tiempoya.admin`
+- Nombre: `TiempoYa Admin`
+- Android: carpeta `android/` generada con `npx cap add android`
 
 **Módulos principales:**
 
@@ -197,30 +204,37 @@ Panel de administración para empresas, supervisores y empleados. Se sirve como 
 | Dashboard | KPIs, resumen de asistencia del día |
 | Empleados | CRUD completo, importación masiva |
 | Organización | Departamentos y cargos |
-| Horarios | Creación y asignación de horarios (Fixed, Variable, Rotativo) |
-| Feriados | Gestión de días inhábiles; importación desde Nager.Date (Ecuador) |
+| Horarios | Creación y asignación (Fixed, Variable, Rotativo) |
+| Feriados | Gestión de días inhábiles; importación desde Nager.Date |
 | Asistencia | Registros, marcación manual, exportación |
-| Mensajes | Comunicación interna |
-| Reportes | General, Ausencias, Tardanzas, Salidas anticipadas, **Horas extras** (Art.55 Ecuador) |
+| Mensajes | Comunicación interna con notificación push |
+| Reportes | General, Ausencias, Tardanzas, Salidas anticipadas, Horas extras — exportables a **PDF y Excel** |
 | Empresa | Perfil, configuración SMTP |
 | Suscripción | Planes, pagos Payphone, facturas |
 | Checker | Estación de marcación por PIN/QR |
 | Soporte | Tickets con chat en tiempo real (SSE) |
 | Superadmin `/sys` | Gestión de tenants, planes, suscripciones, facturas |
+| Perfil | Datos de usuario, cambio de contraseña |
 
-**Variables de entorno (`.env` para Vite local):**
+**Variables de entorno:**
 ```env
+# .env  (web local)
 VITE_API_URL=http://localhost:80
+
+# .env.mobile  (build APK — apunta a producción)
+VITE_API_URL=https://www.tiempoya.net
 ```
 
-**Cómo ejecutar en desarrollo:**
+---
+
+**Cómo ejecutar en desarrollo (web):**
 ```bash
 cd attendance-frontend
 npm install
 npm run dev        # http://localhost:5173
 ```
 
-**Actualizar en producción** (el contenedor NO usa docker-compose, se gestiona manualmente):
+**Actualizar en producción** (contenedor independiente, NO usa docker-compose):
 ```bash
 cd ~/proyectos/opt/attendance-ia/attendance-frontend
 git pull
@@ -229,12 +243,70 @@ docker stop aiattendance-frontend && docker rm aiattendance-frontend
 docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-gateway -p 80:80 aiattendance-frontend
 ```
 
-> **Importante:** El flag `--add-host=host.docker.internal:host-gateway` es obligatorio. Sin él el nginx del frontend no puede hacer proxy al backend en el puerto 8080.
+> **Importante:** `--add-host=host.docker.internal:host-gateway` es obligatorio para que nginx pueda hacer proxy al backend en el puerto 8080.
 
 **nginx del frontend** (`attendance-frontend/nginx.conf`):
-- `/` y `/precios` y `/_next/` → proxy a `host.docker.internal:8080` (svc-landing)
+- `/` · `/precios` · `/_next/` → proxy a `host.docker.internal:8080` (svc-landing)
 - `/api/v1/` → proxy a `host.docker.internal:8080` (microservicios)
 - resto → SPA `index.html`
+
+---
+
+**Generar APK Android (Capacitor):**
+
+El APK se genera localmente desde Windows usando Android Studio. La carpeta `android/` ya existe en el repo y está configurada.
+
+```powershell
+cd attendance-frontend
+
+# 1. Instalar dependencias
+npm install
+
+# 2. Build web con modo mobile (.env.mobile → VITE_API_URL=https://www.tiempoya.net)
+npm run build:mobile
+# Equivale a: vite build --mode mobile && npx cap sync
+# → Compila React → dist/
+# → Sincroniza dist/ → android/app/src/main/assets/public/
+
+# 3. Abrir en Android Studio
+npx cap open android
+```
+
+Dentro de **Android Studio:**
+- `Build` → `Generate Signed Bundle / APK` → `APK`
+- Seleccionar keystore existente o crear uno nuevo
+- Build type: `release`
+- APK generado en: `android\app\release\app-release.apk`
+
+Instalar vía USB (modo debug activado en el teléfono):
+```powershell
+C:\Users\usuario\AppData\Local\Android\Sdk\platform-tools\adb.exe install -r android\app\release\app-release.apk
+```
+
+O copiar el `.apk` al teléfono e instalar manualmente (`Ajustes → Instalar apps desconocidas`).
+
+**Requisitos para compilar:**
+- Android Studio instalado
+- Java 17
+- Variables de entorno del sistema: `ANDROID_HOME` y `JAVA_HOME` (mismos que attendance-mobile)
+
+---
+
+**Características específicas para Android:**
+
+| Feature | Descripción |
+|---|---|
+| Botón Atrás nativo | `useAndroidBack.ts` — navega atrás o sale con doble click |
+| SplashScreen | Fondo azul `#1e40af`, 2 segundos, se oculta al montar React |
+| Exportar PDF | `html2canvas` + `jsPDF` → compartir vía `@capacitor/share` |
+| Exportar Excel | `xlsx-js-style` → compartir vía `@capacitor/share` |
+| Detección plataforma | `src/utils/platform.ts`: `isNative`, `isAndroid`, `isIOS` |
+
+**Estado actual:**
+- ✅ Web: funcionando en producción (Docker puerto 80)
+- ✅ Android: `android/` generado y sincronizado con Capacitor 6
+- ✅ Reportes PDF/Excel exportables desde mobile
+- ⏳ iOS: requiere cuenta Apple Developer ($99/año) + `npx cap add ios`
 
 ---
 
