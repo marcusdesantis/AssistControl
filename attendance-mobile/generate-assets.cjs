@@ -138,7 +138,7 @@ function generateIcon() {
     }
   }
 
-  drawClock(pixels, W, H, cx, cy, W * 0.30, ...BG)
+  drawClock(pixels, W, H, cx, cy, W * 0.20, ...BG)
 
   const png = buildPng(pixels, W, H)
   fs.writeFileSync(path.join(__dirname, 'icon.png'), png)

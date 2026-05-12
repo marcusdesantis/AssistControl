@@ -240,19 +240,22 @@ docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-
 
 ### 3. `attendance-mobile` — App Móvil (TiempoYa)
 
-App para empleados — marcación de entrada/salida con GPS.
+App para empleados — marcación de entrada/salida con GPS y notificaciones push.
 
 **Stack:**
 - Expo 52 · React Native 0.76 · TypeScript
 - Expo Router · Zustand · Axios
 - Expo Location · Expo Notifications · Expo Secure Store
+- EAS Build (Expo Application Services) para compilación en la nube
 
 **Datos de la app:**
 - Nombre: `TiempoYa`
 - Package Android: `com.abisoft.tiempoya`
 - Bundle iOS: `com.abisoft.tiempoya`
-- Icono: `icon.png` (reloj sin texto, 1024×1024)
-- Splash: `splash.png` (portrait, resizeMode: cover)
+- EAS Project ID: `03665f3e-8e79-489e-9984-5480c7486d79`
+- EAS Owner: `yasmani1997`
+- Icono: `icon.png` (reloj sin texto, 1024×1024, fondo `#0f172a`)
+- Splash: `splash.png` (portrait, resizeMode: cover, fondo `#0f172a`)
 
 **Pantallas:**
 
@@ -264,20 +267,6 @@ App para empleados — marcación de entrada/salida con GPS.
 | Perfil | Datos del empleado, cerrar sesión |
 | Notificaciones | Avisos del sistema |
 
-**Variables de entorno (`.env` en la raíz de `attendance-mobile`):**
-```env
-# Producción
-EXPO_PUBLIC_API_URL=https://www.tiempoya.net
-
-# Local (desarrollo) — reemplazar con la IP de tu máquina
-EXPO_PUBLIC_API_URL=http://192.168.X.X:8080
-```
-
-> ⚠️ **Importante:** Verificar siempre que `.env` apunte a producción antes de compilar la APK. La URL se incrusta en el bundle JS en tiempo de compilación.
-
-**Nota sobre la carpeta `android/`:**
-> La carpeta `android/` está en `.gitignore` y NO se sube al repo. Cada vez que se clona el repo desde cero hay que generarla con `expo prebuild` y aplicar los dos fixes obligatorios (ver abajo).
-
 ---
 
 **Cómo ejecutar en desarrollo:**
@@ -285,97 +274,108 @@ EXPO_PUBLIC_API_URL=http://192.168.X.X:8080
 cd attendance-mobile
 npm install
 npm start          # Expo Go (escanear QR)
-npm run android    # Emulador Android
-npm run ios        # Simulador iOS
+npm run android    # Emulador Android (sin notificaciones push)
+npm run ios        # Simulador iOS (sin notificaciones push)
+```
+
+> Las notificaciones push **solo funcionan en APKs generadas con EAS Build**. El emulador y Expo Go no reciben tokens FCM válidos.
+
+---
+
+**Variables de entorno:**
+
+El archivo `.env` local se usa solo para desarrollo. Para los builds de EAS, las variables se configuran en el proyecto de Expo:
+
+```env
+# attendance-mobile/.env  (solo para desarrollo local)
+EXPO_PUBLIC_API_URL=https://www.tiempoya.net
+```
+
+Las variables de producción están configuradas en EAS (proyecto `@yasmani1997/attendance-mobile`):
+- `EXPO_PUBLIC_API_URL` = `https://www.tiempoya.net` → perfil `preview`
+
+Para agregar o modificar variables en EAS:
+```bash
+cd attendance-mobile
+eas env:create --scope project --environment preview --name EXPO_PUBLIC_API_URL --value "https://www.tiempoya.net" --visibility plaintext
 ```
 
 ---
 
-**Requisitos para compilar APK (Windows):**
-- Android Studio instalado (incluye el SDK)
-- Java 17 (incluido en Android Studio o instalar por separado)
-- Variables de entorno del sistema configuradas **(hacer una sola vez)**:
+**Generar APK (distribución interna / testing) — EAS Build:**
 
-| Variable | Valor |
-|---|---|
-| `ANDROID_HOME` | `C:\Users\<tu-usuario>\AppData\Local\Android\Sdk` |
-| `JAVA_HOME` | `C:\Program Files\Java\jdk-17` |
-
----
-
-**CASO 1 — Primera vez o tras clonar el repo desde cero:**
-
-```powershell
-# Pararse en la carpeta del proyecto
-cd C:\...\attendance-mobile
-
-# 1. Instalar dependencias
+```bash
+cd attendance-mobile
 npm install
 
-# 2. Verificar que .env tenga la URL de producción
-#    EXPO_PUBLIC_API_URL=https://www.tiempoya.net
+# Iniciar sesión en EAS (solo la primera vez)
+eas login   # cuenta: yasmani1997
 
-# 3. Generar carpeta android/
-npx expo prebuild --platform android
-
-# 4. Fix de Kotlin — OBLIGATORIO tras cada prebuild
-#    Abrir android/build.gradle y cambiar:
-#        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
-#    Por:
-#        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-
-# 5. Fix de red HTTP — OBLIGATORIO tras cada prebuild
-#    Abrir android/app/src/main/AndroidManifest.xml
-#    En la etiqueta <application ...> agregar al final:
-#        android:usesCleartextTraffic="true"
-
-# 6. Compilar
-$env:ANDROID_HOME = "C:\Users\usuario\AppData\Local\Android\Sdk"
-$env:JAVA_HOME    = "C:\Program Files\Java\jdk-17"
-cd android
-.\gradlew.bat assembleRelease
+# Generar APK interna (perfil preview)
+eas build --platform android --profile preview --non-interactive
 ```
+
+EAS compila en la nube (~5 min). Al terminar imprime un link para descargar e instalar el APK directamente en el dispositivo. El APK incluye credenciales FCM para notificaciones push.
+
+**Instalar en el teléfono:** abrir el link de EAS en el navegador del dispositivo Android, o escanear el QR que aparece en la terminal.
+
+> ⚠️ Si el teléfono ya tiene instalada una versión anterior, desinstalarla primero.
 
 ---
 
-**CASO 2 — Actualización de código (la carpeta `android/` ya existe):**
+**Generar AAB para Play Store (producción):**
 
-```powershell
-# No hace falta prebuild ni reaplicar los fixes
-$env:ANDROID_HOME = "C:\Users\usuario\AppData\Local\Android\Sdk"
-$env:JAVA_HOME    = "C:\Program Files\Java\jdk-17"
-cd C:\...\attendance-mobile\android
-.\gradlew.bat assembleRelease
+```bash
+eas build --platform android --profile production
 ```
+
+Genera un `.aab` (Android App Bundle) firmado. Para subirlo a Google Play:
+```bash
+eas submit --platform android
+```
+Requiere tener la app creada previamente en [Google Play Console](https://play.google.com/console) y una cuenta de desarrollador ($25 pago único).
 
 ---
 
-**CASO 3 — Se agregó un plugin nativo nuevo en `app.json`:**
+**Generar build para App Store (iOS):**
 
-Igual que el Caso 1 pero usar `expo prebuild` sin `--clean` para no borrar los fixes existentes:
-
-```powershell
-npx expo prebuild --platform android   # sin --clean
-# Verificar que los fixes de Kotlin y cleartext siguen presentes
-# Si no están, reaplicarlos (ver Caso 1, pasos 4 y 5)
-cd android && .\gradlew.bat assembleRelease
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios
 ```
+
+Requiere cuenta Apple Developer ($99/año) y la app creada en App Store Connect. EAS compila en workers con Mac, no se necesita hardware Apple.
 
 ---
 
-**APK generada en:**
-```
-android\app\build\outputs\apk\release\app-release.apk
-```
+**Perfiles de EAS (`eas.json`):**
 
-**Instalar en el teléfono:**
-```powershell
-# Via USB con Depuración USB activada
-C:\Users\usuario\AppData\Local\Android\Sdk\platform-tools\adb.exe install android\app\build\outputs\apk\release\app-release.apk
-```
-O copiar el `.apk` al teléfono e instalarlo manualmente (`Ajustes → Instalar apps desconocidas`).
+| Perfil | Tipo | Uso |
+|---|---|---|
+| `preview` | APK interno | Testing en dispositivos físicos |
+| `production` | AAB firmado | Publicación en tiendas |
+| `development` | Dev client | Desarrollo con módulos nativos |
 
-> Si el teléfono ya tiene instalada una versión anterior con distinto package name, desinstalarla primero.
+---
+
+**Fixes permanentes ya integrados en el proyecto:**
+
+Los siguientes problemas ya están resueltos mediante configuración en `app.json` y no requieren pasos manuales:
+
+1. **Kotlin 1.9.24 vs 1.9.25** — El plugin `plugins/withKotlinVersion.js` + `expo-build-properties` fuerzan Kotlin 1.9.25 durante el prebuild de EAS, necesario para que el Compose Compiler 1.5.15 (usado por `expo-modules-core`) compile correctamente. Sin este fix el build falla con `compileReleaseKotlin FAILED`.
+
+2. **Tráfico HTTP (cleartext)** — El campo `android.usesCleartextTraffic` se aplica automáticamente vía el plugin al AndroidManifest.xml, permitiendo conexiones HTTP al servidor local durante desarrollo.
+
+---
+
+**Solución de problemas frecuentes:**
+
+| Problema | Causa | Solución |
+|---|---|---|
+| `compileReleaseKotlin FAILED` | Compose Compiler necesita Kotlin 1.9.25 | Ya resuelto con `withKotlinVersion.js` |
+| NetworkError al abrir la app | `EXPO_PUBLIC_API_URL` no configurada en EAS | `eas env:create ...` (ver arriba) |
+| Token push null en DB | Permisos de notificación denegados o FCM no inicializado | Ir a Ajustes → Apps → TiempoYa → Notificaciones → Activar |
+| APK instalado pero sin notificaciones | APK compilado localmente (sin EAS) | Usar `eas build` en lugar de Gradle local |
 
 ---
 

@@ -22,6 +22,7 @@ async function runReminders() {
       eligibleTenantIds.push(sub.tenant.id)
     }
 
+    console.log(`[reminders] ${new Date().toISOString()} subs=${subscriptions.length} eligible=${eligibleTenantIds.length}`)
     if (eligibleTenantIds.length === 0) return
 
     const tenants = await prisma.tenant.findMany({
@@ -45,6 +46,7 @@ async function runReminders() {
         include: { schedule: true },
       })
 
+      console.log(`[reminders] tenant=${tenant.id} tz=${tz} nowMins=${nowMins} employees=${employees.length}`)
       for (const emp of employees) {
         if (!emp.schedule || !emp.expoPushToken) continue
         if (emp.schedule.type === 'Variable') continue
@@ -85,14 +87,9 @@ async function runReminders() {
         if (lunchStartMins !== null) {
           const target = lunchStartMins - 5
           if (nowMins === target) {
-            // Omitir si ya registró salida en período mañana
-            const morningCheckOut = todayRecords.find(r => {
-              if (!r.checkOutTime) return false
-              const outMins = DateTime.fromJSDate(r.checkOutTime, { zone: tz }).hour * 60
-                            + DateTime.fromJSDate(r.checkOutTime, { zone: tz }).minute
-              return outMins < lunchStartMins
-            })
-            if (!morningCheckOut) {
+            // Solo si el empleado tiene check-in activo esta mañana (sin check-out aún)
+            const hasActiveMorning = todayRecords.some(r => r.checkInTime && !r.checkOutTime)
+            if (hasActiveMorning) {
               sendExpoPush(emp.expoPushToken, {
                 title: '🍽 Almuerzo en 5 minutos',
                 body:  'Recuerda registrar tu salida antes de ir a almorzar.',
