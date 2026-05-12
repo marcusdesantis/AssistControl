@@ -76,6 +76,7 @@ async function runReminders() {
           const target = minsFromHHMM(schedDay.entryTime) - 5
           if (nowMins === target) {
             const alreadyIn = todayRecords.some(r => r.checkInTime !== null)
+            console.log(`[reminders] ENTRADA emp=${emp.id} alreadyIn=${alreadyIn}`)
             if (!alreadyIn) {
               sendExpoPush(emp.expoPushToken, {
                 title: '⏰ Entrada en 5 minutos',
