@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'TiempoYa' }],
   openGraph: {
     type:        'website',
-    locale:      'es_EC',
+    locale:      'es_LA',
     url:         SITE_URL,
     siteName:    'TiempoYa',
     title:       'TiempoYa — Control de Asistencia para Empresas',

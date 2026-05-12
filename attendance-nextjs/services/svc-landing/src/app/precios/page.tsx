@@ -3,9 +3,9 @@ import Link from 'next/link'
 import RedirectIfAuth from '../components/RedirectIfAuth'
 
 export const metadata: Metadata = {
-  title: 'Precios y Planes',
+  title: 'Precios y Planes — Control de Asistencia para Empresas',
   description:
-    'Conoce los planes de TiempoYa. Desde el plan gratuito hasta soluciones empresariales. Precio justo, sin sorpresas.',
+    'Planes de TiempoYa desde $0. Control de asistencia, app móvil y reportes automáticos. Plan gratuito sin tarjeta de crédito. Cancela cuando quieras.',
   alternates: { canonical: '/precios' },
 }
 
@@ -90,11 +90,31 @@ function NavBar() {
   )
 }
 
+const jsonLdProduct = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: 'TiempoYa — Control de Asistencia',
+  description: 'Software RRHH en la nube para control de asistencia, horarios y reportes automáticos.',
+  brand: { '@type': 'Brand', name: 'TiempoYa' },
+  offers: { '@type': 'AggregateOffer', priceCurrency: 'USD', lowPrice: '0', highPrice: '79', offerCount: '3' },
+}
+
+const jsonLdOrganization = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'TiempoYa',
+  url: 'https://www.tiempoya.net',
+  logo: 'https://www.tiempoya.net/logo.png',
+  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'Spanish' },
+}
+
 export default async function PreciosPage() {
   const plans = await getPlans()
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdProduct) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }} />
       <RedirectIfAuth />
       <NavBar />
       <main>

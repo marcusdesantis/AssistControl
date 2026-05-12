@@ -3,9 +3,9 @@ import Link from 'next/link'
 import RedirectIfAuth from './components/RedirectIfAuth'
 
 export const metadata: Metadata = {
-  title: 'TiempoYa — Sistema de Control de Asistencia para Empresas',
+  title: 'Software de Control de Asistencia para Empresas en la Nube | TiempoYa',
   description:
-    'Software de control de asistencia y gestión de empleados. Registra entradas, salidas y horarios en tiempo real. App móvil incluida. Prueba gratis hoy.',
+    'TiempoYa: registra entradas y salidas, detecta tardanzas y genera reportes automáticos. App móvil iOS y Android. Empieza gratis, sin tarjeta de crédito.',
   alternates: { canonical: '/' },
 }
 
@@ -54,8 +54,8 @@ function Hero() {
           Software de RRHH para empresas
         </span>
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">
-          Controla la asistencia de tu equipo{' '}
-          <span className="text-primary-600">en tiempo real</span>
+          Software de Control de Asistencia para Empresas{' '}
+          <span className="text-primary-600">en Tiempo Real</span>
         </h1>
         <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
           Registra entradas y salidas, gestiona horarios y genera reportes automáticos.
@@ -152,7 +152,7 @@ function Features() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16 space-y-3">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-            Todo lo que necesitas para gestionar tu equipo
+            Funcionalidades de Control de Asistencia y RRHH
           </h2>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto">
             Una plataforma completa de RRHH diseñada para empresas que quieren dejar de perder tiempo con hojas de cálculo.
@@ -198,7 +198,7 @@ function HowItWorks() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16 space-y-3">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-            Funciona en 3 pasos simples
+            Cómo funciona TiempoYa: Control de Asistencia en 3 Pasos
           </h2>
           <p className="text-lg text-gray-500">
             Configura tu empresa y empieza a controlar la asistencia hoy mismo.
@@ -246,7 +246,7 @@ function CTA() {
     <section className="py-24 px-6 bg-white">
       <div className="max-w-3xl mx-auto text-center space-y-6">
         <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-          ¿Listo para modernizar la gestión de tu equipo?
+          Empieza Gratis: Controla la Asistencia de tu Empresa Hoy
         </h2>
         <p className="text-lg text-gray-500">
           Únete a empresas que ya controlan su asistencia de forma inteligente.
@@ -296,9 +296,75 @@ function Footer() {
   )
 }
 
+const jsonLdSoftware = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'TiempoYa',
+  url: 'https://www.tiempoya.net',
+  description: 'Software de control de asistencia para empresas. Registra entradas y salidas, gestiona horarios y genera reportes automáticos con app móvil incluida.',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web, iOS, Android',
+  inLanguage: 'es',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Plan gratuito disponible sin tarjeta de crédito' },
+  provider: { '@type': 'Organization', name: 'TiempoYa', url: 'https://www.tiempoya.net' },
+}
+
+const jsonLdOrganization = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'TiempoYa',
+  url: 'https://www.tiempoya.net',
+  logo: 'https://www.tiempoya.net/logo.png',
+  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'Spanish' },
+  sameAs: ['https://www.linkedin.com/company/tiempoya', 'https://twitter.com/tiempoya'],
+}
+
+const jsonLdFaq = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    { '@type': 'Question', name: '¿TiempoYa funciona para empresas pequeñas?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. TiempoYa está diseñado para empresas de todos los tamaños, desde 2 hasta cientos de empleados. El plan gratuito es ideal para empezar sin costo.' } },
+    { '@type': 'Question', name: '¿Cómo marcan asistencia los empleados?', acceptedAnswer: { '@type': 'Answer', text: 'Los empleados descargan la app de TiempoYa en iOS o Android y marcan su entrada y salida con un solo toque desde su celular.' } },
+    { '@type': 'Question', name: '¿Se puede controlar asistencia en trabajo remoto?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. TiempoYa incluye geolocalización para verificar la ubicación del empleado al momento de marcar asistencia.' } },
+    { '@type': 'Question', name: '¿TiempoYa genera reportes automáticos?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Con un clic se genera el reporte mensual completo en PDF o Excel, listo para descargar. El proceso que antes tomaba horas ahora toma segundos.' } },
+  ],
+}
+
+function FAQ() {
+  return (
+    <section className="py-20 px-6 bg-white">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl font-bold text-gray-900">Preguntas frecuentes sobre TiempoYa</h2>
+          <p className="text-gray-500">Todo lo que necesitas saber antes de empezar.</p>
+        </div>
+        <div className="space-y-4">
+          {[
+            { q: '¿TiempoYa funciona para empresas pequeñas?', a: 'Sí. TiempoYa está diseñado para empresas de todos los tamaños, desde 2 hasta cientos de empleados. El plan gratuito es ideal para empezar sin costo.' },
+            { q: '¿Cómo marcan asistencia los empleados?', a: 'Los empleados descargan la app de TiempoYa en iOS o Android y marcan su entrada y salida con un solo toque desde su celular.' },
+            { q: '¿Se puede controlar asistencia en trabajo remoto?', a: 'Sí. TiempoYa incluye geolocalización para verificar la ubicación del empleado al momento de marcar asistencia.' },
+            { q: '¿TiempoYa genera reportes automáticos?', a: 'Sí. Con un clic se genera el reporte mensual completo en PDF o Excel, listo para descargar. El proceso que antes tomaba horas ahora toma segundos.' },
+          ].map(item => (
+            <details key={item.q} className="group bg-gray-50 rounded-xl border border-gray-200 p-5">
+              <summary className="font-semibold text-gray-900 cursor-pointer list-none flex items-center justify-between gap-4">
+                <h3 className="text-base">{item.q}</h3>
+                <span className="text-primary-600 shrink-0 text-xl leading-none group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <p className="mt-3 text-gray-500 text-sm leading-relaxed">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function LandingPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSoftware) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }} />
       <RedirectIfAuth />
       <NavBar />
       <main>
@@ -306,6 +372,7 @@ export default function LandingPage() {
         <Features />
         <HowItWorks />
         <Stats />
+        <FAQ />
         <CTA />
       </main>
       <Footer />

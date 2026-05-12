@@ -19,7 +19,7 @@
   <meta property="og:url" content="https://www.tiempoya.net/landing/tiempoya-landing2">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="TiempoYa">
-  <meta property="og:locale" content="es_ES">
+  <meta property="og:locale" content="es_LA">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Control de Asistencia para Empresas | TiempoYa">
   <meta name="twitter:description" content="Registra entradas y salidas, detecta tardanzas y genera reportes automáticos. Empieza gratis.">
@@ -33,7 +33,9 @@
     "url": "https://www.tiempoya.net/landing/tiempoya-landing2",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
+    "inLanguage": "es",
     "description": "Software de gestión de asistencia para empresas y PYMES. Controla entradas, salidas, tardanzas y genera reportes automáticos desde cualquier dispositivo.",
+    "aggregateRating": {"@type":"AggregateRating","ratingValue":"4.9","reviewCount":"500","bestRating":"5"},
     "featureList": [
       "Registro digital de entradas y salidas",
       "Detección automática de tardanzas e inasistencias",
@@ -44,12 +46,44 @@
       "Exportación masiva de datos RRHH"
     ],
     "screenshot": "https://www.tiempoya.net/assets/og-empresas.webp",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD",
-      "description": "Plan gratuito para empresas sin tarjeta de crédito"
-    }
+    "offers": {"@type":"AggregateOffer","priceCurrency":"USD","lowPrice":"0","highPrice":"79","offerCount":"3"},
+    "provider": {"@type":"Organization","name":"TiempoYa","url":"https://www.tiempoya.net"}
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "TiempoYa",
+    "url": "https://www.tiempoya.net",
+    "logo": "https://www.tiempoya.net/assets/logo.png",
+    "sameAs": ["https://www.linkedin.com/company/tiempoya","https://twitter.com/tiempoya"],
+    "contactPoint": {"@type":"ContactPoint","contactType":"customer support","availableLanguage":"Spanish"}
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"¿Cómo detecta TiempoYa las tardanzas?","acceptedAnswer":{"@type":"Answer","text":"TiempoYa registra la hora exacta de entrada de cada empleado y la compara con el horario asignado. Si hay una tardanza, el panel lo muestra en tiempo real y puede enviar notificaciones automáticas al encargado."}},
+      {"@type":"Question","name":"¿TiempoYa genera reportes automáticos?","acceptedAnswer":{"@type":"Answer","text":"Sí. Con un clic se genera el reporte mensual completo en PDF o Excel, listo para descargar y compartir con contabilidad o gerencia. El proceso que antes tomaba 3 horas ahora toma 3 segundos."}},
+      {"@type":"Question","name":"¿Cuánto cuesta TiempoYa para empresas?","acceptedAnswer":{"@type":"Answer","text":"TiempoYa tiene un plan gratuito para hasta 5 empleados, un plan Profesional de $29/mes para hasta 20 empleados, y un plan Empresarial de $79/mes para hasta 100 empleados. Todos sin contrato de permanencia."}},
+      {"@type":"Question","name":"¿Funciona para empresas pequeñas con pocos empleados?","acceptedAnswer":{"@type":"Answer","text":"Sí. TiempoYa está diseñado para empresas de todos los tamaños. El plan gratuito incluye control de asistencia completo para equipos de hasta 5 personas, sin tarjeta de crédito."}}
+    ]
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "itemReviewed": {"@type":"SoftwareApplication","name":"TiempoYa","url":"https://www.tiempoya.net"},
+    "author": {"@type":"Person","name":"Rodrigo Gutiérrez","jobTitle":"Gerente de RRHH","worksFor":{"@type":"Organization","name":"Distribuidora Andina"}},
+    "reviewRating": {"@type":"Rating","ratingValue":"5","bestRating":"5"},
+    "reviewBody": "Antes perdíamos 3 horas al mes consolidando planillas. Ahora el reporte está listo en segundos y las tardanzas bajaron un 80% en el primer mes. TiempoYa cambió completamente cómo gestionamos el equipo."
   }
   </script>
 
