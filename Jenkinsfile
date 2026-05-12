@@ -17,13 +17,14 @@ pipeline {
       steps {
         sh """
           DB=\$(grep '^DATABASE_URL=' ${ROOT}/attendance-nextjs/.env | head -1 | cut -d= -f2-)
+          printf '#!/bin/sh\\nnpm install -g prisma@5.22.0 --quiet 2>/dev/null\\nprisma db push --schema=prisma/schema.prisma\\n' > /tmp/migrate.sh
           docker run --rm \\
             --add-host=host.docker.internal:host-gateway \\
             -v ${ROOT}/attendance-nextjs:/app \\
+            -v /tmp/migrate.sh:/migrate.sh \\
             -w /app/packages/shared \\
             -e "DATABASE_URL=\$DB" \\
-            node:20-alpine \\
-            sh -c 'npm install -g prisma@5.22.0 --quiet 2>/dev/null && prisma db push --schema=prisma/schema.prisma'
+            node:20-alpine sh /migrate.sh
         """
       }
     }
