@@ -904,7 +904,7 @@ export default function EmployeesPage() {
                 <button onClick={sendNotification} disabled={sendingNotif || !notifyTitle.trim() || !notifyBody.trim()}
                   className="flex-1 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
                   {sendingNotif ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Enviar notificación
+                  Enviar
                 </button>
               </div>
             </div>
