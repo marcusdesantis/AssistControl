@@ -220,12 +220,7 @@ export async function checkIn(
     data: { tenantId, employeeId, date: today, checkInTime: now, status: lateInfo.status, lateMinutes: lateInfo.lateMinutes, latitude: opts?.latitude ?? null, longitude: opts?.longitude ?? null, registeredFrom: 'Mobile' },
   })
 
-  // Push de confirmación de entrada
-  const timeStr = DateTime.fromJSDate(now, { zone: tz }).toFormat('hh:mm a')
-  const pushBody = lateInfo.lateMinutes > 0
-    ? `Entrada registrada a las ${timeStr} — ${lateInfo.lateMinutes} min de retraso`
-    : `Entrada registrada a las ${timeStr} — Presente`
-  sendExpoPush(emp.expoPushToken, { title: '✅ Entrada registrada', body: pushBody, data: { screen: 'home' } })
+  // Sin push al registrar desde la app — el usuario ya ve la confirmación en pantalla
 
   const messages = await prisma.employeeMessage.findMany({
     where: { employeeId, tenantId, isDeleted: false },
@@ -254,10 +249,7 @@ export async function checkOut(employeeId: string, tenantId: string) {
   const checkOutNow = new Date()
   const updated  = await prisma.attendanceRecord.update({ where: { id: record.id }, data: { checkOutTime: checkOutNow } })
 
-  // Push de confirmación de salida
-  const emp = await prisma.employee.findFirst({ where: { id: employeeId }, select: { expoPushToken: true } })
-  const outTimeStr = DateTime.fromJSDate(checkOutNow, { zone: tz }).toFormat('hh:mm a')
-  sendExpoPush(emp?.expoPushToken, { title: '👋 Salida registrada', body: `Salida registrada a las ${outTimeStr}`, data: { screen: 'home' } })
+  // Sin push al registrar desde la app — el usuario ya ve la confirmación en pantalla
 
   const messages = await prisma.employeeMessage.findMany({
     where: { employeeId, tenantId, isDeleted: false },

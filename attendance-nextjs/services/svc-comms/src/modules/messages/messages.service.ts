@@ -59,13 +59,14 @@ export async function send(
   })
 
   // Push a cada empleado destinatario
-  const emps = await prisma.employee.findMany({
-    where: { id: { in: targetIds }, isDeleted: false },
-    select: { expoPushToken: true },
-  })
+  const [emps, tenant] = await Promise.all([
+    prisma.employee.findMany({ where: { id: { in: targetIds }, isDeleted: false }, select: { expoPushToken: true } }),
+    prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true } }),
+  ])
+  const companyName = tenant?.name ?? 'Tu empresa'
   for (const emp of emps) {
     sendExpoPush(emp.expoPushToken, {
-      title: `📩 Mensaje de ${data.senderName}`,
+      title: `📢 ${companyName}`,
       body:  data.subject,
       data:  { screen: 'messages' },
     })

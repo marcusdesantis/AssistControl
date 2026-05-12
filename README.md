@@ -358,13 +358,53 @@ Requiere cuenta Apple Developer ($99/año) y la app creada en App Store Connect.
 
 ---
 
+**Notificaciones push:**
+
+Las notificaciones push requieren Firebase (FCM v1). Ya está configurado en el proyecto:
+
+- **Firebase project:** `tiempoya-c8cb9` (cuenta `yasmani1997@gmail.com`)
+- **`google-services.json`:** almacenado como variable secreta `GOOGLE_SERVICES_JSON` en EAS (perfil `preview`). EAS lo inyecta automáticamente durante el build — no se sube al repo.
+- **Credencial FCM v1:** subida a EAS credentials (Android app credentials ID `67585bb5-8cb1-4e56-958b-07cad5ecfeeb`).
+- **`app.config.js`:** lee `process.env.GOOGLE_SERVICES_JSON` en tiempo de build para que expo prebuild encuentre el archivo.
+
+Si hay que reconfigurar Firebase en un nuevo proyecto:
+1. Crear proyecto en [console.firebase.google.com](https://console.firebase.google.com/)
+2. Registrar app Android con package `com.abisoft.tiempoya` → descargar `google-services.json`
+3. Project Settings → Service accounts → Generar nueva clave privada (archivo `adminsdk-xxx.json`)
+4. Subir `google-services.json` como variable de entorno EAS:
+   ```bash
+   eas env:create --scope project --environment preview --name GOOGLE_SERVICES_JSON --value <ruta-al-archivo> --type file --visibility secret
+   ```
+5. Subir credencial FCM v1 a EAS via API (ver script `upload_fcm.js` en historial de conversación) o con `eas credentials --platform android`
+6. Rebuildelar APK
+
+**Tipos de notificación implementados:**
+
+| Tipo | Cuándo se envía | Condición |
+|---|---|---|
+| Entrada registrada | Al hacer check-in desde la app | Siempre |
+| Salida registrada | Al hacer check-out desde la app | Siempre |
+| Mensaje recibido | Cuando el admin envía mensaje al empleado | Siempre |
+| Recordatorio entrada | 5 min antes del `entryTime` del horario | Sin check-in hoy |
+| Recordatorio salida almuerzo | 5 min antes de `lunchStart` | Con check-in activo |
+| Recordatorio regreso almuerzo | 5 min antes de `lunchEnd` | Sin check-in post-almuerzo |
+| Recordatorio salida final | 5 min antes de `exitTime` | Con check-in activo |
+
+Los recordatorios solo se envían a empleados de tenants con plan que incluya `mobileApp.enabled = true`. El cron corre cada minuto en `svc-mobile` vía `instrumentation.ts`.
+
+> **Nota para pruebas:** El recordatorio de entrada no llega si el empleado ya tiene un check-in hoy (comportamiento correcto). Para probar, usar el recordatorio de salida cambiando `exitTime` a 5 minutos en el futuro.
+
+---
+
 **Fixes permanentes ya integrados en el proyecto:**
 
-Los siguientes problemas ya están resueltos mediante configuración en `app.json` y no requieren pasos manuales:
+Los siguientes problemas ya están resueltos y no requieren pasos manuales en futuros builds:
 
 1. **Kotlin 1.9.24 vs 1.9.25** — El plugin `plugins/withKotlinVersion.js` + `expo-build-properties` fuerzan Kotlin 1.9.25 durante el prebuild de EAS, necesario para que el Compose Compiler 1.5.15 (usado por `expo-modules-core`) compile correctamente. Sin este fix el build falla con `compileReleaseKotlin FAILED`.
 
-2. **Tráfico HTTP (cleartext)** — El campo `android.usesCleartextTraffic` se aplica automáticamente vía el plugin al AndroidManifest.xml, permitiendo conexiones HTTP al servidor local durante desarrollo.
+2. **`google-services.json` no rastreado por git** — Se usa `app.config.js` con `process.env.GOOGLE_SERVICES_JSON` para que expo prebuild resuelva el path en tiempo de build. No se puede usar `app.json` directamente porque no expande variables de entorno en ese campo.
+
+3. **Tráfico HTTP (cleartext)** — `android:usesCleartextTraffic="true"` se aplica automáticamente en `AndroidManifest.xml` vía el plugin, permitiendo conexiones HTTP en desarrollo.
 
 ---
 
@@ -373,9 +413,12 @@ Los siguientes problemas ya están resueltos mediante configuración en `app.jso
 | Problema | Causa | Solución |
 |---|---|---|
 | `compileReleaseKotlin FAILED` | Compose Compiler necesita Kotlin 1.9.25 | Ya resuelto con `withKotlinVersion.js` |
-| NetworkError al abrir la app | `EXPO_PUBLIC_API_URL` no configurada en EAS | `eas env:create ...` (ver arriba) |
-| Token push null en DB | Permisos de notificación denegados o FCM no inicializado | Ir a Ajustes → Apps → TiempoYa → Notificaciones → Activar |
-| APK instalado pero sin notificaciones | APK compilado localmente (sin EAS) | Usar `eas build` en lugar de Gradle local |
+| `Default FirebaseApp is not initialized` | `google-services.json` no incluido en el build | Verificar variable `GOOGLE_SERVICES_JSON` en EAS y `app.config.js` |
+| NetworkError al abrir la app | `EXPO_PUBLIC_API_URL` no configurada en EAS | `eas env:create --scope project --environment preview --name EXPO_PUBLIC_API_URL ...` |
+| Token push null en DB | Permisos denegados o app no abre sesión | Ajustes → Apps → TiempoYa → Notificaciones → Activar; volver a iniciar sesión |
+| APK instalado pero sin notificaciones push | APK sin credenciales FCM (build local) | Usar `eas build` en lugar de Gradle local |
+| Recordatorio de entrada no llega | Empleado ya tiene check-in hoy | Comportamiento correcto — probar con recordatorio de salida |
+| Recordatorio nunca llega | Plan del tenant sin `mobileApp.enabled=true` | Activar en superadmin → Plan → capabilities |
 
 ---
 
