@@ -285,7 +285,7 @@ export async function getHistory(
     prisma.attendanceRecord.findMany({ where, include: INCLUDE_EMP, orderBy: [{ date: 'desc' }, { checkInTime: 'desc' }], skip: (page - 1) * pageSize, take: pageSize }),
     prisma.attendanceRecord.count({ where }),
   ])
-  return { items: items.map(recToDtoWithEmployee), total, page, pageSize, hasMore: page * pageSize < total }
+  return { items: items.map(recToDtoWithEmployee), totalCount: total, page, pageSize, hasMore: page * pageSize < total }
 }
 
 export async function requestOtp(employeeId: string, tenantId: string, pin: string) {

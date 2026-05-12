@@ -1,6 +1,7 @@
 {
   "name": "attendance-nextjs",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "engines": { "node": ">=20", "pnpm": ">=9" },
   "pnpm": {
     "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "esbuild", "prisma", "sharp"]
