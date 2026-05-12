@@ -3,7 +3,7 @@
   "info": {
     "title": "TiempoYa API",
     "description": "API de control de asistencia — 10 microservicios detrás de nginx.\n\n**Autenticación admin**: `Bearer <token>` obtenido en `/api/v1/auth/login`\n\n**Autenticación empleado (mobile)**: `Bearer <token>` obtenido en `/api/v1/mobile/login`\n\n**Autenticación superadmin**: `Bearer <token>` obtenido en `/api/v1/admin/auth/login`\n\n| Servicio | Puerto interno | Rutas |\n|---|---|---|\n| svc-core | 3001 | /auth, /company, /settings, /public, /notifications |\n| svc-employees | 3002 | /employees, /departments, /positions |\n| svc-attendance | 3003 | /attendance, /schedules, /holidays |\n| svc-analytics | 3004 | /dashboard, /reports |\n| svc-mobile | 3005 | /mobile, /checker |\n| svc-comms | 3006 | /messages |\n| svc-billing | 3007 | /subscription, /plans, /invoices, /payment, /payment-methods |\n| svc-admin | 3008 | /admin/* |\n| svc-support | 3009 | /support |\n| svc-landing | 3010 | landing SSR |",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "servers": [
     { "url": "", "description": "Gateway (nginx — mismo origen)" }
@@ -246,6 +246,70 @@
           }
         },
         "responses": { "200": { "description": "OK — { valid: bool }" } }
+      }
+    },
+
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Solicitar restablecimiento de contraseña",
+        "description": "Envía un correo con enlace de restablecimiento si el email existe. Siempre devuelve 200 por seguridad (no revela si el email está registrado).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "admin@empresa.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — `{ message: 'Si el email existe, recibirás un correo...' }` (siempre 200 por seguridad)" }
+        }
+      }
+    },
+
+    "/api/v1/auth/reset-password": {
+      "get": {
+        "tags": ["🔐 Auth"],
+        "summary": "Validar token de restablecimiento de contraseña",
+        "description": "Verifica que el token del enlace de correo sea válido y no haya expirado.",
+        "parameters": [
+          { "in": "query", "name": "token", "required": true, "schema": { "type": "string" }, "description": "Token UUID incluido en el correo de restablecimiento" }
+        ],
+        "responses": {
+          "200": { "description": "OK — token válido" },
+          "400": { "description": "Token inválido o expirado — `errorCode`: `TOKEN_EXPIRED` | `INVALID_TOKEN`" }
+        }
+      },
+      "post": {
+        "tags": ["🔐 Auth"],
+        "summary": "Restablecer contraseña con token",
+        "description": "Cambia la contraseña del administrador usando el token del correo. El token se invalida tras el uso.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token","newPassword"],
+                "properties": {
+                  "token":       { "type": "string", "description": "Token de restablecimiento del correo" },
+                  "newPassword": { "type": "string", "minLength": 6, "example": "NuevaPass123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK — contraseña restablecida" },
+          "400": { "description": "Token inválido o expirado — `errorCode`: `TOKEN_EXPIRED` | `INVALID_TOKEN`" }
+        }
       }
     },
 
@@ -570,6 +634,32 @@
         "security": [{ "AdminBearer": [] }],
         "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
         "responses": { "200": { "description": "OK — { password }" } }
+      }
+    },
+
+    "/api/v1/employees/next-code": {
+      "get": {
+        "tags": ["👤 Empleados"],
+        "summary": "Obtener el próximo código de empleado disponible",
+        "description": "Devuelve el siguiente código generado automáticamente según el prefijo configurado en los ajustes del tenant (p.ej. `EMP-007`).",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "OK — `{ code: string }` (p.ej. `EMP-007`)" }
+        }
+      }
+    },
+
+    "/api/v1/employees/{id}/send-credentials": {
+      "post": {
+        "tags": ["👤 Empleados"],
+        "summary": "Enviar credenciales de acceso mobile al empleado por email",
+        "description": "Envía un correo al empleado con su código, PIN y/o contraseña para acceder a la app móvil. Requiere SMTP configurado.",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "OK — `{ message: 'Credenciales enviadas.' }`" },
+          "400": { "description": "SMTP no configurado o empleado no tiene email" }
+        }
       }
     },
 
@@ -947,7 +1037,24 @@
       }
     },
 
-    "/api/v1/attendance/by-employee/{employeeId}": {
+    "/api/v1/attendance/range": {
+      "get": {
+        "tags": ["📋 Asistencia (admin)"],
+        "summary": "Registros de asistencia por rango de fechas (listado plano)",
+        "description": "Devuelve todos los registros de asistencia del tenant en el rango indicado. A diferencia de `/api/v1/attendance`, este endpoint está bajo la ruta `/range` y valida explícitamente la presencia de `from` y `to`.",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "in": "query", "name": "from", "required": true, "schema": { "type": "string" }, "example": "2024-01-01" },
+          { "in": "query", "name": "to",   "required": true, "schema": { "type": "string" }, "example": "2024-01-31" }
+        ],
+        "responses": {
+          "200": { "description": "OK — AttendanceDto[]" },
+          "400": { "description": "Parámetros `from` o `to` ausentes — `errorCode`: `MISSING_PARAMS`" }
+        }
+      }
+    },
+
+    "/api/v1/attendance/employee/{employeeId}": {
       "get": {
         "tags": ["📋 Asistencia (admin)"],
         "summary": "Historial de asistencia de un empleado",

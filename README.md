@@ -163,11 +163,11 @@ docker compose up -d
 ```
 
 **Credenciales iniciales (seed):**
-- Superadmin: `superadmin@assistcontrol.com` / `SuperAdmin123!`
-- Admin demo: `admin@demo.com` / `Admin123!`
-- Empleado demo: `emp001` / `Pass1234!` · PIN: `1234`
+- Superadmin: `superadmin@tiempoya.net` / `SuperAdmin123!`
+- Admin demo: usuario `admin` / `Admin123!`
+- Empleado demo: código `EMP-001` / `Pass1234!` · PIN: `1234`
 
-**Documentación API:** `http://167.86.87.213:8080/docs`
+**Documentación API:** `https://www.tiempoya.net/docs`
 
 **Funcionalidades destacadas:**
 
@@ -254,41 +254,42 @@ docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-
 
 **Generar APK Android (Capacitor):**
 
-El APK se genera localmente desde Windows usando Android Studio. La carpeta `android/` ya existe en el repo y está configurada.
+La carpeta `android/` ya existe en el repo y está configurada. Hay dos métodos:
 
+**Método A — Con Gradle directamente (recomendado, sin Android Studio):**
 ```powershell
 cd attendance-frontend
 
-# 1. Instalar dependencias
-npm install
-
-# 2. Build web con modo mobile (.env.mobile → VITE_API_URL=https://www.tiempoya.net)
+# 1. Build web + sincronizar Capacitor
 npm run build:mobile
 # Equivale a: vite build --mode mobile && npx cap sync
-# → Compila React → dist/
-# → Sincroniza dist/ → android/app/src/main/assets/public/
 
-# 3. Abrir en Android Studio
-npx cap open android
+# 2. Compilar APK debug
+cd android
+.\gradlew assembleDebug
+# APK en: android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-Dentro de **Android Studio:**
-- `Build` → `Generate Signed Bundle / APK` → `APK`
-- Seleccionar keystore existente o crear uno nuevo
-- Build type: `release`
-- APK generado en: `android\app\release\app-release.apk`
+**Método B — Con Android Studio (APK release firmado):**
+```powershell
+cd attendance-frontend
+npm run build:mobile
+npx cap open android
+# Luego en Android Studio: Build → Generate Signed Bundle / APK → APK
+# APK generado en: android\app\release\app-release.apk
+```
 
 Instalar vía USB (modo debug activado en el teléfono):
 ```powershell
-C:\Users\usuario\AppData\Local\Android\Sdk\platform-tools\adb.exe install -r android\app\release\app-release.apk
+C:\Users\usuario\AppData\Local\Android\Sdk\platform-tools\adb.exe install -r android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
 O copiar el `.apk` al teléfono e instalar manualmente (`Ajustes → Instalar apps desconocidas`).
 
 **Requisitos para compilar:**
-- Android Studio instalado
 - Java 17
-- Variables de entorno del sistema: `ANDROID_HOME` y `JAVA_HOME` (mismos que attendance-mobile)
+- Variables de entorno del sistema: `ANDROID_HOME` y `JAVA_HOME`
+- Android Studio opcional (solo para método B / release firmado)
 
 ---
 
@@ -298,14 +299,18 @@ O copiar el `.apk` al teléfono e instalar manualmente (`Ajustes → Instalar ap
 |---|---|
 | Botón Atrás nativo | `useAndroidBack.ts` — navega atrás o sale con doble click |
 | SplashScreen | Fondo azul `#1e40af`, 2 segundos, se oculta al montar React |
-| Exportar PDF | `html2canvas` + `jsPDF` → compartir vía `@capacitor/share` |
-| Exportar Excel | `xlsx-js-style` → compartir vía `@capacitor/share` |
+| Exportar PDF | `html2canvas` + `jsPDF` → `Filesystem.writeFile` + `Share.share` vía `@capacitor/share` |
+| Exportar Excel | `xlsx-js-style` → `Filesystem.writeFile` + `Share.share` vía `@capacitor/share` |
+| Descargar comprobante | HTML del backend → `jsPDF` (con márgenes A4, multi-página) → `Share.share` |
 | Detección plataforma | `src/utils/platform.ts`: `isNative`, `isAndroid`, `isIOS` |
+| Checador responsive | `CheckerPage.tsx` — vista separada en mobile (formulario / registros), cards en lugar de tabla, botón volver al dashboard |
 
 **Estado actual:**
 - ✅ Web: funcionando en producción (Docker puerto 80)
-- ✅ Android: `android/` generado y sincronizado con Capacitor 6
-- ✅ Reportes PDF/Excel exportables desde mobile
+- ✅ Android APK: generado con `gradlew assembleDebug` — apunta a `https://www.tiempoya.net`
+- ✅ Reportes PDF/Excel exportables desde mobile vía Share nativo
+- ✅ Comprobantes de pago descargables como PDF con márgenes A4
+- ✅ Checador adaptado para uso en tablet/móvil
 - ⏳ iOS: requiere cuenta Apple Developer ($99/año) + `npx cap add ios`
 
 ---
@@ -570,17 +575,46 @@ chmod +x ~/backup-db.sh
 
 ---
 
-## Dominio y SSL (pendiente)
+## Dominio y SSL
 
-Cuando se adquiera el dominio `tiempoya.net`:
+El dominio `tiempoya.net` no está adquirido aún, pero toda la infraestructura ya está preparada para cuando se adquiera:
 
+- `APP_URL=https://www.tiempoya.net` ya está configurada en el backend
+- `sitemap.xml`, `robots.txt` y los canonicals apuntan a `https://www.tiempoya.net`
+- Las 3 landing pages de conversión y la landing principal ya tienen SEO completo
+
+Cuando se adquiera el dominio:
 1. Apuntar DNS `A` a `167.86.87.213`
-2. Actualizar `APP_URL` en `attendance-nextjs/.env`:
-   ```env
-   APP_URL=https://www.tiempoya.net
-   ```
-3. Instalar Certbot y configurar SSL en nginx
-4. Reconstruir `svc-landing`: `docker compose build svc-landing && docker compose up -d svc-landing`
+2. Instalar Certbot y configurar SSL en nginx
+3. Verificar el sitio en Google Search Console y enviar `sitemap.xml`
+4. Solicitar indexación de las 5 URLs principales en GSC
+
+---
+
+## SEO — `svc-landing`
+
+Las páginas públicas tienen SEO técnico implementado:
+
+| Archivo | Ubicación | Descripción |
+|---|---|---|
+| `sitemap.xml` | `svc-landing/public/` | 5 URLs: `/`, `/precios`, 3 landings |
+| `robots.txt` | `svc-landing/public/` | Allow all + Sitemap declarado |
+| `og-image.png` | `svc-landing/public/` | Imagen Open Graph 1200×630 |
+
+**Páginas de conversión (landing pages):**
+
+| URL | Archivo | Temática |
+|---|---|---|
+| `/landing/tiempoya-landing1` | `public/empleados.html` | App para empleados — marcar asistencia desde el celular |
+| `/landing/tiempoya-landing2` | `public/empresas.html` | Control de asistencia para empresas |
+| `/landing/tiempoya-landing3` | `public/productividad.html` | Reducción de costos laborales |
+
+Cada landing tiene: `<title>`, `<meta description>`, canonical, Open Graph, Twitter Cards, JSON-LD (`SoftwareApplication`, `Organization`, `FAQPage`).
+
+**Pendiente (requiere acción manual):**
+- Verificar dominio en Google Search Console (DNS TXT verification)
+- Enviar `sitemap.xml` en GSC
+- Solicitar indexación de las 3 landing pages en GSC
 
 ---
 
