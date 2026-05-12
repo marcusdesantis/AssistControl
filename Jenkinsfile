@@ -1,21 +1,25 @@
 pipeline {
   agent any
   environment {
-    ROOT   = '/root/proyectos/opt/attendance-ia'
-    DB_URL = credentials('DATABASE_URL')
+    ROOT = '/root/proyectos/opt/attendance-ia'
   }
   stages {
     stage('Pull') {
       steps {
-        dir("${ROOT}") {
-          sh 'git pull origin main'
+        sshagent(['github-ssh']) {
+          dir("${ROOT}") {
+            sh 'git pull origin main'
+          }
         }
       }
     }
     stage('Migrar DB') {
       steps {
         dir("${ROOT}/attendance-nextjs/packages/shared") {
-          sh 'DATABASE_URL="${DB_URL}" npx prisma@5.22.0 db push'
+          sh '''
+            export $(grep -E "^DATABASE_URL=" /root/proyectos/opt/attendance-ia/attendance-nextjs/.env | head -1)
+            npx prisma@5.22.0 db push
+          '''
         }
       }
     }
