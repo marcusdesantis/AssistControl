@@ -378,21 +378,36 @@ Si hay que reconfigurar Firebase en un nuevo proyecto:
 5. Subir credencial FCM v1 a EAS via API (ver script `upload_fcm.js` en historial de conversación) o con `eas credentials --platform android`
 6. Rebuildelar APK
 
+**Plataformas soportadas:**
+
+| Plataforma | Estado | Notas |
+|---|---|---|
+| Android | ✅ Funcional | FCM v1 configurado en EAS |
+| iOS | ⏳ Pendiente | Requiere cuenta Apple Developer ($99/año) y credenciales APNs |
+
+Para habilitar iOS en el futuro:
+1. Adquirir cuenta [Apple Developer](https://developer.apple.com/)
+2. Registrar app `com.abisoft.tiempoya` en App Store Connect
+3. Configurar APNs: `eas credentials --platform ios`
+4. Build: `eas build --platform ios --profile preview`
+
+El backend (`sendExpoPush`) ya está preparado para iOS — Expo Push Service gestiona tanto FCM (Android) como APNs (iOS) con la misma API. Solo falta el build con credenciales Apple.
+
+---
+
 **Tipos de notificación implementados:**
 
-| Tipo | Cuándo se envía | Condición |
+| Tipo | Formato | Condición de envío |
 |---|---|---|
-| Entrada registrada | Al hacer check-in desde la app | Siempre |
-| Salida registrada | Al hacer check-out desde la app | Siempre |
-| Mensaje recibido | Cuando el admin envía mensaje al empleado | Siempre |
-| Recordatorio entrada | 5 min antes del `entryTime` del horario | Sin check-in hoy |
-| Recordatorio salida almuerzo | 5 min antes de `lunchStart` | Con check-in activo |
-| Recordatorio regreso almuerzo | 5 min antes de `lunchEnd` | Sin check-in post-almuerzo |
-| Recordatorio salida final | 5 min antes de `exitTime` | Con check-in activo |
+| 📢 Mensaje de empresa | `📢 NombreEmpresa` / asunto | Cuando el admin envía mensaje a empleado(s) |
+| ⏰ Recordatorio entrada | `⏰ Entrada en 5 minutos` | 5 min antes de `entryTime`, sin check-in hoy |
+| 🍽 Recordatorio almuerzo | `🍽 Almuerzo en 5 minutos` | 5 min antes de `lunchStart`, con check-in activo |
+| 🔔 Recordatorio regreso | `🔔 Regreso en 5 minutos` | 5 min antes de `lunchEnd`, sin check-in post-almuerzo |
+| 🏁 Recordatorio salida | `🏁 Salida en 5 minutos` | 5 min antes de `exitTime`, con check-in activo |
 
 Los recordatorios solo se envían a empleados de tenants con plan que incluya `mobileApp.enabled = true`. El cron corre cada minuto en `svc-mobile` vía `instrumentation.ts`.
 
-> **Nota para pruebas:** El recordatorio de entrada no llega si el empleado ya tiene un check-in hoy (comportamiento correcto). Para probar, usar el recordatorio de salida cambiando `exitTime` a 5 minutos en el futuro.
+> **Nota:** Los registros de check-in/checkout desde la app **no generan push** — el usuario ya ve la confirmación en pantalla. El recordatorio de entrada no llega si el empleado ya tiene check-in hoy (comportamiento correcto).
 
 ---
 
