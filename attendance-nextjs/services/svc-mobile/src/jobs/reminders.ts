@@ -55,6 +55,9 @@ async function runReminders() {
         if (holiday && !emp.worksOnHolidays) continue
 
         const schedDay = getScheduleDay(emp.schedule, nowDt, emp.scheduleStartDate ?? null)
+        const entryTarget = schedDay?.entryTime ? minsFromHHMM(schedDay.entryTime) - 5 : null
+        const exitTarget  = schedDay?.exitTime  ? minsFromHHMM(schedDay.exitTime)  - 5 : null
+        console.log(`[reminders] emp=${emp.id} schedType=${emp.schedule.type} weekday=${nowDt.weekday%7} schedDay=${schedDay ? `isWork=${schedDay.isWorkDay} entry=${schedDay.entryTime} exit=${schedDay.exitTime}` : 'null'} entryTarget=${entryTarget} exitTarget=${exitTarget} nowMins=${nowMins}`)
         if (!schedDay || !schedDay.isWorkDay) continue
 
         // Registros de hoy del empleado
