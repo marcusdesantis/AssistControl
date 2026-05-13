@@ -376,11 +376,10 @@ export default function LandingPage() {
         <CTA />
       </main>
       <Footer />
-      {/* Links internos para crawlers — ocultos visualmente */}
-      <div aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}>
-        <a href="/landing/empresas.html" tabIndex={-1}>Control de asistencia para empresas</a>
-        <a href="/landing/productividad.html" tabIndex={-1}>Productividad y gestión del tiempo</a>
-        <a href="/landing/empleados.html" tabIndex={-1}>App de asistencia para empleados</a>
+      <div>
+        <a href="/landing/empresas.html" hidden>Control de asistencia para empresas</a>
+        <a href="/landing/productividad.html" hidden>Productividad y gestión del tiempo</a>
+        <a href="/landing/empleados.html" hidden>App de asistencia para empleados</a>
       </div>
     </>
   )
