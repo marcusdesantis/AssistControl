@@ -17,7 +17,7 @@ pipeline {
       steps {
         sh """
           DB=\$(grep '^DATABASE_URL=' ${ROOT}/attendance-nextjs/.env | head -1 | cut -d= -f2-)
-          printf '#!/bin/sh\\nnpm install -g prisma@5.22.0 --quiet 2>/dev/null\\nprisma db push --schema=/app/packages/shared/prisma/schema.prisma --skip-generate\\n' > /tmp/migrate.sh
+          printf '#!/bin/sh\\nset -e\\nnpm install -g prisma@5.22.0 --quiet\\necho "=== Aplicando schema ==="\\nprisma db push --schema=/app/packages/shared/prisma/schema.prisma --skip-generate\\necho "=== Migracion completada ==="\\n' > /tmp/migrate.sh
           chmod +x /tmp/migrate.sh
           docker run --rm \\
             --add-host=host.docker.internal:host-gateway \\
