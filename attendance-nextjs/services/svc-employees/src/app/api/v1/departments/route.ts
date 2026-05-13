@@ -1,4 +1,4 @@
-﻿import { withPlanGate, apiOk } from '@attendance/shared'
+﻿import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/departments/departments.service'
 
@@ -12,8 +12,10 @@ export const GET = withPlanGate('organization', async (req: Request, { tenantId 
   return apiOk(await svc.getAll(tenantId, page, pageSize, search))
 })
 
-export const POST = withPlanGate('organization', async (req: Request, { tenantId }) => {
+export const POST = withPlanGate('organization', async (req: Request, { tenantId, admin }) => {
   const { name, description } = bodySchema.parse(await req.json())
-  return apiOk(await svc.create(tenantId, name, description), 'Departamento creado.')
+  const result = await svc.create(tenantId, name, description)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'department.create', module: 'organization', detail: { name }, ip: getClientIp(req) })
+  return apiOk(result, 'Departamento creado.')
 })
 

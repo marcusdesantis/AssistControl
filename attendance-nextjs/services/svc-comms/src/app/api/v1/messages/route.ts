@@ -1,4 +1,4 @@
-import { withPlanGate, apiOk } from '@attendance/shared'
+import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/messages/messages.service'
 
@@ -20,8 +20,8 @@ const sendSchema = z.object({
 
 export const POST = withPlanGate('messages', async (req: Request, { tenantId, admin }) => {
   const data = sendSchema.parse(await req.json())
-  // senderName comes from JWT username — same as .NET GetUsername() from claims
   const senderName = admin.username ?? 'Administrador'
   const count = await svc.send(tenantId, { ...data, senderName })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'message.send', module: 'messages', detail: { subject: data.subject, forAll: data.forAll, recipients: count }, ip: getClientIp(req) })
   return apiOk(count, `Mensaje enviado a ${count} empleado(s).`)
 })

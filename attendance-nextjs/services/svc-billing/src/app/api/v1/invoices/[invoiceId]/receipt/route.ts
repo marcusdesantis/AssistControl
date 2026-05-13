@@ -1,12 +1,13 @@
-import { withAdmin, prisma } from '@attendance/shared'
+import { withAdmin, prisma, createLog, getClientIp } from '@attendance/shared'
 
-export const GET = withAdmin(async (_req, { tenantId }, { params }: { params: Promise<{ invoiceId: string }> }) => {
+export const GET = withAdmin(async (req, { tenantId, admin }, { params }: { params: Promise<{ invoiceId: string }> }) => {
   const { invoiceId } = await params
 
   const invoice = await prisma.invoice.findFirst({
     where: { id: invoiceId, tenantId },
   })
   if (!invoice) return new Response('Not found', { status: 404 })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'billing.receipt_download', module: 'billing', detail: { invoiceNumber: invoice.invoiceNumber, amount: invoice.amount }, ip: getClientIp(req) })
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },

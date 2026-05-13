@@ -19,5 +19,8 @@ export * from './utils/schedule'
 // Overtime helpers
 export * from './utils/overtime'
 
+// Audit logs
+export * from './utils/audit'
+
 // Middleware
 export * from './middleware/withAuth'

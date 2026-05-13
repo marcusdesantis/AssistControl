@@ -1,4 +1,4 @@
-import { withPublic, apiOk } from '@attendance/shared'
+import { withPublic, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/tenants/tenants.service'
 
@@ -16,5 +16,9 @@ const registerSchema = z.object({
 export const POST = withPublic(async (req: Request, { params }: { params: Promise<{ token: string }> }) => {
   const { token } = await params
   const data      = registerSchema.parse(await req.json())
-  return apiOk(await svc.registerFromInvitation(token, data), 'Registro completado.')
+  const result    = await svc.registerFromInvitation(token, data)
+  if (result?.tenantId) {
+    createLog({ tenantId: result.tenantId, userName: data.username, action: 'employee.self_register', module: 'employees', detail: { name: data.firstName + ' ' + data.lastName, email: data.email }, ip: getClientIp(req) })
+  }
+  return apiOk(result, 'Registro completado.')
 })

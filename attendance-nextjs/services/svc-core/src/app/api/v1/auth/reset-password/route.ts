@@ -1,4 +1,4 @@
-import { apiOk, apiBadRequest } from '@attendance/shared'
+import { apiOk, apiBadRequest, createLog, getClientIp } from '@attendance/shared'
 import { resetPasswordSchema } from '@/modules/auth/auth.schema'
 import * as svc from '@/modules/auth/auth.service'
 import prisma from '@attendance/shared/src/prisma'
@@ -16,7 +16,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const dto = resetPasswordSchema.parse(await req.json())
-  await svc.resetPassword(dto)
+  const dto    = resetPasswordSchema.parse(await req.json())
+  const result = await svc.resetPassword(dto)
+  if (result) createLog({ tenantId: result.tenantId, userId: result.userId, userName: result.username, action: 'auth.reset_password', module: 'auth', ip: getClientIp(req) })
   return apiOk(null, 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.')
 }

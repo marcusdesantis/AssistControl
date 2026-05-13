@@ -1,4 +1,4 @@
-import { prisma } from '@attendance/shared'
+import { prisma, createLog } from '@attendance/shared'
 import { confirmPayment } from '@/modules/payment/payphone.service'
 import { activateSubscription } from '@/modules/billing/billing.service'
 
@@ -97,6 +97,7 @@ export async function GET(req: Request) {
       },
     })
 
+    createLog({ tenantId, action: 'billing.payment_confirmed', module: 'billing', detail: { planId, plan: plan?.name, billingCycle, amountPaid: amountCents / 100, action } })
     return Response.redirect(`${base}&status=paid`, 302)
   } catch (e: any) {
     console.error('[payphone/confirm] error inesperado:', e?.message ?? e)

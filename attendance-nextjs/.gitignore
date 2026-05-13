@@ -26,6 +26,9 @@ generated/
 npm-debug.log*
 pnpm-debug.log*
 
+# ─── Respaldos de audit logs (generados en runtime, no van al repo) ────────────
+data/logs/
+
 # ─── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

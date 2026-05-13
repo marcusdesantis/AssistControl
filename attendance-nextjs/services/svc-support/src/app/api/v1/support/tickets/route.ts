@@ -1,4 +1,4 @@
-import { withPlanGate, apiOk } from '@attendance/shared'
+import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/support/support.service'
 
@@ -12,7 +12,9 @@ export const GET = withPlanGate('prioritySupport', async (_req, { tenantId }) =>
   return apiOk(await svc.getTickets(tenantId))
 })
 
-export const POST = withPlanGate('prioritySupport', async (req, { tenantId }) => {
-  const body = createSchema.parse(await req.json())
-  return apiOk(await svc.createTicket(tenantId, body))
+export const POST = withPlanGate('prioritySupport', async (req, { tenantId, admin }) => {
+  const body   = createSchema.parse(await req.json())
+  const result = await svc.createTicket(tenantId, body)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'support.create_ticket', module: 'support', detail: { subject: body.subject, category: body.category }, ip: getClientIp(req) })
+  return apiOk(result)
 })

@@ -1,4 +1,4 @@
-import { withPlanGate, apiOk } from '@attendance/shared'
+import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
 import * as svc from '@/modules/holidays/holidays.service'
 
 export const GET = withPlanGate('schedules', async (req: Request, { tenantId }) => {
@@ -6,7 +6,7 @@ export const GET = withPlanGate('schedules', async (req: Request, { tenantId }) 
   return apiOk(await svc.getAll(tenantId, year))
 })
 
-export const POST = withPlanGate('schedules', async (req: Request, { tenantId }) => {
+export const POST = withPlanGate('schedules', async (req: Request, { tenantId, admin }) => {
   const body = await req.json() as any
   if (body.action === 'generate') {
     const year = Number(body.year ?? new Date().getFullYear())
@@ -14,5 +14,7 @@ export const POST = withPlanGate('schedules', async (req: Request, { tenantId })
   }
   if (!body.date || !body.name)
     return Response.json({ message: 'Fecha y nombre son requeridos.' }, { status: 400 })
-  return apiOk(await svc.create(tenantId, body), 'Día inhábil creado.')
+  const result = await svc.create(tenantId, body)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'holiday.create', module: 'holidays', detail: { date: body.date, name: body.name }, ip: getClientIp(req) })
+  return apiOk(result, 'Día inhábil creado.')
 })

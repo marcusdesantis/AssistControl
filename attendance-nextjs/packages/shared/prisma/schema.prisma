@@ -127,6 +127,7 @@ model Tenant {
   paymentMethods            PaymentMethod[]
   notifications             Notification[]
   supportTickets            SupportTicket[]
+  auditLogs                 AuditLog[]
 }
 
 // ─── User (admin) ─────────────────────────────────────────────────────────────
@@ -608,6 +609,26 @@ model Notification {
   @@index([tenantId, isRead])
   @@index([forAdmin, isRead])
   @@index([tenantId, forEmployee, employeeId])
+}
+
+// ─── AuditLog ────────────────────────────────────────────────────────────────
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String?
+  userEmail   String?
+  userName    String?
+  action      String   // "employee.create", "attendance.delete", "mobile.checkin", etc.
+  module      String   // "employees", "attendance", "mobile", "messages", etc.
+  detail      String?  // JSON string con contexto adicional
+  ip          String?
+  source      String   @default("web") // "web" | "mobile"
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, module])
 }
 
 // ─── Holiday ──────────────────────────────────────────────────────────────────

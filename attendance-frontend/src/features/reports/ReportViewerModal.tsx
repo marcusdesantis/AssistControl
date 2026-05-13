@@ -7,7 +7,7 @@ import XLSXStyle from 'xlsx-js-style'
 import { toast } from 'sonner'
 import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
-import { reportsService } from './reportsService'
+import { reportsService, logDownload } from './reportsService'
 import type { EmployeeDetailReport, ReportDay, ReportType } from '@/types/report'
 import { isNative } from '@/utils/platform'
 
@@ -909,6 +909,7 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
       } else {
         pdf.save(fileName)
       }
+      logDownload(reportType, 'pdf', from, to, employeeCodes.length === 1 ? employeeCodes[0] : undefined)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('PDF error:', msg)
@@ -946,6 +947,7 @@ export default function ReportViewerModal({ employeeCodes, initialCode, from, to
       } else {
         XLSXStyle.writeFile(wb, fileName)
       }
+      logDownload(reportType, 'excel', from, to, employeeCodes.length === 1 ? employeeCodes[0] : undefined)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('Excel error:', msg)

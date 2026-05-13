@@ -1,4 +1,4 @@
-import { withEmployee, apiOk } from '@attendance/shared'
+import { withEmployee, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/mobile/mobile.service'
 
@@ -9,11 +9,13 @@ const schema = z.object({
   longitude: z.number().optional().nullable(),
 })
 
-export const POST = withEmployee(async (req: Request, { employeeId, tenantId }) => {
-  const body = schema.parse(await req.json())
-  return apiOk(await svc.checkIn(employeeId, tenantId, body.pin, {
+export const POST = withEmployee(async (req: Request, { employeeId, tenantId, employee }) => {
+  const body   = schema.parse(await req.json())
+  const result = await svc.checkIn(employeeId, tenantId, body.pin, {
     otpCode:   body.otpCode,
     latitude:  body.latitude,
     longitude: body.longitude,
-  }))
+  })
+  createLog({ tenantId, userId: employeeId, userName: employee.employeeCode, action: 'mobile.checkin', module: 'mobile', detail: { latitude: body.latitude, longitude: body.longitude }, ip: getClientIp(req), source: 'mobile' })
+  return apiOk(result)
 })

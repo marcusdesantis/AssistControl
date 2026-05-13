@@ -1,4 +1,4 @@
-import { withAdmin, apiOk, prisma } from '@attendance/shared'
+import { withAdmin, apiOk, prisma, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { getPlanById, calculateProration, activateSubscription, scheduleDowngrade } from '@/modules/billing/billing.service'
@@ -8,11 +8,12 @@ const schema = z.object({
   billingCycle: z.enum(['monthly', 'annual']),
 })
 
-export const POST = withAdmin(async (req, { tenantId }) => {
+export const POST = withAdmin(async (req, { tenantId, admin }) => {
   const { planId, billingCycle } = schema.parse(await req.json())
 
   const plan = await getPlanById(planId)
   if (plan.isFree) throw { code: 'BAD_REQUEST', message: 'Los planes gratuitos no requieren pago.' }
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'billing.payment_initiated', module: 'billing', detail: { planId, plan: plan.name, cycle: billingCycle }, ip: getClientIp(req) })
 
   const proration = await calculateProration(tenantId, planId, billingCycle)
 

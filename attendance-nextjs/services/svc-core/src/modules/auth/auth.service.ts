@@ -173,6 +173,7 @@ export async function registerTenant(dto: RegisterDto) {
     registered:        true,
     emailVerification: smtpReady,
     pendingApproval:   smtpReady ? false : (settings?.requireApproval ?? false),
+    tenantId:          tenant.id,
   }
 }
 
@@ -465,14 +466,16 @@ export async function resetPassword(dto: ResetPasswordDto) {
   if (!record || record.isUsed || record.expiresAt < new Date())
     throw { code: 'INVALID_TOKEN', message: 'El enlace de recuperación es inválido o ha expirado.' }
 
-  await prisma.user.update({
+  const user = await prisma.user.update({
     where: { id: record.userId },
     data:  { passwordHash: hashPassword(dto.newPassword), mustChangePassword: false },
+    select: { id: true, tenantId: true, username: true },
   })
   await prisma.passwordResetToken.update({
     where: { id: record.id },
     data:  { isUsed: true },
   })
+  return { userId: user.id, tenantId: user.tenantId, username: user.username }
 }
 
 // ─── Verify password ──────────────────────────────────────────────────────────

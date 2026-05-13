@@ -1,4 +1,4 @@
-import { withAdmin, apiOk } from '@attendance/shared'
+import { withAdmin, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/billing/billing.service'
 
@@ -37,14 +37,17 @@ const subscribeSchema = z.object({
   billingCycle: z.enum(['monthly', 'annual']).default('monthly'),
 })
 
-export const POST = withAdmin(async (req, { tenantId }) => {
+export const POST = withAdmin(async (req, { tenantId, admin }) => {
   const body = subscribeSchema.parse(await req.json())
   const plan = await svc.getPlanById(body.planId)
   if (!plan.isFree) throw { code: 'BAD_REQUEST', message: 'Los planes de pago requieren completar el proceso de pago.' }
   const result = await svc.activateSubscription(tenantId, body.planId, body.billingCycle)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'billing.subscribe', module: 'billing', detail: { planId: body.planId, plan: plan.name, cycle: body.billingCycle }, ip: getClientIp(req) })
   return apiOk(result, 'Suscripción actualizada.')
 })
 
-export const DELETE = withAdmin(async (_req, { tenantId }) => {
-  return apiOk(await svc.cancelSubscription(tenantId), 'Suscripción cancelada al final del período.')
+export const DELETE = withAdmin(async (req, { tenantId, admin }) => {
+  const result = await svc.cancelSubscription(tenantId)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'billing.cancel', module: 'billing', ip: getClientIp(req) })
+  return apiOk(result, 'Suscripción cancelada al final del período.')
 })

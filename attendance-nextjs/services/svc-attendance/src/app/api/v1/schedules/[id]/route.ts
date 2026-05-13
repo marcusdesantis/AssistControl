@@ -1,4 +1,4 @@
-import { withPlanGate, apiOk } from '@attendance/shared'
+import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { bodySchema } from '../schedules.schema'
 import * as svc from '@/modules/schedules/schedules.service'
 
@@ -9,15 +9,18 @@ export const GET = withPlanGate('schedules', async (_req: Request, { tenantId },
   return apiOk(await svc.getById(id, tenantId))
 })
 
-export const PUT = withPlanGate('schedules', async (req: Request, { tenantId }, { params }: Ctx) => {
+export const PUT = withPlanGate('schedules', async (req: Request, { tenantId, admin }, { params }: Ctx) => {
   const { id } = await params
   const dto    = bodySchema.parse(await req.json())
-  return apiOk(await svc.update(id, tenantId, dto), 'Horario actualizado.')
+  const result = await svc.update(id, tenantId, dto)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'schedule.update', module: 'schedules', detail: { scheduleId: id, name: dto.name }, ip: getClientIp(req) })
+  return apiOk(result, 'Horario actualizado.')
 })
 
-export const DELETE = withPlanGate('schedules', async (req: Request, { tenantId }, { params }: Ctx) => {
+export const DELETE = withPlanGate('schedules', async (req: Request, { tenantId, admin }, { params }: Ctx) => {
   const { id }       = await params
   const reassignToId = new URL(req.url).searchParams.get('reassignTo') ?? undefined
   await svc.remove(id, tenantId, reassignToId)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'schedule.delete', module: 'schedules', detail: { scheduleId: id }, ip: getClientIp(req) })
   return apiOk(null, 'Horario eliminado.')
 })

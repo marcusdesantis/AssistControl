@@ -262,5 +262,5 @@ export async function registerFromInvitation(token: string, data: {
     data:  { isUsed: true, usedAt: new Date(), employeeId: emp.id },
   })
 
-  return { employeeId: emp.id, employeeCode, pin, username, password: passwordPlain }
+  return { employeeId: emp.id, employeeCode, pin, username, password: passwordPlain, tenantId: inv.tenantId }
 }

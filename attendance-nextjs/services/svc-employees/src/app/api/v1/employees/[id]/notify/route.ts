@@ -1,4 +1,4 @@
-import { withAdmin, apiOk, prisma, sendExpoPush } from '@attendance/shared'
+import { withAdmin, apiOk, prisma, sendExpoPush, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -7,7 +7,7 @@ const schema = z.object({
   type:  z.enum(['info', 'success', 'warning', 'error']).default('info'),
 })
 
-export const POST = withAdmin(async (req, { tenantId }, { params }: { params: Promise<{ id: string }> }) => {
+export const POST = withAdmin(async (req, { tenantId, admin }, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const { title, body, type } = schema.parse(await req.json())
 
@@ -21,8 +21,8 @@ export const POST = withAdmin(async (req, { tenantId }, { params }: { params: Pr
     data: { tenantId, forAdmin: false, forEmployee: true, employeeId: id, title, body, type },
   })
 
-  // Fire-and-forget — no falla el request si el push falla
   sendExpoPush(employee.expoPushToken, { title, body, data: { notifId: notif.id, type } })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.notify', module: 'employees', detail: { employeeId: id, title }, ip: getClientIp(req) })
 
   return apiOk(notif, 'Notificación enviada.')
 })

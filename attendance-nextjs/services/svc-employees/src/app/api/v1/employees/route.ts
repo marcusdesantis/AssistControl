@@ -1,4 +1,4 @@
-import { withAdmin, apiOk, apiCreated } from '@attendance/shared'
+import { withAdmin, apiOk, apiCreated, createLog, getClientIp } from '@attendance/shared'
 import { createEmployeeSchema } from '@/modules/employees/employees.schema'
 import * as svc from '@/modules/employees/employees.service'
 
@@ -12,8 +12,9 @@ export const GET = withAdmin(async (req: Request, { tenantId }) => {
   return apiOk(await svc.getAll(tenantId, page, pageSize, search, departmentId, status))
 })
 
-export const POST = withAdmin(async (req: Request, { tenantId }) => {
+export const POST = withAdmin(async (req: Request, { tenantId, admin }) => {
   const dto    = createEmployeeSchema.parse(await req.json())
   const result = await svc.create(tenantId, dto)
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.create', module: 'employees', detail: { name: dto.firstName + ' ' + dto.lastName, code: dto.employeeCode }, ip: getClientIp(req) })
   return apiCreated(result, 'Empleado creado.')
 })

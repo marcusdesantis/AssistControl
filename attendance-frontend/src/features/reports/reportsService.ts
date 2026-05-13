@@ -9,6 +9,12 @@ interface ApiResponse<T> {
   errorCode?: string
 }
 
+export async function logDownload(reportType: string, format: 'pdf' | 'excel', from: string, to: string, employeeCode?: string) {
+  try {
+    await api.post('/reports/download', { reportType, format, from, to, employeeCode: employeeCode ?? null })
+  } catch { }
+}
+
 export const reportsService = {
   getReport: async (filters: ReportFilters): Promise<PagedResult<AttendanceReportRow>> => {
     const params: Record<string, any> = {

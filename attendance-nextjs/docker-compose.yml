@@ -39,6 +39,10 @@ services:
       - "3001"
     environment:
       PORT: 3001
+      LOGS_PATH: /app/logs
+      AUDIT_LOG_RETENTION_DAYS: ${AUDIT_LOG_RETENTION_DAYS:-7}
+    volumes:
+      - ./data/logs:/app/logs
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
       interval: 30s
@@ -162,6 +166,9 @@ services:
     environment:
       PORT: 3008
       SUPERADMIN_JWT_SECRET: ${SUPERADMIN_JWT_SECRET:-}
+      LOGS_PATH: /app/logs
+    volumes:
+      - ./data/logs:/app/logs
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3008/health"]
       interval: 30s
