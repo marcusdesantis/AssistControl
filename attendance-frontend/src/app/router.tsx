@@ -34,6 +34,7 @@ import SysInvoicesPage             from '@/features/sys/pages/SysInvoicesPage'
 import SysSettingsPage      from '@/features/sys/pages/SysSettingsPage'
 import SysUsersPage         from '@/features/sys/pages/SysUsersPage'
 import SysSupportPage       from '@/features/sys/pages/SysSupportPage'
+import SysProfilePage       from '@/features/sys/pages/SysProfilePage'
 import SupportPage          from '@/features/support/SupportPage'
 import ProfilePage          from '@/features/profile/ProfilePage'
 import ForgotPasswordPage  from '@/features/auth/ForgotPasswordPage'
@@ -101,6 +102,7 @@ export const router = createBrowserRouter([
           { path: '/sys/users',              element: <SysUsersPage /> },
           { path: '/sys/settings',          element: <SysSettingsPage /> },
           { path: '/sys/support',           element: <SysSupportPage /> },
+          { path: '/sys/profile',           element: <SysProfilePage /> },
           { path: '/sys/notifications',     element: <NotificationsPage variant="sys" /> },
         ],
       },

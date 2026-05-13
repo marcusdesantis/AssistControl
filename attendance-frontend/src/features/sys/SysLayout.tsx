@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, Building2, CreditCard, Package, ShieldCheck, ChevronRight, Settings, FileText, Users, Headset, Menu, X } from 'lucide-react'
 import { useSysAuthStore } from '@/store/sysAuthStore'
 import NotificationBell from '@/components/NotificationBell'
@@ -20,6 +20,7 @@ const NAV = [
 export default function SysLayout() {
   const { user } = useSysAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -74,7 +75,10 @@ export default function SysLayout() {
 
         {/* User info */}
         <div className="px-3 py-4 border-t border-slate-700">
-          <div className="flex items-center gap-3 px-3 py-2">
+          <button
+            onClick={() => { navigate('/sys/profile'); setSidebarOpen(false) }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors text-left"
+          >
             <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center shrink-0">
               <span className="text-white text-xs font-bold">
                 {user?.name?.charAt(0).toUpperCase() ?? 'A'}
@@ -84,7 +88,7 @@ export default function SysLayout() {
               <p className="text-white text-xs font-medium truncate">{user?.name}</p>
               <p className="text-slate-500 text-[11px] truncate">{user?.email}</p>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
 
