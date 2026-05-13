@@ -377,9 +377,9 @@ export default function LandingPage() {
       </main>
       <Footer />
       <div>
-        <a href="/landing/empresas.html" hidden>Control de asistencia para empresas</a>
-        <a href="/landing/productividad.html" hidden>Productividad y gestión del tiempo</a>
-        <a href="/landing/empleados.html" hidden>App de asistencia para empleados</a>
+        <a href="/landing/tiempoya-landing1" hidden>Control de asistencia para empresas</a>
+        <a href="/landing/tiempoya-landing2" hidden>Productividad y gestión del tiempo</a>
+        <a href="/landing/tiempoya-landing3" hidden>App de asistencia para empleados</a>
       </div>
     </>
   )
