@@ -15,15 +15,16 @@ pipeline {
     }
     stage('Migrar DB') {
       steps {
-        dir("${ROOT}/attendance-nextjs/packages/shared") {
-          sh """
-            DB=\$(grep '^DATABASE_URL=' ${ROOT}/attendance-nextjs/.env | head -1 | cut -d= -f2-)
-            DB_LOCAL=\$(echo "\$DB" | sed 's|host.docker.internal|127.0.0.1|g')
-            echo "=== Aplicando schema ==="
-            DATABASE_URL="\$DB_LOCAL" npx prisma db push --skip-generate
-            echo "=== Migracion completada ==="
-          """
-        }
+        sh """
+          DB=\$(grep '^DATABASE_URL=' ${ROOT}/attendance-nextjs/.env | head -1 | cut -d= -f2-)
+          DB_LOCAL=\$(echo "\$DB" | sed 's|host.docker.internal|127.0.0.1|g')
+          echo "=== Aplicando schema ==="
+          docker run --rm \\
+            --network=host \\
+            -v ${ROOT}/attendance-nextjs:/app \\
+            -e "DATABASE_URL=\$DB_LOCAL" \\
+            node:20-alpine sh -c "apk add --no-cache openssl --quiet && npm install -g prisma@5.22.0 --quiet && prisma db push --schema=/app/packages/shared/prisma/schema.prisma --skip-generate && echo '=== Migracion completada ==='"
+        """
       }
     }
     stage('Deploy Backend') {
