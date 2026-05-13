@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, Plus, Search, Pencil, Loader2, X, Eye, EyeOff, ExternalLink, ChevronDown, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Users, Plus, Search, Pencil, Loader2, X, Eye, EyeOff, ExternalLink, ChevronDown, ToggleLeft, ToggleRight, LogIn } from 'lucide-react'
 import { sysUsersService, sysTenantsService, type SysUser, type SysTenant } from '../sysService'
 import Pagination from '@/components/Pagination'
 import { createTour } from '@/utils/tour'
@@ -321,8 +321,9 @@ export default function SysUsersPage() {
 
   const [showCreate,   setShowCreate]   = useState(false)
   const [editUser,     setEditUser]     = useState<SysUser | null>(null)
-  const [togglingId,   setTogglingId]   = useState<string | null>(null)
-  const [confirmDeact, setConfirmDeact] = useState<SysUser | null>(null)
+  const [togglingId,      setTogglingId]      = useState<string | null>(null)
+  const [confirmDeact,    setConfirmDeact]    = useState<SysUser | null>(null)
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null)
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -362,6 +363,16 @@ export default function SysUsersPage() {
     try { await sysUsersService.toggle(u.id, u.isActive); load() }
     catch { /* ignore */ }
     finally { setTogglingId(null) }
+  }
+
+  const handleImpersonate = async (u: SysUser) => {
+    setImpersonatingId(u.id)
+    try {
+      const data = await sysUsersService.impersonate(u.id)
+      const encoded = btoa(JSON.stringify(data))
+      window.open(`/impersonate#d=${encoded}`, '_blank')
+    } catch { /* ignore */ }
+    finally { setImpersonatingId(null) }
   }
 
   return (
@@ -490,6 +501,13 @@ export default function SysUsersPage() {
                   <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(u.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
+                      <button onClick={() => handleImpersonate(u)} title="Acceder como este usuario"
+                        disabled={impersonatingId === u.id || !u.isActive}
+                        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 disabled:opacity-30 transition-colors">
+                        {impersonatingId === u.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <LogIn className="w-3.5 h-3.5" />}
+                      </button>
                       <button onClick={() => setEditUser(u)} title="Editar"
                         className="p-1.5 rounded-lg hover:bg-slate-100 text-gray-500 hover:text-slate-700 transition-colors">
                         <Pencil className="w-3.5 h-3.5" />

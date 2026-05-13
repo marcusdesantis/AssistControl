@@ -38,6 +38,7 @@ import SupportPage          from '@/features/support/SupportPage'
 import ProfilePage          from '@/features/profile/ProfilePage'
 import ForgotPasswordPage  from '@/features/auth/ForgotPasswordPage'
 import ResetPasswordPage   from '@/features/auth/ResetPasswordPage'
+import ImpersonatePage     from '@/features/auth/ImpersonatePage'
 
 export const router = createBrowserRouter([
   { path: '/login',            element: <LoginPage />,                          errorElement: <ErrorPage /> },
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
   { path: '/reset-password',    element: <ResetPasswordPage />,    errorElement: <ErrorPage /> },
   { path: '/checker',          element: <CheckerPage />,         errorElement: <ErrorPage /> },
   { path: '/register/:token',  element: <RegisterPage />,        errorElement: <ErrorPage /> },
+  { path: '/impersonate',      element: <ImpersonatePage />,     errorElement: <ErrorPage /> },
 
   // ── Tenant panel ────────────────────────────────────────────────────────────
   {

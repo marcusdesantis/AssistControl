@@ -264,6 +264,13 @@ export const sysUsersService = {
   toggle: async (id: string, isActive: boolean) => {
     await sysApi.patch(`/users/${id}`, { isActive: !isActive })
   },
+  impersonate: async (id: string) => {
+    const res = await sysApi.post<ApiResponse<{
+      accessToken: string; refreshToken: string
+      user: any; capabilities: any
+    }>>(`/users/${id}/impersonate`)
+    return res.data.data!
+  },
 }
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────
