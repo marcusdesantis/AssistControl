@@ -37,8 +37,12 @@ export const updateSettingsSchema = z.object({
 })
 
 export const sendInvitationSchema = z.object({
-  assignedCode: z.string().nullish(),
-  scheduleId:   z.string().uuid().nullish(),
+  recipients: z.array(z.object({
+    email:             z.string().email(),
+    assignedCode:      z.string().nullish(),
+    scheduleId:        z.string().uuid().nullish(),
+    scheduleStartDate: z.string().nullish(),
+  })).min(1),
 })
 
 export type UpdateProfileDto  = z.infer<typeof updateProfileSchema>

@@ -51,7 +51,7 @@ export async function getSettings(tenantId: string) {
     smtpHost:                    tenant.smtpHost,
     smtpPort:                    tenant.smtpPort,
     smtpUsername:                tenant.smtpUsername,
-    smtpPassword:                tenant.smtpPassword ? SMTP_MASK : null,
+    smtpPassword:                tenant.smtpPassword ?? null,
     smtpFromName:                tenant.smtpFromName,
     smtpEnableSsl:               tenant.smtpEnableSsl,
     checkerKey:                  tenant.checkerKey,
@@ -64,7 +64,7 @@ export async function updateSettings(tenantId: string, dto: UpdateSettingsDto) {
   const tenant = await prisma.tenant.findFirst({ where: { id: tenantId, isDeleted: false } })
   if (!tenant) throw { code: 'NOT_FOUND', message: 'Empresa no encontrada.' }
 
-  const smtpPassword = dto.smtpPassword === SMTP_MASK ? tenant.smtpPassword : (dto.smtpPassword ?? null)
+  const smtpPassword = dto.smtpPassword?.trim() || tenant.smtpPassword || null
 
   await prisma.tenant.update({
     where: { id: tenantId },
@@ -98,52 +98,67 @@ export async function sendInvitation(tenantId: string, dto: SendInvitationDto, b
   const tenant = await prisma.tenant.findFirst({ where: { id: tenantId, isDeleted: false } })
   if (!tenant) throw { code: 'NOT_FOUND', message: 'Empresa no encontrada.' }
 
-  const emails = (tenant.invitationEmails ?? '').split(',').map(e => e.trim()).filter(Boolean)
-  if (emails.length === 0)
-    throw { code: 'NO_INVITATION_EMAILS', message: 'No hay correos de invitación configurados.' }
-
-  const token     = uuidv4().replace(/-/g, '')
+  const smtpReady = !!(tenant.smtpEnabled && tenant.smtpHost && tenant.smtpUsername && tenant.smtpPassword)
   const expiresAt = new Date(Date.now() + tenant.invitationExpirationHours * 60 * 60 * 1000)
 
-  const invitation = await prisma.employeeInvitation.create({
-    data: {
-      tenantId,
-      token,
-      sentTo:       emails.join(','),
-      assignedCode: dto.assignedCode?.trim().toUpperCase() ?? null,
-      scheduleId:   dto.scheduleId ?? null,
-      expiresAt,
-    },
-  })
+  const results = []
 
-  const registrationUrl = `${baseUrl}/register/${token}`
-  const smtpReady = !!(tenant.smtpEnabled && tenant.smtpHost && tenant.smtpUsername && tenant.smtpPassword)
+  for (const recipient of dto.recipients) {
+    const token           = uuidv4().replace(/-/g, '')
+    const registrationUrl = `${baseUrl}/register/${token}`
 
-  if (smtpReady) {
-    const qr = await generateQr(registrationUrl, 220)
-    await sendEmail(tenantId, {
-      to:      emails,
-      subject: `Invitación para registrarte en ${tenant.name}`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-          <h2 style="color:#1e40af">Bienvenido a ${tenant.name}</h2>
-          <p>Has sido invitado a registrarte en el sistema de asistencia.</p>
-          <p>Haz clic en el botón o escanea el código QR para completar tu registro:</p>
-          <a href="${registrationUrl}" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;margin:16px 0;font-weight:bold;">
-            Registrarme ahora
-          </a>
-          <div style="margin:24px 0;text-align:center">
-            <p style="color:#555;font-size:13px;margin-bottom:8px">O escanea este QR con tu teléfono:</p>
-            <img src="${qr}" alt="QR de registro" width="220" height="220" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px" />
+    const invitation = await prisma.employeeInvitation.create({
+      data: {
+        tenantId,
+        token,
+        sentTo:            recipient.email,
+        assignedCode:      recipient.assignedCode?.trim().toUpperCase() ?? null,
+        scheduleId:        recipient.scheduleId        ?? null,
+        scheduleStartDate: recipient.scheduleStartDate ?? null,
+        expiresAt,
+      },
+    })
+
+    if (smtpReady) {
+      const qrBuffer = await generateQr(registrationUrl, 220)
+      await sendEmail(tenantId, {
+        to:      [recipient.email],
+        subject: `Invitación para registrarte en ${tenant.name}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px">
+            <h2 style="color:#1e40af">Bienvenido a ${tenant.name}</h2>
+            <p>Has sido invitado a registrarte en el sistema de asistencia.</p>
+            <p>Haz clic en el botón o escanea el código QR para completar tu registro:</p>
+            <a href="${registrationUrl}" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;margin:16px 0;font-weight:bold;">
+              Registrarme ahora
+            </a>
+            <div style="margin:24px 0;text-align:center">
+              <p style="color:#555;font-size:13px;margin-bottom:8px">O escanea este QR con tu teléfono:</p>
+              <img src="cid:qr-registro" alt="QR de registro" width="220" height="220" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px" />
+            </div>
+            <p style="color:#6b7280;font-size:12px">Este enlace expira en ${tenant.invitationExpirationHours} horas.</p>
+            <p style="color:#9ca3af;font-size:11px">Si no esperabas esta invitación, puedes ignorar este correo.</p>
           </div>
-          <p style="color:#6b7280;font-size:12px">Este enlace expira en ${tenant.invitationExpirationHours} horas.</p>
-          <p style="color:#9ca3af;font-size:11px">Si no esperabas esta invitación, puedes ignorar este correo.</p>
-        </div>
-      `,
+        `,
+        attachments: [{
+          cid:      'qr-registro',
+          filename: 'qr.png',
+          content:  qrBuffer,
+          encoding: 'base64',
+        }],
+      })
+    }
+
+    results.push({
+      invitationId: invitation.id,
+      email:        recipient.email,
+      assignedCode: recipient.assignedCode?.trim().toUpperCase() ?? null,
+      url:          registrationUrl,
+      emailSent:    smtpReady,
     })
   }
 
-  return { invitationId: invitation.id, token, expiresAt, sentTo: emails, url: registrationUrl, emailSent: smtpReady }
+  return { results, expiresAt, emailSent: smtpReady }
 }
 
 // ─── Public: get invitation info ──────────────────────────────────────────────
@@ -229,7 +244,8 @@ export async function registerFromInvitation(token: string, data: {
       lastName:        data.lastName.trim(),
       departmentId:    data.departmentId ?? null,
       positionId:      data.positionId   ?? null,
-      scheduleId:      inv.scheduleId    ?? null,
+      scheduleId:        inv.scheduleId ?? null,
+      scheduleStartDate: inv.scheduleStartDate ? new Date(inv.scheduleStartDate + 'T00:00:00.000Z') : null,
       email:           data.email.trim().toLowerCase(),
       phone:           data.phone?.trim() ?? null,
       hireDate:        new Date().toISOString().split('T')[0],

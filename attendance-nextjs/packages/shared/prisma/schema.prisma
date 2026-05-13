@@ -318,13 +318,14 @@ model AttendanceRecord {
 // ─── EmployeeInvitation ───────────────────────────────────────────────────────
 
 model EmployeeInvitation {
-  id           String    @id @default(uuid())
-  tenantId     String
-  token        String    @unique
-  sentTo       String
-  assignedCode String?
-  scheduleId   String?
-  expiresAt    DateTime
+  id                String    @id @default(uuid())
+  tenantId          String
+  token             String    @unique
+  sentTo            String
+  assignedCode      String?
+  scheduleId        String?
+  scheduleStartDate String?   // YYYY-MM-DD
+  expiresAt         DateTime
   isUsed       Boolean   @default(false)
   usedAt       DateTime?
   employeeId   String?

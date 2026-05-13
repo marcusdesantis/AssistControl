@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   Mail, Plus, X, Send, Copy, Check, ChevronDown, Loader2, Save,
-  Server, Eye, EyeOff, ToggleLeft, ToggleRight, KeyRound, RefreshCw, AlertTriangle, Lock, CreditCard,
+  Server, Eye, EyeOff, ToggleLeft, ToggleRight, KeyRound, RefreshCw, AlertTriangle, Lock, CreditCard, UserPlus,
 } from 'lucide-react'
 import { copyText } from '@/utils/clipboard'
 import { createTour } from '@/utils/tour'
@@ -104,16 +104,11 @@ export default function SettingsPage() {
   const [error,      setError]      = useState<string | null>(null)
   const [searchParams] = useSearchParams()
   const [activeTab,  setActiveTab]  = useState<Tab>((searchParams.get('tab') as Tab) ?? 'email')
-  const [emailInput, setEmailInput] = useState('')
-  const [emailList,  setEmailList]  = useState<string[]>([])
+  const [copiedIdx,  setCopiedIdx]  = useState<number | null>(null)
   const [sending,        setSending]        = useState(false)
-  const [inviteUrl,       setInviteUrl]       = useState<string | null>(null)
-  const [inviteEmailSent, setInviteEmailSent] = useState(false)
-  const [inviteCode,      setInviteCode]      = useState<string | null>(null)
-  const [assignedCode,   setAssignedCode]   = useState('')
-  const [selectedScheduleId, setSelectedScheduleId] = useState('')
+  const [inviteResults,  setInviteResults]  = useState<{ email: string; assignedCode: string | null; url: string; emailSent: boolean }[] | null>(null)
+  const [recipients,     setRecipients]     = useState<{ id: string; email: string; assignedCode: string; scheduleId: string; scheduleStartDate: string }[]>([])
   const [schedules,      setSchedules]      = useState<Schedule[]>([])
-  const [copied,         setCopied]         = useState(false)
   const [copiedKey,        setCopiedKey]        = useState(false)
   const [regenerating,     setRegenerating]     = useState(false)
   const [showCheckerKey,   setShowCheckerKey]   = useState(false)
@@ -125,17 +120,13 @@ export default function SettingsPage() {
   const [pwdVerifying,     setPwdVerifying]     = useState(false)
 
   useEffect(() => {
-    Promise.all([settingsService.get(), scheduleService.getAll()])
-      .then(([data, scheds]) => {
-        setForm(data)
-        const emails = data.invitationEmails
-          ? data.invitationEmails.split(',').map(e => e.trim()).filter(Boolean)
-          : []
-        setEmailList(emails)
-        setSchedules(scheds)
-      })
+    settingsService.get()
+      .then(data => setForm(data))
       .catch(() => setError('No se pudo cargar la configuración.'))
       .finally(() => setLoading(false))
+    scheduleService.getAll()
+      .then(scheds => setSchedules(scheds))
+      .catch(() => {})
   }, [])
 
   const handleTabClick = (key: Tab) => {
@@ -192,9 +183,9 @@ export default function SettingsPage() {
         { element: '#tour-smtp-save',       title: 'Guarda los cambios',                description: 'Usa el botón <b>Guardar</b> cuando termines: arriba a la derecha en escritorio, o el botón circular <b>abajo a la derecha</b> en móvil. Los cambios no se aplican hasta que guardes.' },
       ],
       invitations: [
-        { element: '#tour-inv-prefix',    title: 'Código de empleado',                description: 'Define el prefijo para los códigos (ej: EMP-001). <b>Depende de: nada</b> — puedes configurarlo en cualquier momento.' },
-        { element: '#tour-inv-emails',    title: 'Correos destino',                   description: 'Cuando presiones "Enviar invitación", el link de registro llega a estos correos. <b>Requiere SMTP activo</b> para enviarse por email; si no, copia el link manualmente.' },
-        { element: '#tour-inv-send',      title: 'Generar invitación',                description: 'Crea un link único de registro para que el empleado ingrese sus datos. Puedes asignar un código fijo y un horario antes de enviarlo.' },
+        { element: '#tour-inv-prefix',    title: 'Código de empleado',   description: 'Define el prefijo para los códigos de empleado (ej: EMP-001). La expiración indica cuántas horas tiene el empleado para completar su registro.' },
+        { element: '#tour-inv-emails',    title: 'Destinatarios',        description: 'Agrega uno o varios destinatarios. Cada uno recibe su propio enlace único — puedes asignarle un código, un horario y la fecha desde la que aplica ese horario.' },
+        { element: '#tour-inv-send',      title: 'Enviar invitaciones',  description: 'Envía los enlaces a todos los destinatarios de una sola vez. <b>Requiere SMTP activo y configurado</b> en la pestaña "Configuración de correo".' },
       ],
       checker: [
         { element: '#tour-checker-key',   title: 'Clave del Checador',                description: 'Esta clave conecta tu empresa con el dispositivo checador web/móvil. <b>Sin ella el checador no funciona</b>. Si la cambias, deberás actualizar el dispositivo.' },
@@ -210,12 +201,8 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true); setError(null)
     try {
-      const payload: TenantSettings = {
-        ...form,
-        invitationEmails: emailList.length > 0 ? emailList.join(',') : null,
-      }
-      const updated = await settingsService.update(payload)
-      setForm({ ...updated, smtpPassword: payload.smtpPassword })
+      const updated = await settingsService.update(form)
+      setForm(updated)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
       toast.success('Configuración guardada correctamente.')
@@ -227,35 +214,45 @@ export default function SettingsPage() {
     }
   }
 
-  const addEmail = () => {
-    const email = emailInput.trim().toLowerCase()
-    if (!email || emailList.includes(email)) { setEmailInput(''); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Correo electrónico inválido.'); return
-    }
-    setEmailList(prev => [...prev, email])
-    setEmailInput('')
+  const today = new Date().toISOString().split('T')[0]
+
+  const addRecipient = () => {
+    setRecipients(prev => [...prev, { id: crypto.randomUUID(), email: '', assignedCode: '', scheduleId: '', scheduleStartDate: today }])
+  }
+
+  const updateRecipient = (id: string, field: 'email' | 'assignedCode' | 'scheduleId' | 'scheduleStartDate', value: string) => {
+    setRecipients(prev => prev.map(r => {
+      if (r.id !== id) return r
+      if (field === 'assignedCode') return { ...r, assignedCode: value.toUpperCase() }
+      if (field === 'scheduleId')   return { ...r, scheduleId: value, scheduleStartDate: today }
+      return { ...r, [field]: value }
+    }))
+  }
+
+  const removeRecipient = (id: string) => {
+    setRecipients(prev => prev.filter(r => r.id !== id))
   }
 
   const handleSendInvitation = async () => {
-    if (emailList.length === 0) { setError('Agrega al menos un correo antes de enviar.'); return }
+    const valid = recipients.filter(r => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email.trim()))
+    if (valid.length === 0) { setError('Agrega al menos un destinatario con correo válido.'); return }
     setSending(true); setError(null)
     try {
-      const payload: TenantSettings = { ...form, invitationEmails: emailList.join(',') }
-      await settingsService.update(payload)
-      const { url, emailSent } = await settingsService.sendInvitation(
+      const data = await settingsService.sendInvitation(
         window.location.origin,
-        assignedCode.trim() || undefined,
-        selectedScheduleId || undefined
+        valid.map(r => ({
+          email:             r.email.trim().toLowerCase(),
+          assignedCode:      r.assignedCode.trim() || undefined,
+          scheduleId:        r.scheduleId        || undefined,
+          scheduleStartDate: r.scheduleId ? r.scheduleStartDate : undefined,
+        })),
       )
-      setInviteUrl(url)
-      setInviteEmailSent(emailSent)
-      setInviteCode(assignedCode.trim() || null)
-      setEmailList([])
-      setAssignedCode('')
-      setSelectedScheduleId('')
-      setForm(prev => ({ ...prev, invitationEmails: null }))
-      toast.success(emailSent ? 'Invitación enviada por correo.' : 'Enlace generado (correo no enviado — SMTP desactivado).')
+      setInviteResults(data.results)
+      setRecipients([])
+      toast.success(data.emailSent
+        ? `${data.results.length} invitación${data.results.length !== 1 ? 'es' : ''} enviada${data.results.length !== 1 ? 's' : ''} por correo.`
+        : `${data.results.length} enlace${data.results.length !== 1 ? 's' : ''} generado${data.results.length !== 1 ? 's' : ''} (SMTP desactivado).`
+      )
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setError(msg ?? 'Error al generar la invitación.')
@@ -265,10 +262,9 @@ export default function SettingsPage() {
     }
   }
 
-  const copyUrl = async () => {
-    if (!inviteUrl) return
-    await copyText(inviteUrl)
-    setCopied(true); setTimeout(() => setCopied(false), 2000)
+  const copyInviteUrl = async (url: string, idx: number) => {
+    await copyText(url)
+    setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000)
   }
 
   const applyProvider = (label: string) => {
@@ -300,12 +296,21 @@ export default function SettingsPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Parámetros del sistema</p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
+            <p className="text-gray-500 text-sm mt-0.5">Parámetros del sistema</p>
+          </div>
+          {/* HelpButton izquierda — solo desktop */}
+          {activeTab !== 'subscription' && (
+            <span className="hidden sm:block mt-1"><HelpButton onClick={runTour} /></span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          {activeTab !== 'subscription' && <HelpButton onClick={runTour} />}
+          {/* HelpButton derecha — solo mobile */}
+          {activeTab !== 'subscription' && (
+            <span className="sm:hidden"><HelpButton onClick={runTour} /></span>
+          )}
           {/* Botón guardar — solo desktop */}
           {activeTab !== 'subscription' && (
             <button
@@ -549,51 +554,120 @@ export default function SettingsPage() {
                     onChange={v => setForm(p => ({ ...p, invitationExpirationHours: parseInt(v) || 48 }))}
                     type="number"
                     placeholder="48"
-                    hint="Recomendado: 48 h. Para pruebas usa 1 h."
+                    hint="Recomendado: 48 h."
                   />
                 </div>
               </div>
 
               <hr className="border-gray-100" />
 
-              {/* Correos destino */}
+              {/* Destinatarios */}
               <div id="tour-inv-emails" className="space-y-3">
-                <p className="text-xs font-bold text-primary-700 uppercase tracking-wider">Correos destino</p>
-
-                <p className="text-sm text-gray-500">
-                  El enlace de registro se enviará a estos correos cuando presiones <strong>Enviar invitación</strong>.
-                </p>
-
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    value={emailInput}
-                    onChange={e => setEmailInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addEmail()}
-                    placeholder="correo@empleado.com"
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-primary-700 uppercase tracking-wider">Destinatarios</p>
                   <button
-                    onClick={addEmail}
-                    className="flex items-center gap-1 px-3 py-2 bg-primary-100 hover:bg-primary-200 text-primary-700 text-sm font-medium rounded-lg"
+                    onClick={addRecipient}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-lg border border-primary-200 transition-colors"
                   >
-                    <Plus className="w-4 h-4" />Agregar
+                    <UserPlus className="w-3.5 h-3.5" />Agregar destinatario
                   </button>
                 </div>
 
-                {emailList.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {emailList.map(email => (
-                      <span key={email} className="flex items-center gap-1 px-2.5 py-1 bg-primary-50 border border-primary-200 text-primary-700 text-xs rounded-full">
-                        {email}
-                        <button onClick={() => setEmailList(prev => prev.filter(e => e !== email))}>
-                          <X className="w-3 h-3 hover:text-red-500" />
-                        </button>
-                      </span>
-                    ))}
+                <p className="text-xs text-gray-400">
+                  Cada destinatario recibe su propio enlace único. El código y el horario son opcionales — si no asignas código, el sistema genera uno automáticamente.
+                </p>
+
+                {recipients.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 gap-2">
+                    <Mail className="w-8 h-8 opacity-30" />
+                    <p className="text-sm">No hay destinatarios</p>
+                    <button onClick={addRecipient} className="text-xs text-primary-600 hover:underline">
+                      + Agregar el primero
+                    </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400">No hay correos configurados.</p>
+                  <div className="space-y-2">
+                    {recipients.map((r, idx) => {
+                      const emailInvalid = r.email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email.trim())
+                      return (
+                        <div key={r.id} className="relative p-3 pr-9 border border-gray-200 rounded-xl bg-gray-50 space-y-2">
+                          {/* X — siempre arriba a la derecha */}
+                          <button
+                            onClick={() => removeRecipient(r.id)}
+                            className="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+
+                          {/* Desktop: una sola fila — Mobile: apilado */}
+                          <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                            {/* Correo */}
+                            <div className="flex-1 min-w-0">
+                              <label className="text-xs font-medium text-gray-500 mb-1 block">
+                                Correo <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="email"
+                                value={r.email}
+                                onChange={e => updateRecipient(r.id, 'email', e.target.value)}
+                                placeholder={`empleado${idx + 1}@empresa.com`}
+                                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 bg-white ${
+                                  emailInvalid
+                                    ? 'border-red-400 focus:ring-red-400'
+                                    : 'border-gray-300 focus:ring-primary-500'
+                                }`}
+                              />
+                              {emailInvalid && (
+                                <p className="text-xs text-red-500 mt-0.5">Correo inválido</p>
+                              )}
+                            </div>
+                            {/* Código */}
+                            <div className="sm:w-36">
+                              <label className="text-xs font-medium text-gray-500 mb-1 block">Código <span className="font-normal text-gray-400">(opc.)</span></label>
+                              <input
+                                type="text"
+                                value={r.assignedCode}
+                                onChange={e => updateRecipient(r.id, 'assignedCode', e.target.value)}
+                                placeholder={`${form.employeeCodePrefix || 'EMP-'}00${idx + 1}`}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                              />
+                            </div>
+                            {/* Horario */}
+                            <div className="sm:w-44">
+                              <label className="text-xs font-medium text-gray-500 mb-1 block">Horario <span className="font-normal text-gray-400">(opc.)</span></label>
+                              <select
+                                value={r.scheduleId}
+                                onChange={e => updateRecipient(r.id, 'scheduleId', e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                              >
+                                <option value="">— Sin horario —</option>
+                                {schedules.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                              </select>
+                            </div>
+                            {/* Aplica desde — solo si hay horario */}
+                            {r.scheduleId && (
+                              <div className="sm:w-40">
+                                <label className="text-xs font-medium text-gray-500 mb-1 block">Aplica desde</label>
+                                <input
+                                  type="date"
+                                  value={r.scheduleStartDate}
+                                  onChange={e => updateRecipient(r.id, 'scheduleStartDate', e.target.value)}
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Aviso sin horario */}
+                          {!r.scheduleId && (
+                            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                              Sin horario asignado, el empleado no podrá registrar asistencia en el checador hasta que se le asigne uno.
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
 
@@ -601,95 +675,70 @@ export default function SettingsPage() {
 
               {/* Enviar */}
               <div id="tour-inv-send" className="space-y-3">
-                {/* Código fijo opcional */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-gray-500">
-                    Código de empleado a asignar <span className="text-gray-400 font-normal">(opcional)</span>
-                  </label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      value={assignedCode}
-                      onChange={e => setAssignedCode(e.target.value.toUpperCase())}
-                      placeholder={`Ej: ${form.employeeCodePrefix || 'EMP-'}005 — vacío = auto-generar`}
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                    {assignedCode && (
-                      <button onClick={() => setAssignedCode('')} className="text-gray-400 hover:text-gray-600">
+                {(() => {
+                  const smtpOk = !!(form.smtpEnabled && form.smtpHost && form.smtpUsername && form.smtpPassword)
+                  const hasValidRecipient = recipients.some(r => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email.trim()))
+                  const hasInvalidEmail   = recipients.some(r => r.email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email.trim()))
+                  const canSend = smtpOk && hasValidRecipient && !hasInvalidEmail
+                  return (
+                    <>
+                      {!smtpOk && (
+                        <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>Para enviar invitaciones debes configurar y activar el <strong>correo electrónico</strong> en la pestaña <strong>"Configuración de correo"</strong>.</span>
+                        </div>
+                      )}
+                      <div className="flex sm:justify-start justify-end">
+                        <button
+                          onClick={handleSendInvitation}
+                          disabled={sending || !canSend}
+                          className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          {sending
+                            ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando…</>
+                            : <><Send className="w-4 h-4" />Enviar invitaciones</>}
+                        </button>
+                      </div>
+                    </>
+                  )
+                })()}
+
+                {/* Resultados por destinatario */}
+                {inviteResults && inviteResults.length > 0 && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-green-700">
+                        {inviteResults.length} invitación{inviteResults.length !== 1 ? 'es' : ''} generada{inviteResults.length !== 1 ? 's' : ''}
+                      </p>
+                      <button onClick={() => setInviteResults(null)} className="text-green-600 hover:text-green-800">
                         <X className="w-4 h-4" />
                       </button>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Si lo dejas vacío, el sistema asigna el siguiente número disponible con el prefijo <span className="font-mono text-primary-600">{form.employeeCodePrefix || 'EMP-'}</span>
-                  </p>
-                </div>
-
-                {/* Horario opcional */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-gray-500">
-                    Horario a asignar <span className="text-gray-400 font-normal">(opcional)</span>
-                  </label>
-                  <select
-                    value={selectedScheduleId}
-                    onChange={e => setSelectedScheduleId(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">— Sin horario (el administrador lo asignará después) —</option>
-                    {schedules.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                  {!selectedScheduleId && (
-                    <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg mt-1">
-                      Sin horario asignado, el empleado no podrá registrar asistencia en el checador hasta que se le asigne uno.
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleSendInvitation}
-                    disabled={sending || emailList.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    {sending
-                      ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando…</>
-                      : <><Send className="w-4 h-4" />Enviar invitación</>}
-                  </button>
-                  <span className="text-xs text-gray-400">
-                    {emailList.length === 0
-                      ? 'Agrega correos arriba'
-                      : `${emailList.length} destinatario${emailList.length !== 1 ? 's' : ''}`}
-                  </span>
-                </div>
-
-                {!form.smtpEnabled && emailList.length > 0 && (
-                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
-                    El correo no está activo — se generará el enlace pero no se enviará email.
-                    Actívalo en la pestaña <strong>Configuración de correo</strong>.
-                  </p>
-                )}
-
-                {inviteUrl && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-2">
-                    <p className="text-xs font-medium text-green-700">Invitación generada</p>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs text-green-800 bg-green-100 px-2 py-1.5 rounded break-all">{inviteUrl}</code>
-                      <button
-                        onClick={copyUrl}
-                        className="shrink-0 flex items-center gap-1 px-2 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg"
-                      >
-                        {copied ? <><Check className="w-3 h-3" />Copiado</> : <><Copy className="w-3 h-3" />Copiar</>}
-                      </button>
                     </div>
-                    <p className="text-xs text-green-600">
-                      Válido por {form.invitationExpirationHours} h.
-                      {inviteEmailSent ? ' Email enviado a los destinatarios.' : ' Correo no enviado (SMTP desactivado) — comparte el enlace manualmente.'}
-                      {inviteCode
-                        ? <> Código asignado: <span className="font-mono font-bold">{inviteCode}</span></>
-                        : <> El código se generará automáticamente al registrarse.</>}
-                    </p>
+                    <div className="space-y-2">
+                      {inviteResults.map((r, idx) => (
+                        <div key={idx} className="bg-white border border-green-200 rounded-lg p-3 space-y-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-medium text-gray-700">{r.email}</span>
+                            {r.assignedCode && (
+                              <span className="text-xs font-mono bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">{r.assignedCode}</span>
+                            )}
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${r.emailSent ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {r.emailSent ? '✓ Email enviado' : '⚠ Sin email'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-xs text-gray-600 bg-gray-50 border border-gray-200 px-2 py-1 rounded truncate">{r.url}</code>
+                            <button
+                              onClick={() => copyInviteUrl(r.url, idx)}
+                              className="shrink-0 flex items-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg"
+                            >
+                              {copiedIdx === idx ? <><Check className="w-3 h-3" />Copiado</> : <><Copy className="w-3 h-3" />Copiar</>}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-green-600">Válidos por {form.invitationExpirationHours} h.</p>
                   </div>
                 )}
               </div>

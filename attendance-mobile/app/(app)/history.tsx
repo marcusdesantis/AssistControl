@@ -1,4 +1,5 @@
 import { mobileService, type AttendanceRecord } from '@/services/mobileService'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useRef, useState } from 'react'
@@ -9,7 +10,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
@@ -39,62 +39,82 @@ function formatDateHeader(iso: string): string {
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-// ─── Date input (web usa <input type="date">, native usa TextInput) ─────────
+// ─── Date input ───────────────────────────────────────────────────────────────
+function parseDateStr(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function formatDisplay(s: string): string {
+  const d = parseDateStr(s)
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 function DateInput({ value, onChange, max, min, label }: {
   value: string; onChange: (v: string) => void
   max?: string; min?: string; label: string
 }) {
+  const [open, setOpen] = useState(false)
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={di.wrap}>
+        <Text style={di.label}>{label}</Text>
+        {/* @ts-ignore */}
+        <input
+          type="date"
+          value={value}
+          max={max}
+          min={min}
+          onChange={(e: any) => onChange(e.target.value)}
+          style={{
+            backgroundColor: '#1e293b', color: '#f1f5f9',
+            border: '1px solid #334155', borderRadius: 10,
+            padding: '9px 12px', fontSize: 14,
+            colorScheme: 'dark', outline: 'none',
+            width: '100%', boxSizing: 'border-box',
+          }}
+        />
+      </View>
+    )
+  }
+
   return (
     <View style={di.wrap}>
       <Text style={di.label}>{label}</Text>
-      {Platform.OS === 'web'
-        ? (
-          // @ts-ignore — input HTML nativo en web
-          <input
-            type="date"
-            value={value}
-            max={max}
-            min={min}
-            onChange={(e: any) => onChange(e.target.value)}
-            style={{
-              backgroundColor: '#1e293b',
-              color: '#f1f5f9',
-              border: '1px solid #334155',
-              borderRadius: 10,
-              padding: '9px 12px',
-              fontSize: 14,
-              colorScheme: 'dark',
-              outline: 'none',
-              width: '100%',
-              boxSizing: 'border-box',
-            }}
-          />
-        )
-        : (
-          <TextInput
-            value={value}
-            onChangeText={onChange}
-            placeholder="AAAA-MM-DD"
-            placeholderTextColor="#475569"
-            style={di.input}
-            keyboardType="numbers-and-punctuation"
-            maxLength={10}
-          />
-        )
-      }
+      <TouchableOpacity style={di.btn} onPress={() => setOpen(true)} activeOpacity={0.7}>
+        <Ionicons name="calendar-outline" size={15} color="#64748b" />
+        <Text style={di.btnText}>{formatDisplay(value)}</Text>
+      </TouchableOpacity>
+      {open && (
+        <DateTimePicker
+          value={parseDateStr(value)}
+          mode="date"
+          display="default"
+          maximumDate={max ? parseDateStr(max) : undefined}
+          minimumDate={min ? parseDateStr(min) : undefined}
+          onChange={(_e, date) => {
+            setOpen(false)
+            if (date) {
+              const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+              onChange(iso)
+            }
+          }}
+        />
+      )}
     </View>
   )
 }
 
 const di = StyleSheet.create({
-  wrap:  { flex: 1, minWidth: 0 },
-  label: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: {
-    backgroundColor: '#1e293b', color: '#f1f5f9',
-    borderWidth: 1, borderColor: '#334155',
-    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9,
-    fontSize: 14,
+  wrap:    { flex: 1, minWidth: 0 },
+  label:   { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  btn:     {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155',
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
   },
+  btnText: { color: '#f1f5f9', fontSize: 14, flex: 1 },
 })
 
 // ─── Status colors / labels ───────────────────────────────────────────────────

@@ -2,10 +2,18 @@ import nodemailer from 'nodemailer'
 import QRCode from 'qrcode'
 import prisma from '../prisma'
 
+interface Attachment {
+  cid:      string
+  filename: string
+  content:  Buffer
+  encoding: string
+}
+
 interface SendOptions {
-  to:      string | string[]
-  subject: string
-  html:    string
+  to:          string | string[]
+  subject:     string
+  html:        string
+  attachments?: Attachment[]
 }
 
 async function getSmtpConfig(tenantId: string) {
@@ -71,8 +79,8 @@ export async function sendSystemEmail(opts: SystemEmailOptions): Promise<void> {
   })
 }
 
-export async function generateQr(text: string, size = 200): Promise<string> {
-  return QRCode.toDataURL(text, { width: size, margin: 1, errorCorrectionLevel: 'M' })
+export async function generateQr(text: string, size = 200): Promise<Buffer> {
+  return QRCode.toBuffer(text, { width: size, margin: 1, errorCorrectionLevel: 'M' })
 }
 
 export async function sendEmail(tenantId: string, opts: SendOptions): Promise<void> {
@@ -88,10 +96,11 @@ export async function sendEmail(tenantId: string, opts: SendOptions): Promise<vo
 
   try {
     await transporter.sendMail({
-      from:    `"${config.fromName}" <${config.user}>`,
-      to:      Array.isArray(opts.to) ? opts.to.join(',') : opts.to,
-      subject: opts.subject,
-      html:    opts.html,
+      from:        `"${config.fromName}" <${config.user}>`,
+      to:          Array.isArray(opts.to) ? opts.to.join(',') : opts.to,
+      subject:     opts.subject,
+      html:        opts.html,
+      attachments: opts.attachments,
     })
   } catch (err: any) {
     const hint = err.code === 'ESOCKET'   ? ' (verifica el puerto y SSL/TLS en la configuración SMTP)' :

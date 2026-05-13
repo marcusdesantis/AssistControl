@@ -58,14 +58,20 @@ export const settingsService = {
     return res.data.data!
   },
 
-  sendInvitation: async (appBaseUrl: string, assignedCode?: string, scheduleId?: string): Promise<{ url: string; emailSent: boolean }> => {
-    const res = await api.post<ApiResponse<{ url: string; token: string; invitationId: string; expiresAt: string; sentTo: string[]; emailSent: boolean }>>(
+  sendInvitation: async (
+    appBaseUrl: string,
+    recipients: { email: string; assignedCode?: string; scheduleId?: string; scheduleStartDate?: string }[],
+  ): Promise<{ results: { email: string; assignedCode: string | null; url: string; emailSent: boolean }[]; emailSent: boolean }> => {
+    const res = await api.post<ApiResponse<{
+      results:   { email: string; assignedCode: string | null; url: string; emailSent: boolean }[]
+      expiresAt: string
+      emailSent: boolean
+    }>>(
       '/settings/invitations/send',
-      { assignedCode: assignedCode || null, scheduleId: scheduleId || null },
+      { recipients },
       { headers: { 'X-App-Base-Url': appBaseUrl } }
     )
-    const { url, emailSent } = res.data.data!
-    return { url, emailSent }
+    return res.data.data!
   },
 }
 
