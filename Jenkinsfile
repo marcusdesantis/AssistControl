@@ -16,13 +16,13 @@ pipeline {
     stage('Migrar DB') {
       steps {
         dir("${ROOT}/attendance-nextjs/packages/shared") {
-          sh '''
-            DB=$(grep '^DATABASE_URL=' ../.env | head -1 | cut -d= -f2-)
-            DB_LOCAL=$(echo "$DB" | sed 's|host.docker.internal|127.0.0.1|g')
+          sh """
+            DB=\$(grep '^DATABASE_URL=' ${ROOT}/attendance-nextjs/.env | head -1 | cut -d= -f2-)
+            DB_LOCAL=\$(echo "\$DB" | sed 's|host.docker.internal|127.0.0.1|g')
             echo "=== Aplicando schema ==="
-            DATABASE_URL="$DB_LOCAL" npx prisma db push --skip-generate
+            DATABASE_URL="\$DB_LOCAL" npx prisma db push --skip-generate
             echo "=== Migracion completada ==="
-          '''
+          """
         }
       }
     }
