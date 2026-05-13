@@ -55,6 +55,18 @@ export default function Layout() {
 
   const can = (cap: keyof PlanCapabilities) => capabilities[cap]?.enabled === true
 
+  // Sincronización cross-tab: si otra pestaña cambia la sesión (impersonación),
+  // esta pestaña se actualiza automáticamente recargando la página.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'attendance-auth' && e.newValue) {
+        window.location.reload()
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   useEffect(() => {
     const refresh = () => {
       billingService.getSubscription()
