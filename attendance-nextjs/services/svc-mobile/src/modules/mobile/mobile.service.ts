@@ -61,6 +61,7 @@ export async function login(username: string, password: string) {
 
   return {
     token,
+    tenantId:     employee.tenantId,
     employeeId:   employee.id,
     employeeCode: employee.employeeCode,
     fullName:     `${employee.firstName} ${employee.lastName}`,

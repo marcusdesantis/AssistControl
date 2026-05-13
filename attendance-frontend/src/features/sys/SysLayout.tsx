@@ -13,8 +13,8 @@ const NAV = [
   { to: '/sys/plans',         label: 'Planes',        icon: Package },
   { to: '/sys/subscriptions', label: 'Suscripciones', icon: CreditCard },
   { to: '/sys/invoices',      label: 'Comprobantes',  icon: FileText },
-  { to: '/sys/logs',          label: 'Logs',          icon: Activity },
   { to: '/sys/support',       label: 'Soporte',       icon: Headset },
+  { to: '/sys/logs',          label: 'Logs',          icon: Activity },
   { to: '/sys/settings',      label: 'Configuración', icon: Settings },
 ]
 

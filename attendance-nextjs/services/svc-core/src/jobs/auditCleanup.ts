@@ -61,7 +61,6 @@ async function runCleanup() {
 }
 
 async function backupAndDeleteTenantLogs(tenantId: string, cutoff: Date) {
-  // Agrupar los logs por mes (YYYY-MM)
   const logs = await prisma.auditLog.findMany({
     where: { tenantId, createdAt: { lt: cutoff } },
     orderBy: { createdAt: 'asc' },
@@ -69,35 +68,25 @@ async function backupAndDeleteTenantLogs(tenantId: string, cutoff: Date) {
 
   if (logs.length === 0) return
 
-  // Agrupar por mes
-  const byMonth: Record<string, typeof logs> = {}
-  for (const log of logs) {
-    const month = log.createdAt.toISOString().slice(0, 7) // "2026-04"
-    if (!byMonth[month]) byMonth[month] = []
-    byMonth[month].push(log)
-  }
-
-  // Escribir un archivo por mes
-  const tenantDir = path.join(LOGS_BASE, 'tenants', tenantId)
+  // Nombre del archivo: fecha completa del día de backup (YYYY-MM-DD)
+  const backupDate = new Date().toISOString().slice(0, 10) // "2026-05-13"
+  const tenantDir  = path.join(LOGS_BASE, 'tenants', tenantId)
   fs.mkdirSync(tenantDir, { recursive: true })
 
-  for (const [month, monthLogs] of Object.entries(byMonth)) {
-    const filePath = path.join(tenantDir, `${month}.json`)
+  const filePath = path.join(tenantDir, `${backupDate}.json`)
 
-    // Si el archivo ya existe, fusionar (puede haber corrida previa parcial)
-    let existing: typeof logs = []
-    if (fs.existsSync(filePath)) {
-      try { existing = JSON.parse(fs.readFileSync(filePath, 'utf-8')) } catch { existing = [] }
-    }
-
-    const merged = [...existing, ...monthLogs]
-    fs.writeFileSync(filePath, JSON.stringify(merged, null, 2), 'utf-8')
+  // Si ya existe (doble ejecución el mismo día), fusionar
+  let existing: typeof logs = []
+  if (fs.existsSync(filePath)) {
+    try { existing = JSON.parse(fs.readFileSync(filePath, 'utf-8')) } catch { existing = [] }
   }
+
+  fs.writeFileSync(filePath, JSON.stringify([...existing, ...logs], null, 2), 'utf-8')
 
   // Borrar de la DB
   await prisma.auditLog.deleteMany({
     where: { tenantId, createdAt: { lt: cutoff } },
   })
 
-  console.log(`[audit-cleanup] Tenant ${tenantId}: ${logs.length} logs respaldados y eliminados.`)
+  console.log(`[audit-cleanup] Tenant ${tenantId}: ${logs.length} logs respaldados en ${backupDate}.json`)
 }

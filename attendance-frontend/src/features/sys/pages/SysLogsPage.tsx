@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FileText, ChevronRight, ArrowLeft, Download, Activity, Monitor, Smartphone, Search, Database, Archive } from 'lucide-react'
+import { FileText, ChevronRight, ArrowLeft, Download, Activity, Monitor, Smartphone, Search, Database, Archive, Loader2 } from 'lucide-react'
 import { sysApi } from '@/services/sysApi'
 import Pagination from '@/components/Pagination'
+import { createTour } from '@/utils/tour'
+import HelpButton from '@/components/HelpButton'
 
 interface TenantRow  { id: string; name: string }
 interface BackupFile { month: string; filename: string; sizeKb: number }
@@ -138,18 +140,44 @@ export default function SysLogsPage() {
   const [activeSize,    setActiveSize]    = useState(50)
   const [activeLoading, setActiveLoading] = useState(false)
 
-  // Backups
-  const [files,         setFiles]         = useState<BackupFile[]>([])
-  const [openFile,      setOpenFile]      = useState<string | null>(null)
-  const [backupLogs,    setBackupLogs]    = useState<AuditLog[]>([])
-  const [backupPage,    setBackupPage]    = useState(1)
-  const [backupSize,    setBackupSize]    = useState(50)
-  const [backupLoading, setBackupLoading] = useState(false)
+  // Backups — lista de archivos
+  const [files,          setFiles]          = useState<BackupFile[]>([])
+  const [backupSearch,   setBackupSearch]   = useState('')
+  const [selectedFiles,  setSelectedFiles]  = useState<string[]>([])
+  const [filesPage,      setFilesPage]      = useState(1)
+  const [filesSize,      setFilesSize]      = useState(8)
+
+  // Backups — vista de logs combinados
+  const [mergedLogs,     setMergedLogs]     = useState<AuditLog[]>([])
+  const [backupPage,     setBackupPage]     = useState(1)
+  const [backupSize,     setBackupSize]     = useState(50)
+  const [backupLoading,  setBackupLoading]  = useState(false)
+  const [viewingBackup,  setViewingBackup]  = useState(false)
+
+  // Filtros de la vista de respaldos (mismos que activos)
+  const [bkSearch,    setBkSearch]    = useState('')
+  const [bkModule,    setBkModule]    = useState('')
+  const [bkFrom,      setBkFrom]      = useState('')
+  const [bkTo,        setBkTo]        = useState('')
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    sysApi.get('/tenants?page=1&pageSize=200').then(r => setTenants(r.data.data?.items ?? [])).catch(() => {})
+    sysApi.get('/tenants?page=1&pageSize=200').then(r => {
+      const items: TenantRow[] = r.data.data?.items ?? []
+      setTenants(items)
+      // Auto-seleccionar la primera empresa
+      if (items.length > 0) selectTenant(items[0])
+    }).catch(() => {})
     sysApi.get('/audit-config').then(r => setAuditConfig(r.data.data)).catch(() => {})
   }, [])
+
+  const runTour = () => createTour([
+    { element: '#tour-logs-companies',  title: 'Lista de empresas',       description: 'Selecciona una empresa para ver su actividad. Se selecciona automáticamente la primera al entrar.' },
+    { element: '#tour-logs-tabs',       title: 'Activos vs Respaldos',    description: '<b>Activos</b>: logs del período actual en la base de datos.<br><b>Respaldos</b>: archivos históricos en JSON generados automáticamente al cumplirse el período de retención.' },
+    { element: '#tour-logs-filters',    title: 'Filtros de logs activos', description: 'Filtra por módulo, rango de fechas o usuario. Por defecto muestra desde el lunes de la semana actual hasta hoy. Los cambios aplican automáticamente.' },
+    { element: '#tour-logs-table',      title: 'Tabla de actividad',      description: 'Cada fila muestra fecha, usuario, módulo, acción, origen (web o <b>app móvil</b>) e IP. Los logins desde la app móvil también quedan registrados aquí.' },
+    { element: '#tour-logs-backups',    title: 'Respaldos históricos',    description: 'Selecciona uno o varios archivos con el checkbox y pulsa <b>Ver</b> para combinarlos. Dentro puedes filtrar por módulo, usuario y fechas — igual que en logs activos. El botón <b>Descargar</b> exporta solo los registros filtrados.' },
+  ]).drive()
 
   const loadActive = useCallback(async (tenantId: string, p = 1, size = activeSize) => {
     setActiveLoading(true)
@@ -168,9 +196,11 @@ export default function SysLogsPage() {
   }, [search, module, fromDate, toDate, activeSize])
 
   const selectTenant = (t: TenantRow) => {
-    setSelected(t); setTab('active'); setOpenFile(null)
-    setActiveLogs([]); setFiles([]); setBackupLogs([])
-    setActivePage(1); setBackupPage(1)
+    setSelected(t); setTab('active')
+    setActiveLogs([]); setFiles([]); setMergedLogs([])
+    setSelectedFiles([]); setViewingBackup(false)
+    setActivePage(1); setBackupPage(1); setFilesPage(1)
+    setBkSearch(''); setBkModule(''); setBkFrom(''); setBkTo('')
     loadActive(t.id, 1)
     sysApi.get(`/logs?tenantId=${t.id}`).then(r => setFiles(r.data.data)).catch(() => {})
   }
@@ -179,23 +209,70 @@ export default function SysLogsPage() {
     if (selected && tab === 'active') loadActive(selected.id, 1)
   }, [search, module, fromDate, toDate])
 
-  const openBackup = async (month: string) => {
-    setOpenFile(month); setBackupLoading(true); setBackupPage(1)
+  useEffect(() => { setBackupPage(1) }, [bkSearch, bkModule, bkFrom, bkTo])
+  useEffect(() => { setFilesPage(1)  }, [backupSearch, filesSize])
+
+  const viewSelectedBackups = async () => {
+    if (!selectedFiles.length || !selected) return
+    setBackupLoading(true); setBackupPage(1)
+    setBkSearch(''); setBkModule(''); setBkFrom(''); setBkTo('')
     try {
-      const r = await sysApi.get(`/logs/${selected!.id}/${month}`)
-      setBackupLogs(r.data.data)
+      const all = await Promise.all(
+        selectedFiles.map(m => sysApi.get(`/logs/${selected.id}/${m}`).then(r => r.data.data as AuditLog[]))
+      )
+      const merged = all.flat().sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      setMergedLogs(merged)
+      setViewingBackup(true)
     } finally { setBackupLoading(false) }
   }
 
-  const downloadBackup = () => {
-    const blob = new Blob([JSON.stringify(backupLogs, null, 2)], { type: 'application/json' })
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `logs-${selected!.id}-${openFile}.json` })
-    a.click(); URL.revokeObjectURL(a.href)
+  const downloadMerged = () => {
+    setDownloading(true)
+    try {
+      const now    = new Date()
+      const today  = now.toISOString().slice(0, 10)
+      const time   = now.toTimeString().slice(0, 8).replace(/:/g, '-')
+      const datePart   = (bkFrom || bkTo)
+        ? `${bkFrom || today}_al_${bkTo || today}`
+        : today
+      const modulePart = bkModule || 'all'
+      const blob = new Blob([JSON.stringify(filteredMerged, null, 2)], { type: 'application/json' })
+      const a = Object.assign(document.createElement('a'), {
+        href: URL.createObjectURL(blob),
+        download: `logs-${datePart}_${time}_${modulePart}.json`,
+      })
+      a.click(); URL.revokeObjectURL(a.href)
+    } finally {
+      setTimeout(() => setDownloading(false), 900)
+    }
   }
 
-  // Paginación client-side para respaldos
-  const backupTotalPages = Math.ceil(backupLogs.length / backupSize)
-  const backupSlice = backupLogs.slice((backupPage - 1) * backupSize, backupPage * backupSize)
+  const toggleFile = (month: string) =>
+    setSelectedFiles(prev => prev.includes(month) ? prev.filter(m => m !== month) : [...prev, month])
+
+  // Lista de archivos filtrada y paginada
+  const filteredFiles     = files.filter(f => f.month.includes(backupSearch))
+  const filesTotalPages   = Math.ceil(filteredFiles.length / filesSize)
+  const filesSlice        = filteredFiles.slice((filesPage - 1) * filesSize, filesPage * filesSize)
+  const allSelected       = filteredFiles.length > 0 && filteredFiles.every(f => selectedFiles.includes(f.month))
+  const toggleAll         = () => allSelected
+    ? setSelectedFiles(prev => prev.filter(m => !filteredFiles.some(f => f.month === m)))
+    : setSelectedFiles(prev => [...new Set([...prev, ...filteredFiles.map(f => f.month)])])
+
+  // Logs combinados con filtros aplicados
+  const filteredMerged = mergedLogs.filter(log => {
+    if (bkModule && log.module !== bkModule) return false
+    if (bkSearch && !log.userName?.toLowerCase().includes(bkSearch.toLowerCase()) && !log.action.includes(bkSearch)) return false
+    // Comparación por string YYYY-MM-DD para evitar problemas de zona horaria
+    const logDate = log.createdAt.slice(0, 10)
+    if (bkFrom && logDate < bkFrom) return false
+    if (bkTo   && logDate > bkTo)   return false
+    return true
+  })
+
+  // Paginación client-side para vista de respaldos
+  const backupTotalPages = Math.ceil(filteredMerged.length / backupSize)
+  const backupSlice      = filteredMerged.slice((backupPage - 1) * backupSize, backupPage * backupSize)
 
   return (
     <div className="space-y-5">
@@ -208,12 +285,13 @@ export default function SysLogsPage() {
               ? `últimos ${auditConfig.retentionDays} días en DB, respaldo ${auditConfig.mode === 'weekly' ? 'cada lunes' : 'cada día 1 del mes'}`
               : 'cargando configuración…'}
           </p>
+          <div className="mt-1"><HelpButton onClick={runTour} /></div>
         </div>
       </div>
 
       <div className="flex gap-5 min-h-[600px]">
         {/* Lista de empresas */}
-        <div className="w-60 shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+        <div id="tour-logs-companies" className="w-60 shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresas</p>
           </div>
@@ -244,7 +322,7 @@ export default function SysLogsPage() {
             {/* Header tabs */}
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-4 shrink-0">
               <p className="text-sm font-semibold text-gray-800 flex-1 truncate">{selected.name}</p>
-              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              <div id="tour-logs-tabs" className="flex gap-1 bg-gray-100 rounded-lg p-1">
                 <button onClick={() => setTab('active')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'active' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                   <Database className="w-3.5 h-3.5" />Activos
@@ -260,7 +338,7 @@ export default function SysLogsPage() {
             {tab === 'active' && (
               <>
                 {/* Filtros */}
-                <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
+                <div id="tour-logs-filters" className="px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
                   <div className="relative flex-1 min-w-40">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                     <input value={search} onChange={e => setSearch(e.target.value)}
@@ -284,7 +362,7 @@ export default function SysLogsPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
+                <div id="tour-logs-table" className="flex-1 overflow-y-auto">
                   <LogsTable logs={activeLogs} loading={activeLoading} />
                 </div>
 
@@ -302,25 +380,58 @@ export default function SysLogsPage() {
 
             {/* ── Tab: respaldos ── */}
             {tab === 'backups' && (
-              openFile ? (
+              viewingBackup ? (
                 <>
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 shrink-0">
-                    <button onClick={() => { setOpenFile(null); setBackupPage(1) }} className="p-1 rounded hover:bg-gray-100">
+                    <button onClick={() => { setViewingBackup(false); setMergedLogs([]) }} className="p-1 rounded hover:bg-gray-100">
                       <ArrowLeft className="w-4 h-4 text-gray-500" />
                     </button>
-                    <p className="text-sm font-semibold text-gray-800 flex-1">Respaldo — {openFile} ({backupLogs.length} registros)</p>
-                    <button onClick={downloadBackup}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-white rounded-lg hover:bg-slate-900">
-                      <Download className="w-3.5 h-3.5" /> Descargar
+                    <p className="text-sm font-semibold text-gray-800 flex-1">
+                      {selectedFiles.length === 1 ? selectedFiles[0] : `${selectedFiles.length} respaldos combinados`}
+                      <span className="ml-2 text-gray-400 font-normal">
+                        ({filteredMerged.length !== mergedLogs.length ? `${filteredMerged.length} de ${mergedLogs.length}` : mergedLogs.length} registros)
+                      </span>
+                    </p>
+                    <button onClick={downloadMerged} disabled={downloading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-60 min-w-[110px] justify-center">
+                      {downloading
+                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Descargando…</>
+                        : <><Download className="w-3.5 h-3.5" /> Descargar ({filteredMerged.length})</>}
                     </button>
                   </div>
+
+                  {/* Filtros de respaldo */}
+                  <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
+                    <div className="relative flex-1 min-w-40">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                      <input value={bkSearch} onChange={e => setBkSearch(e.target.value)}
+                        placeholder="Buscar usuario…"
+                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                    </div>
+                    <select value={bkModule} onChange={e => setBkModule(e.target.value)}
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-500">
+                      <option value="">Todos los módulos</option>
+                      {MODULES.map(m => <option key={m} value={m}>{MODULE_LABELS[m] ?? m}</option>)}
+                    </select>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-500">Desde</span>
+                      <input type="date" value={bkFrom} onChange={e => setBkFrom(e.target.value)}
+                        className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-500">Hasta</span>
+                      <input type="date" value={bkTo} onChange={e => setBkTo(e.target.value)}
+                        className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                    </div>
+                  </div>
+
                   <div className="flex-1 overflow-y-auto">
                     <LogsTable logs={backupSlice} loading={backupLoading} />
                   </div>
                   <Pagination
                     page={backupPage}
                     totalPages={backupTotalPages}
-                    totalCount={backupLogs.length}
+                    totalCount={filteredMerged.length}
                     pageSize={backupSize}
                     pageSizeOptions={PAGE_SIZE_OPTIONS}
                     onPageChange={p => setBackupPage(p)}
@@ -328,26 +439,72 @@ export default function SysLogsPage() {
                   />
                 </>
               ) : (
-                <div className="flex-1 overflow-y-auto">
+                <div id="tour-logs-backups" className="flex-1 flex flex-col overflow-hidden">
                   {files.length === 0 ? (
                     <div className="p-10 text-center text-gray-400">
                       <Archive className="w-8 h-8 mx-auto mb-2 opacity-30" />
                       <p className="text-sm">Sin respaldos aún</p>
-                      <p className="text-xs mt-1">
-                        Los respaldos se generan automáticamente {auditConfig?.mode === 'weekly' ? 'cada lunes' : 'cada día 1 del mes'}
-                      </p>
+                      <p className="text-xs mt-1">Se generan automáticamente {auditConfig?.mode === 'weekly' ? 'cada lunes' : 'cada día 1 del mes'}</p>
                     </div>
-                  ) : files.map(f => (
-                    <button key={f.month} onClick={() => openBackup(f.month)}
-                      className="w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-slate-400" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">{f.month}</p>
-                        <p className="text-xs text-gray-400">{f.sizeKb} KB · {f.filename}</p>
+                  ) : (
+                    <>
+                      {/* Buscador + acciones */}
+                      <div className="px-4 py-3 border-b border-gray-100 flex gap-2 shrink-0">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                          <input value={backupSearch} onChange={e => setBackupSearch(e.target.value)}
+                            placeholder="Buscar por fecha…"
+                            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                        </div>
+                        <button
+                          onClick={viewSelectedBackups}
+                          disabled={selectedFiles.length === 0 || backupLoading}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-40 shrink-0"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          Ver {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
+                        </button>
                       </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
-                    </button>
-                  ))}
+
+                      {/* Seleccionar todos */}
+                      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-3 shrink-0 bg-gray-50">
+                        <input type="checkbox" id="select-all-backups" checked={allSelected} onChange={toggleAll}
+                          className="w-4 h-4 rounded accent-slate-700 cursor-pointer" />
+                        <label htmlFor="select-all-backups" className="text-xs font-medium text-gray-600 cursor-pointer select-none">
+                          {allSelected ? 'Deseleccionar todos' : 'Seleccionar todos'} ({filteredFiles.length} archivo{filteredFiles.length !== 1 ? 's' : ''})
+                        </label>
+                        {selectedFiles.length > 0 && (
+                          <span className="ml-auto text-xs text-slate-600 font-medium">{selectedFiles.length} seleccionado{selectedFiles.length !== 1 ? 's' : ''}</span>
+                        )}
+                      </div>
+
+                      {/* Lista de archivos */}
+                      <div className="flex-1 overflow-y-auto">
+                        {filteredFiles.length === 0 ? (
+                          <div className="p-6 text-center text-gray-400 text-sm">Sin resultados</div>
+                        ) : filesSlice.map(f => (
+                          <label key={f.month} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer">
+                            <input type="checkbox" checked={selectedFiles.includes(f.month)} onChange={() => toggleFile(f.month)}
+                              className="w-4 h-4 rounded accent-slate-700 shrink-0" />
+                            <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800">{f.month}</p>
+                              <p className="text-xs text-gray-400">{f.sizeKb} KB</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      <Pagination
+                        page={filesPage}
+                        totalPages={filesTotalPages}
+                        totalCount={filteredFiles.length}
+                        pageSize={filesSize}
+                        pageSizeOptions={[8, 16, 24]}
+                        onPageChange={p => setFilesPage(p)}
+                        onPageSizeChange={s => { setFilesSize(s); setFilesPage(1) }}
+                      />
+                    </>
+                  )}
                 </div>
               )
             )}

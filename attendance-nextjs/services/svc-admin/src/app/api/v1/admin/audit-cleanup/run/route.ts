@@ -26,24 +26,16 @@ export const POST = withSuperadmin(async (req) => {
     })
     if (!logs.length) continue
 
-    const byMonth: Record<string, typeof logs> = {}
-    for (const log of logs) {
-      const month = log.createdAt.toISOString().slice(0, 7)
-      if (!byMonth[month]) byMonth[month] = []
-      byMonth[month].push(log)
-    }
-
-    const tenantDir = path.join(LOGS_BASE, 'tenants', tenantId)
+    const backupDate = new Date().toISOString().slice(0, 10) // "2026-05-13"
+    const tenantDir  = path.join(LOGS_BASE, 'tenants', tenantId)
     fs.mkdirSync(tenantDir, { recursive: true })
 
-    for (const [month, monthLogs] of Object.entries(byMonth)) {
-      const filePath = path.join(tenantDir, `${month}.json`)
-      let existing: typeof logs = []
-      if (fs.existsSync(filePath)) {
-        try { existing = JSON.parse(fs.readFileSync(filePath, 'utf-8')) } catch { existing = [] }
-      }
-      fs.writeFileSync(filePath, JSON.stringify([...existing, ...monthLogs], null, 2), 'utf-8')
+    const filePath = path.join(tenantDir, `${backupDate}.json`)
+    let existing: typeof logs = []
+    if (fs.existsSync(filePath)) {
+      try { existing = JSON.parse(fs.readFileSync(filePath, 'utf-8')) } catch { existing = [] }
     }
+    fs.writeFileSync(filePath, JSON.stringify([...existing, ...logs], null, 2), 'utf-8')
 
     await prisma.auditLog.deleteMany({
       where: { tenantId, createdAt: { lt: cutoff } },
