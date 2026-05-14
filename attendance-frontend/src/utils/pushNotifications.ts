@@ -18,6 +18,9 @@ function getFirebaseApp() {
   return getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG)
 }
 
+// Token cacheado en memoria — getToken solo se llama una vez por sesión de navegador
+let _cachedToken: string | null = null
+
 export type PushMessage = {
   title?: string
   body?:  string
@@ -32,23 +35,10 @@ type PushCallbacks = {
 // ── Web (navegador) ───────────────────────────────────────────────────────────
 async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
   try {
-    console.log('[push] Iniciando web push...')
     const app       = getFirebaseApp()
     const messaging = getMessaging(app)
 
-    // Esperar a que el service worker esté activo antes de pedir el token
-    await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    const reg = await navigator.serviceWorker.ready
-    console.log('[push] Service worker listo:', reg.active?.state)
-
-    const permission = await Notification.requestPermission()
-    console.log('[push] Permiso de notificaciones:', permission)
-    if (permission !== 'granted') return
-
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
-    console.log('[push] FCM token obtenido:', token ? token.slice(0, 20) + '...' : 'null')
-    if (token) onToken(token)
-
+    // Registrar listener de mensajes en foreground (idempotente por sesión)
     onMessage(messaging, payload => {
       onMsg({
         title: payload.notification?.title,
@@ -56,6 +46,25 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
         data:  payload.data as Record<string, string> | undefined,
       })
     })
+
+    // Si ya tenemos el token en memoria (otra sesión del mismo navegador lo obtuvo antes),
+    // lo reutilizamos sin llamar a getToken de nuevo — evita AbortError por suscripción duplicada
+    if (_cachedToken) {
+      onToken(_cachedToken)
+      return
+    }
+
+    await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    const reg = await navigator.serviceWorker.ready
+
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return
+
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+    if (token) {
+      _cachedToken = token
+      onToken(token)
+    }
   } catch (e) {
     console.warn('[push] Web init error:', e)
   }
