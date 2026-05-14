@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { isNative } from './platform'
 import { initializeApp, getApps } from 'firebase/app'
-import { getMessaging, getToken, onMessage } from 'firebase/messaging'
+import { getMessaging, getToken, onMessage, deleteToken } from 'firebase/messaging'
 
 const FIREBASE_CONFIG = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY            ?? 'AIzaSyBhPSEhtLvW5cEE-f-92PyuhAi5xGN942o',
@@ -60,7 +60,20 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return
 
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+    let token: string | null = null
+    try {
+      token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+    } catch (e: any) {
+      if (e?.name === 'AbortError') {
+        // Suscripción push inválida o expirada — limpiar y reintentar
+        await deleteToken(messaging).catch(() => {})
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) await sub.unsubscribe().catch(() => {})
+        token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+      } else {
+        throw e
+      }
+    }
     if (token) {
       _cachedToken = token
       onToken(token)
