@@ -1,4 +1,4 @@
-import { withAdmin, apiOk } from '@attendance/shared'
+import { withAdmin, apiOk, createLog, getClientIp } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/attendance/attendance.service'
 
@@ -7,9 +7,9 @@ const schema = z.object({
   notes:      z.string().nullish(),
 })
 
-async function handler(req: Request, tenantId: string) {
+export const POST = withAdmin(async (req: Request, { tenantId, admin }) => {
   const { employeeId, notes } = schema.parse(await req.json())
-  return apiOk(await svc.checkOut(tenantId, employeeId, { notes: notes ?? undefined }), 'Salida registrada.')
-}
-
-export const POST = withAdmin(async (req: Request, { tenantId }) => handler(req, tenantId))
+  const result = await svc.checkOut(tenantId, employeeId, { notes: notes ?? undefined })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'attendance.update', module: 'attendance', detail: { name: result.employeeName, code: result.employeeCode, date: String(result.date).slice(0,10), event: 'check-out' }, ip: getClientIp(req) })
+  return apiOk(result, 'Salida registrada.')
+})

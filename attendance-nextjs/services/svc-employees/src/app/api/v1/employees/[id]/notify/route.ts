@@ -13,7 +13,7 @@ export const POST = withAdmin(async (req, { tenantId, admin }, { params }: { par
 
   const employee = await prisma.employee.findFirst({
     where:  { id, tenantId, isDeleted: false },
-    select: { id: true, expoPushToken: true },
+    select: { id: true, expoPushToken: true, firstName: true, lastName: true, employeeCode: true },
   })
   if (!employee) throw { code: 'NOT_FOUND', message: 'Empleado no encontrado.' }
 
@@ -22,7 +22,7 @@ export const POST = withAdmin(async (req, { tenantId, admin }, { params }: { par
   })
 
   sendExpoPush(employee.expoPushToken, { title, body, data: { notifId: notif.id, type } })
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.notify', module: 'employees', detail: { employeeId: id, title }, ip: getClientIp(req) })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.notify', module: 'employees', detail: { name: `${employee.firstName} ${employee.lastName}`, code: employee.employeeCode, subject: title }, ip: getClientIp(req) })
 
   return apiOk(notif, 'Notificación enviada.')
 })

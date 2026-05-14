@@ -1,4 +1,4 @@
-import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
+import { withPlanGate, apiOk, createLog, getClientIp, prisma } from '@attendance/shared'
 import * as svc from '@/modules/holidays/holidays.service'
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -15,7 +15,8 @@ export const PUT = withPlanGate('schedules', async (req: Request, { tenantId, ad
 
 export const DELETE = withPlanGate('schedules', async (req: Request, { tenantId, admin }, { params }: Ctx) => {
   const { id } = await params
+  const hol = await prisma.holiday.findFirst({ where: { id, tenantId }, select: { name: true, date: true } })
   await svc.remove(id, tenantId)
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'holiday.delete', module: 'holidays', detail: { holidayId: id }, ip: getClientIp(req) })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'holiday.delete', module: 'holidays', detail: { name: hol?.name, date: hol?.date ? new Date(hol.date).toISOString().slice(0,10) : undefined }, ip: getClientIp(req) })
   return apiOk(null, 'Día inhábil eliminado.')
 })

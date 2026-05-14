@@ -9,6 +9,35 @@ interface TenantRow  { id: string; name: string }
 interface BackupFile { month: string; filename: string; sizeKb: number }
 interface AuditLog   { id: string; userName?: string; action: string; module: string; detail?: string; ip?: string; source: string; createdAt: string }
 
+function buildActionLabel(action: string, detail?: string | null): string {
+  const base = ACTION_LABELS[action] ?? action
+  if (!detail) return base
+  try {
+    const d = JSON.parse(detail)
+    const parts: string[] = []
+    if (d.name)          parts.push(d.name)
+    if (d.code)          parts.push(`(${d.code})`)
+    if (d.employeeCode && !d.code) parts.push(`(${d.employeeCode})`)
+    if (d.event)         parts.push(`[${d.event}]`)
+    if (d.status)        parts.push(`→ ${d.status}`)
+    if (d.date)          parts.push(`· ${d.date}`)
+    if (d.subject)       parts.push(`"${d.subject}"`)
+    if (d.recipients != null) parts.push(`→ ${d.recipients} dest.`)
+    if (d.plan)          parts.push(`· ${d.plan}`)
+    if (d.amountPaid != null) parts.push(`$${d.amountPaid}`)
+    if (d.invoiceNumber) parts.push(`#${d.invoiceNumber}`)
+    if (d.amount != null && !d.amountPaid) parts.push(`$${d.amount}`)
+    if (d.category)      parts.push(`[${d.category}]`)
+    if (d.reportType)    parts.push(d.reportType)
+    if (d.format)        parts.push(d.format.toUpperCase())
+    if (d.companyName)   parts.push(d.companyName)
+    if (d.count != null) parts.push(`${d.count} invitaciones`)
+    return parts.length ? `${base}: ${parts.join(' ')}` : base
+  } catch {
+    return base
+  }
+}
+
 const ACTION_LABELS: Record<string, string> = {
   'auth.login': 'Inicio de sesión', 'auth.logout': 'Cierre de sesión', 'auth.change_password': 'Cambio de contraseña',
   'employee.create': 'Empleado creado', 'employee.update': 'Empleado editado', 'employee.delete': 'Empleado eliminado',
@@ -27,6 +56,7 @@ const ACTION_LABELS: Record<string, string> = {
   'settings.save_checker': 'Config. de checador guardada',
   'settings.save_registro': 'Config. de registro guardada',
   'settings.save_settings': 'Configuración guardada',
+  'settings.save_planes':   'Config. de planes guardada',
   'billing.payment_initiated': 'Pago iniciado',
   'billing.receipt_download': 'Comprobante descargado',
   'auth.reset_password': 'Contraseña restablecida',
@@ -81,7 +111,7 @@ function LogsTable({ logs, loading }: { logs: AuditLog[]; loading: boolean }) {
                 {MODULE_LABELS[log.module] ?? log.module}
               </span>
             </div>
-            <p className="text-xs text-gray-600">{ACTION_LABELS[log.action] ?? log.action}</p>
+            <p className="text-xs text-gray-600">{buildActionLabel(log.action, log.detail)}</p>
             <div className="flex items-center gap-3 text-xs text-gray-400">
               <span className="whitespace-nowrap">
                 {new Date(log.createdAt).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
@@ -119,7 +149,7 @@ function LogsTable({ logs, loading }: { logs: AuditLog[]; loading: boolean }) {
                     {MODULE_LABELS[log.module] ?? log.module}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-gray-700">{ACTION_LABELS[log.action] ?? log.action}</td>
+                <td className="px-4 py-2.5 text-gray-700">{buildActionLabel(log.action, log.detail)}</td>
                 <td className="px-4 py-2.5 text-xs">
                   {log.source === 'mobile'
                     ? <span className="flex items-center gap-1 text-cyan-600"><Smartphone className="w-3 h-3" />Móvil</span>

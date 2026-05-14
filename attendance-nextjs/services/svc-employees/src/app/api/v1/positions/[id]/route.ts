@@ -1,4 +1,4 @@
-import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
+import { withPlanGate, apiOk, createLog, getClientIp, prisma } from '@attendance/shared'
 import { z } from 'zod'
 import * as svc from '@/modules/positions/positions.service'
 
@@ -16,7 +16,8 @@ export const PUT = withPlanGate('organization', async(req: Request, { tenantId, 
 export const DELETE = withPlanGate('organization', async(req: Request, { tenantId, admin }, { params }: Ctx) => {
   const { id }       = await params
   const reassignToId = new URL(req.url).searchParams.get('reassignToId') ?? undefined
+  const pos = await prisma.position.findFirst({ where: { id, tenantId }, select: { name: true } })
   await svc.remove(id, tenantId, reassignToId)
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'position.delete', module: 'organization', detail: { positionId: id }, ip: getClientIp(req) })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'position.delete', module: 'organization', detail: { name: pos?.name ?? id }, ip: getClientIp(req) })
   return apiOk(null, 'Cargo eliminado.')
 })

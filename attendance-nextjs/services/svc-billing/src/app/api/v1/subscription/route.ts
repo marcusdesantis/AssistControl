@@ -47,7 +47,8 @@ export const POST = withAdmin(async (req, { tenantId, admin }) => {
 })
 
 export const DELETE = withAdmin(async (req, { tenantId, admin }) => {
+  const sub = await svc.getSubscription(tenantId)
   const result = await svc.cancelSubscription(tenantId)
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'billing.cancel', module: 'billing', ip: getClientIp(req) })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'billing.cancel', module: 'billing', detail: { plan: sub?.plan?.name }, ip: getClientIp(req) })
   return apiOk(result, 'Suscripción cancelada al final del período.')
 })

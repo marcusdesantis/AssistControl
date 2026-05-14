@@ -1,4 +1,4 @@
-import { prisma, verifyPassword, generatePin, sendEmail, generateQr, calcAttendanceStatus, getScheduleDay, getScheduledMinutes } from '@attendance/shared'
+import { prisma, verifyPassword, generatePin, sendEmail, generateQr, calcAttendanceStatus, getScheduleDay, getScheduledMinutes, createLog } from '@attendance/shared'
 import { DateTime } from 'luxon'
 
 function hoursWorked(a: Date | null, b: Date | null) {
@@ -239,6 +239,8 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
     buildStats(emp.id, today),
   ])
 
+  createLog({ tenantId: tenant.id, userId: emp.id, userName: emp.employeeCode, action: 'mobile.checkin', module: 'mobile', detail: { name: `${emp.firstName} ${emp.lastName}`, code: emp.employeeCode }, source: 'checker' })
+
   return {
     attendance:      recToDto(record),
     employee:        { id: emp.id, name: `${emp.firstName} ${emp.lastName}`, code: emp.employeeCode },
@@ -281,6 +283,8 @@ export async function checkOut(checkerKey: string, employeeCode: string, pin: st
     }),
     buildStats(emp.id, today),
   ])
+
+  createLog({ tenantId: tenant.id, userId: emp.id, userName: emp.employeeCode, action: 'mobile.checkout', module: 'mobile', detail: { name: `${emp.firstName} ${emp.lastName}`, code: emp.employeeCode }, source: 'checker' })
 
   return {
     attendance:      recToDto(updated),

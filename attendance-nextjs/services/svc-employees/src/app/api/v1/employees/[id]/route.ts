@@ -13,13 +13,15 @@ export const PUT = withAdmin(async (req: Request, { tenantId, admin }, { params 
   const { id } = await params
   const dto    = updateEmployeeSchema.parse(await req.json())
   const result = await svc.update(id, tenantId, dto)
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.update', module: 'employees', detail: { employeeId: id }, ip: getClientIp(req) })
+  const STATUS_ES: Record<string, string> = { Active: 'Activo', Inactive: 'Inactivo', OnLeave: 'De baja' }
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.update', module: 'employees', detail: { name: result.fullName, code: result.employeeCode, status: dto.status ? STATUS_ES[dto.status] ?? dto.status : undefined }, ip: getClientIp(req) })
   return apiOk(result, 'Empleado actualizado.')
 })
 
 export const DELETE = withAdmin(async (req: Request, { tenantId, admin }, { params }: Ctx) => {
   const { id } = await params
+  const emp = await svc.getById(id, tenantId)
   await svc.remove(id, tenantId)
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.delete', module: 'employees', detail: { employeeId: id }, ip: getClientIp(req) })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'employee.delete', module: 'employees', detail: { name: emp.fullName, code: emp.employeeCode }, ip: getClientIp(req) })
   return apiOk(null, 'Empleado eliminado.')
 })

@@ -20,7 +20,8 @@ export const PUT = withPlanGate('schedules', async (req: Request, { tenantId, ad
 export const DELETE = withPlanGate('schedules', async (req: Request, { tenantId, admin }, { params }: Ctx) => {
   const { id }       = await params
   const reassignToId = new URL(req.url).searchParams.get('reassignTo') ?? undefined
+  const sch = await svc.getById(id, tenantId)
   await svc.remove(id, tenantId, reassignToId)
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'schedule.delete', module: 'schedules', detail: { scheduleId: id }, ip: getClientIp(req) })
+  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'schedule.delete', module: 'schedules', detail: { name: sch?.name ?? id }, ip: getClientIp(req) })
   return apiOk(null, 'Horario eliminado.')
 })
