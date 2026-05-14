@@ -70,31 +70,68 @@ function LogsTable({ logs, loading }: { logs: AuditLog[]; loading: boolean }) {
     </div>
   )
   return (
-    <div className="divide-y divide-gray-100">
-      {logs.map((log, i) => (
-        <div key={log.id ?? i} className="px-4 py-3 hover:bg-gray-50 transition-colors space-y-1.5">
-          {/* Fila 1: usuario + módulo */}
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-gray-900 text-sm truncate">{log.userName ?? '—'}</p>
-            <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${MODULE_COLORS[log.module] ?? 'bg-gray-100 text-gray-700'}`}>
-              {MODULE_LABELS[log.module] ?? log.module}
-            </span>
+    <>
+      {/* ── Móvil: cards ── */}
+      <div className="divide-y divide-gray-100 md:hidden">
+        {logs.map((log, i) => (
+          <div key={log.id ?? i} className="px-4 py-3 hover:bg-gray-50 transition-colors space-y-1.5">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-semibold text-gray-900 text-sm truncate">{log.userName ?? '—'}</p>
+              <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${MODULE_COLORS[log.module] ?? 'bg-gray-100 text-gray-700'}`}>
+                {MODULE_LABELS[log.module] ?? log.module}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">{ACTION_LABELS[log.action] ?? log.action}</p>
+            <div className="flex items-center gap-3 text-xs text-gray-400">
+              <span className="whitespace-nowrap">
+                {new Date(log.createdAt).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
+              </span>
+              {log.source === 'mobile'
+                ? <span className="flex items-center gap-1 text-cyan-600"><Smartphone className="w-3 h-3" />Móvil</span>
+                : <span className="flex items-center gap-1 text-gray-400"><Monitor className="w-3 h-3" />Web</span>}
+            </div>
           </div>
-          {/* Fila 2: acción */}
-          <p className="text-xs text-gray-600">{ACTION_LABELS[log.action] ?? log.action}</p>
-          {/* Fila 3: fecha + origen + IP */}
-          <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span className="whitespace-nowrap">
-              {new Date(log.createdAt).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
-            </span>
-            {log.source === 'mobile'
-              ? <span className="flex items-center gap-1 text-cyan-600"><Smartphone className="w-3 h-3" />Móvil</span>
-              : <span className="flex items-center gap-1 text-gray-400"><Monitor className="w-3 h-3" />Web</span>}
-            {log.ip && <span className="font-mono hidden sm:block">{log.ip}</span>}
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* ── Desktop: tabla ── */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">Fecha</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Usuario</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Módulo</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Acción</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Origen</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">IP</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {logs.map((log, i) => (
+              <tr key={log.id ?? i} className="hover:bg-gray-50">
+                <td className="px-4 py-2.5 text-gray-500 text-xs whitespace-nowrap">
+                  {new Date(log.createdAt).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
+                </td>
+                <td className="px-4 py-2.5 font-medium text-gray-800">{log.userName ?? '—'}</td>
+                <td className="px-4 py-2.5">
+                  <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${MODULE_COLORS[log.module] ?? 'bg-gray-100 text-gray-700'}`}>
+                    {MODULE_LABELS[log.module] ?? log.module}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-gray-700">{ACTION_LABELS[log.action] ?? log.action}</td>
+                <td className="px-4 py-2.5 text-xs">
+                  {log.source === 'mobile'
+                    ? <span className="flex items-center gap-1 text-cyan-600"><Smartphone className="w-3 h-3" />Móvil</span>
+                    : <span className="flex items-center gap-1 text-gray-500"><Monitor className="w-3 h-3" />Web</span>}
+                </td>
+                <td className="px-4 py-2.5 text-gray-400 text-xs font-mono">{log.ip ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
 
