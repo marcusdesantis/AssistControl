@@ -32,19 +32,23 @@ type PushCallbacks = {
 // ── Web (navegador) ───────────────────────────────────────────────────────────
 async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
   try {
+    console.log('[push] Iniciando web push...')
     const app       = getFirebaseApp()
     const messaging = getMessaging(app)
 
-    // Registrar el service worker
-    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    // Esperar a que el service worker esté activo antes de pedir el token
+    await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    const reg = await navigator.serviceWorker.ready
+    console.log('[push] Service worker listo:', reg.active?.state)
 
     const permission = await Notification.requestPermission()
+    console.log('[push] Permiso de notificaciones:', permission)
     if (permission !== 'granted') return
 
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+    console.log('[push] FCM token obtenido:', token ? token.slice(0, 20) + '...' : 'null')
     if (token) onToken(token)
 
-    // Mensajes en foreground (app abierta)
     onMessage(messaging, payload => {
       onMsg({
         title: payload.notification?.title,
