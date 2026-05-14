@@ -23,7 +23,7 @@ pipeline {
             --network=host \\
             -v ${ROOT}/attendance-nextjs:/app \\
             -e "DATABASE_URL=\$DB_LOCAL" \\
-            node:20-alpine sh -c "apk add --no-cache openssl --quiet && npm install -g prisma@5.22.0 --quiet && prisma db push --schema=/app/packages/shared/prisma/schema.prisma --skip-generate && echo '=== Migracion completada ==='"
+            node:20-alpine sh -c "apk add --no-cache openssl --quiet && npm install -g prisma@5.22.0 --quiet && prisma db push --schema=/app/packages/shared/prisma/schema.prisma --skip-generate --accept-data-loss && echo '=== Migracion completada ==='"
         """
       }
     }
