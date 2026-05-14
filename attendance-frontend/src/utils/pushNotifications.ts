@@ -112,11 +112,22 @@ async function initAndroidPush({ onToken, onMessage: onMsg }: PushCallbacks) {
   }
 }
 
+// Brave bloquea FCM — detectar y omitir push web silenciosamente
+async function isBraveBrowser(): Promise<boolean> {
+  return !!(navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function'
+    ? (navigator as any).brave.isBrave()
+    : false
+}
+
 // ── Entrada pública ───────────────────────────────────────────────────────────
 export async function initPushNotifications(callbacks: PushCallbacks) {
   if (isNative || Capacitor.isNativePlatform()) {
     await initAndroidPush(callbacks)
   } else if ('Notification' in window && 'serviceWorker' in navigator) {
+    if (await isBraveBrowser()) {
+      console.info('[push] Brave detectado — push web no compatible con FCM. Usar Chrome o Edge.')
+      return
+    }
     await initWebPush(callbacks)
   }
 }
