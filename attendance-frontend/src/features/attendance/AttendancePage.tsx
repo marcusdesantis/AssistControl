@@ -36,8 +36,20 @@ function formatHours(h?: number): string {
   return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`
 }
 
-function localTimeToIso(date: string, time: string): string {
-  return `${date}T${time}:00`
+// Convierte hora en zona del tenant → ISO UTC para enviar al backend
+function wallClockToUtcIso(date: string, time: string, tz: string): string {
+  const naiveUTC = new Date(`${date}T${time}:00.000Z`)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(naiveUTC)
+  const g = (t: string) => parts.find(p => p.type === t)?.value ?? '00'
+  const h = parseInt(g('hour'))
+  const tzShown = new Date(Date.UTC(
+    parseInt(g('year')), parseInt(g('month')) - 1, parseInt(g('day')),
+    h === 24 ? 0 : h, parseInt(g('minute')), parseInt(g('second')),
+  ))
+  return new Date(naiveUTC.getTime() + (naiveUTC.getTime() - tzShown.getTime())).toISOString()
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -145,15 +157,20 @@ function CheckOutModal({ employee, onConfirm, onClose, saving }: {
 }
 
 // ─── Edit Record Modal ────────────────────────────────────────────────────────
-function EditRecordModal({ record, date, onSave, onClose, saving }: {
-  record: AttendanceDayRow; date: string
+function EditRecordModal({ record, date, timeZone, onSave, onClose, saving }: {
+  record: AttendanceDayRow; date: string; timeZone: string
   onSave: (checkIn?: string, checkOut?: string, notes?: string) => void
   onClose: () => void; saving: boolean
 }) {
+  // Extrae HH:MM en la zona del tenant (no del browser)
   const toTimeInput = (iso?: string) => {
     if (!iso) return ''
-    const d = new Date(iso)
-    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone, hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(new Date(iso))
+    const h = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0')
+    const m = parts.find(p => p.type === 'minute')?.value ?? '00'
+    return `${(h === 24 ? 0 : h).toString().padStart(2, '0')}:${m.padStart(2, '0')}`
   }
 
   const [checkIn,  setCheckIn]  = useState(toTimeInput(record.checkInTime))
@@ -166,8 +183,9 @@ function EditRecordModal({ record, date, onSave, onClose, saving }: {
       setError('La hora de salida debe ser posterior a la entrada.')
       return
     }
-    const ciIso = checkIn  ? localTimeToIso(date, checkIn)  : undefined
-    const coIso = checkOut ? localTimeToIso(date, checkOut) : undefined
+    // Convierte hora local del tenant → UTC ISO para enviar al backend
+    const ciIso = checkIn  ? wallClockToUtcIso(date, checkIn,  timeZone) : undefined
+    const coIso = checkOut ? wallClockToUtcIso(date, checkOut, timeZone) : undefined
     onSave(ciIso, coIso, notes || undefined)
   }
 
@@ -1124,6 +1142,7 @@ export default function AttendancePage() {
         <EditRecordModal
           record={editTarget}
           date={dateStr}
+          timeZone={timeZone}
           onSave={handleEdit}
           onClose={() => setEditTarget(null)}
           saving={!!savingAction}
