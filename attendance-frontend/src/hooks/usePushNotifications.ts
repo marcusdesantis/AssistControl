@@ -17,10 +17,12 @@ export function usePushNotifications({ registerToken, onMessage }: Options) {
 
     initPushNotifications({
       onToken: token => {
-        registerToken(token).catch(() => {})
+        console.log('[push] Token obtenido, registrando en backend...')
+        registerToken(token)
+          .then(() => console.log('[push] Token registrado OK'))
+          .catch(err => console.warn('[push] Error registrando token:', err?.response?.status, err?.response?.data ?? err?.message))
       },
       onMessage: () => {
-        // Dispara el mismo evento que ya usa NotificationBell para refrescar
         window.dispatchEvent(new CustomEvent('notifications:refresh'))
         onMessage?.()
       },
