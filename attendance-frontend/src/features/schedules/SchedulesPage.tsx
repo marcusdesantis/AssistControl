@@ -368,7 +368,7 @@ function ScheduleModal({
             </div>
           </div>
 
-          {/* ── Rotativo: configuración de rotación ── */}
+          {/* ── Rotativo: configuración de rotación de horarios── */}
           {type === 'Rotativo' && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-4">
 
