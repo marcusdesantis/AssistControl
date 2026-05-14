@@ -21,7 +21,8 @@ export async function createNotificationWithPush(data: {
   })
 
   // 2. Enviar push (fire-and-forget)
-  sendPushForNotification(data.tenantId ?? null, data.forAdmin, data.title, data.body).catch(() => {})
+  sendPushForNotification(data.tenantId ?? null, data.forAdmin, data.title, data.body)
+    .catch(e => console.error('[fcm] sendPushForNotification error:', e?.message ?? e))
 
   return notif
 }
@@ -32,19 +33,23 @@ async function sendPushForNotification(
   title: string,
   body: string,
 ) {
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT) return
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.warn('[fcm] FIREBASE_SERVICE_ACCOUNT no configurado — push omitido')
+    return
+  }
 
   if (forAdmin && !tenantId) {
-    // → notificación para superadmin
     const tokens = await prisma.deviceToken.findMany({ where: { userType: 'superadmin' } })
-    await sendToTokens(tokens.map(t => t.token), title, body)
+    console.log(`[fcm] Push superadmin: ${tokens.length} token(s)`)
+    if (tokens.length) await sendToTokens(tokens.map(t => t.token), title, body)
   } else if (!forAdmin && tenantId) {
-    // → notificación para admin del tenant
     const users  = await prisma.user.findMany({ where: { tenantId, isDeleted: false }, select: { id: true } })
     const ids    = users.map(u => u.id)
-    if (!ids.length) return
     const tokens = await prisma.deviceToken.findMany({ where: { userId: { in: ids }, userType: 'admin' } })
-    await sendToTokens(tokens.map(t => t.token), title, body)
+    console.log(`[fcm] Push tenant ${tenantId}: ${users.length} user(s), ${tokens.length} token(s)`)
+    if (tokens.length) await sendToTokens(tokens.map(t => t.token), title, body)
+  } else {
+    console.log(`[fcm] Push omitido — combinación no manejada: forAdmin=${forAdmin} tenantId=${tenantId}`)
   }
 }
 
@@ -108,9 +113,12 @@ async function sendToTokens(tokens: string[], title: string, body: string) {
         },
       }),
     })
-    if (!res.ok) {
+    if (res.ok) {
+      console.log(`[fcm] Enviado OK al token ${token.slice(0, 20)}...`)
+    } else {
       const err  = await res.json().catch(() => ({})) as any
-      const code = err?.error?.details?.[0]?.errorCode ?? ''
+      const code = err?.error?.details?.[0]?.errorCode ?? err?.error?.status ?? ''
+      console.error(`[fcm] Error enviando a token ${token.slice(0, 20)}...: ${res.status} ${code}`, JSON.stringify(err?.error ?? err))
       if (['UNREGISTERED', 'INVALID_ARGUMENT'].includes(code)) expired.push(token)
     }
   }))
