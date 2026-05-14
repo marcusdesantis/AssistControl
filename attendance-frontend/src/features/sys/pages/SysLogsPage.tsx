@@ -70,41 +70,30 @@ function LogsTable({ logs, loading }: { logs: AuditLog[]; loading: boolean }) {
     </div>
   )
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-100 bg-gray-50">
-            <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Fecha</th>
-            <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Usuario</th>
-            <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Módulo</th>
-            <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Acción</th>
-            <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Origen</th>
-            <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">IP</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {logs.map((log, i) => (
-            <tr key={log.id ?? i} className="hover:bg-gray-50">
-              <td className="px-4 py-2.5 text-gray-500 text-xs whitespace-nowrap">
-                {new Date(log.createdAt).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
-              </td>
-              <td className="px-4 py-2.5 font-medium text-gray-800">{log.userName ?? '—'}</td>
-              <td className="px-4 py-2.5">
-                <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${MODULE_COLORS[log.module] ?? 'bg-gray-100 text-gray-700'}`}>
-                  {MODULE_LABELS[log.module] ?? log.module}
-                </span>
-              </td>
-              <td className="px-4 py-2.5 text-gray-700">{ACTION_LABELS[log.action] ?? log.action}</td>
-              <td className="px-4 py-2.5 text-xs">
-                {log.source === 'mobile'
-                  ? <span className="flex items-center gap-1 text-cyan-600"><Smartphone className="w-3 h-3" />Móvil</span>
-                  : <span className="flex items-center gap-1 text-gray-500"><Monitor className="w-3 h-3" />Web</span>}
-              </td>
-              <td className="px-4 py-2.5 text-gray-400 text-xs font-mono">{log.ip ?? '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="divide-y divide-gray-100">
+      {logs.map((log, i) => (
+        <div key={log.id ?? i} className="px-4 py-3 hover:bg-gray-50 transition-colors space-y-1.5">
+          {/* Fila 1: usuario + módulo */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-semibold text-gray-900 text-sm truncate">{log.userName ?? '—'}</p>
+            <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${MODULE_COLORS[log.module] ?? 'bg-gray-100 text-gray-700'}`}>
+              {MODULE_LABELS[log.module] ?? log.module}
+            </span>
+          </div>
+          {/* Fila 2: acción */}
+          <p className="text-xs text-gray-600">{ACTION_LABELS[log.action] ?? log.action}</p>
+          {/* Fila 3: fecha + origen + IP */}
+          <div className="flex items-center gap-3 text-xs text-gray-400">
+            <span className="whitespace-nowrap">
+              {new Date(log.createdAt).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
+            </span>
+            {log.source === 'mobile'
+              ? <span className="flex items-center gap-1 text-cyan-600"><Smartphone className="w-3 h-3" />Móvil</span>
+              : <span className="flex items-center gap-1 text-gray-400"><Monitor className="w-3 h-3" />Web</span>}
+            {log.ip && <span className="font-mono hidden sm:block">{log.ip}</span>}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -275,34 +264,34 @@ export default function SysLogsPage() {
   const backupSlice      = filteredMerged.slice((backupPage - 1) * backupSize, backupPage * backupSize)
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Header */}
       <div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Logs de actividad</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            Registro de acciones por empresa —{' '}
-            {auditConfig
-              ? `últimos ${auditConfig.retentionDays} días en DB, respaldo ${auditConfig.mode === 'weekly' ? 'cada lunes' : 'cada día 1 del mes'}`
-              : 'cargando configuración…'}
-          </p>
-          <div className="mt-1"><HelpButton onClick={runTour} /></div>
-        </div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Logs de actividad</h1>
+        <p className="text-gray-500 text-xs sm:text-sm mt-0.5">
+          {auditConfig
+            ? `Últimos ${auditConfig.retentionDays} días en DB · respaldo ${auditConfig.mode === 'weekly' ? 'cada lunes' : 'cada día 1 del mes'}`
+            : 'Cargando configuración…'}
+        </p>
+        <div className="mt-1"><HelpButton onClick={runTour} /></div>
       </div>
 
-      <div className="flex gap-5 min-h-[600px]">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-5">
+
         {/* Lista de empresas */}
-        <div id="tour-logs-companies" className="w-60 shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+        <div id="tour-logs-companies" className="lg:w-60 lg:shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col lg:min-h-[600px]">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresas</p>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          {/* móvil: scroll horizontal; desktop: scroll vertical */}
+          <div className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible overflow-y-visible lg:overflow-y-auto flex-1">
             {tenants.length === 0
-              ? <div className="p-6 text-center text-gray-400 text-sm">Cargando…</div>
+              ? <div className="p-6 text-center text-gray-400 text-sm w-full">Cargando…</div>
               : tenants.map(t => (
                 <button key={t.id} onClick={() => selectTenant(t)}
-                  className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-center gap-2 ${selected?.id === t.id ? 'bg-slate-50 border-l-2 border-l-slate-700' : ''}`}>
-                  <p className="flex-1 text-xs font-medium text-gray-800 truncate">{t.name}</p>
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                  className={`shrink-0 lg:shrink text-left px-4 py-3 lg:border-b border-r lg:border-r-0 border-gray-100 hover:bg-gray-50 transition-colors flex items-center gap-2 ${selected?.id === t.id ? 'bg-slate-50 lg:border-l-2 lg:border-l-slate-700 border-b-2 border-b-slate-700' : ''}`}>
+                  <p className="text-xs font-medium text-gray-800 truncate max-w-[120px] lg:max-w-none">{t.name}</p>
+                  <ChevronRight className="w-3 h-3 text-gray-300 shrink-0 hidden lg:block" />
                 </button>
               ))}
           </div>
@@ -310,7 +299,7 @@ export default function SysLogsPage() {
 
         {/* Panel derecho */}
         {!selected ? (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
+          <div className="flex-1 flex items-center justify-center text-gray-400 py-16">
             <div className="text-center">
               <Activity className="w-10 h-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">Selecciona una empresa</p>
@@ -320,16 +309,16 @@ export default function SysLogsPage() {
           <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col min-w-0">
 
             {/* Header tabs */}
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-4 shrink-0">
-              <p className="text-sm font-semibold text-gray-800 flex-1 truncate">{selected.name}</p>
-              <div id="tour-logs-tabs" className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex items-center gap-2 sm:gap-4 shrink-0">
+              <p className="text-sm font-semibold text-gray-800 flex-1 truncate min-w-0">{selected.name}</p>
+              <div id="tour-logs-tabs" className="flex gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
                 <button onClick={() => setTab('active')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'active' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                  <Database className="w-3.5 h-3.5" />Activos
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'active' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  <Database className="w-3.5 h-3.5" /><span>Activos</span>
                 </button>
                 <button onClick={() => setTab('backups')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'backups' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                  <Archive className="w-3.5 h-3.5" />Respaldos ({files.length})
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'backups' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  <Archive className="w-3.5 h-3.5" /><span>Respaldos ({files.length})</span>
                 </button>
               </div>
             </div>
@@ -338,27 +327,27 @@ export default function SysLogsPage() {
             {tab === 'active' && (
               <>
                 {/* Filtros */}
-                <div id="tour-logs-filters" className="px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
-                  <div className="relative flex-1 min-w-40">
+                <div id="tour-logs-filters" className="px-3 sm:px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
+                  <div className="relative w-full sm:flex-1 sm:min-w-40">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                     <input value={search} onChange={e => setSearch(e.target.value)}
                       placeholder="Buscar usuario…"
                       className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
                   </div>
                   <select value={module} onChange={e => setModule(e.target.value)}
-                    className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-500">
+                    className="w-full sm:w-auto px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-500">
                     <option value="">Todos los módulos</option>
                     {MODULES.map(m => <option key={m} value={m}>{MODULE_LABELS[m] ?? m}</option>)}
                   </select>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500">Desde</span>
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    <span className="text-xs text-gray-500 shrink-0">Desde</span>
                     <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                      className="flex-1 sm:flex-none px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500">Hasta</span>
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    <span className="text-xs text-gray-500 shrink-0">Hasta</span>
                     <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                      className="flex-1 sm:flex-none px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
                   </div>
                 </div>
 
@@ -382,18 +371,19 @@ export default function SysLogsPage() {
             {tab === 'backups' && (
               viewingBackup ? (
                 <>
-                  <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 shrink-0">
-                    <button onClick={() => { setViewingBackup(false); setMergedLogs([]) }} className="p-1 rounded hover:bg-gray-100">
+                  {/* Header backup view */}
+                  <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2 shrink-0">
+                    <button onClick={() => { setViewingBackup(false); setMergedLogs([]) }} className="p-1 rounded hover:bg-gray-100 shrink-0">
                       <ArrowLeft className="w-4 h-4 text-gray-500" />
                     </button>
-                    <p className="text-sm font-semibold text-gray-800 flex-1">
+                    <p className="text-sm font-semibold text-gray-800 flex-1 min-w-0 truncate">
                       {selectedFiles.length === 1 ? selectedFiles[0] : `${selectedFiles.length} respaldos combinados`}
-                      <span className="ml-2 text-gray-400 font-normal">
-                        ({filteredMerged.length !== mergedLogs.length ? `${filteredMerged.length} de ${mergedLogs.length}` : mergedLogs.length} registros)
+                      <span className="ml-1 text-gray-400 font-normal text-xs">
+                        ({filteredMerged.length !== mergedLogs.length ? `${filteredMerged.length} de ${mergedLogs.length}` : mergedLogs.length})
                       </span>
                     </p>
                     <button onClick={downloadMerged} disabled={downloading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-60 min-w-[110px] justify-center">
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-60 shrink-0 min-w-[110px] justify-center">
                       {downloading
                         ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Descargando…</>
                         : <><Download className="w-3.5 h-3.5" /> Descargar ({filteredMerged.length})</>}
@@ -401,27 +391,27 @@ export default function SysLogsPage() {
                   </div>
 
                   {/* Filtros de respaldo */}
-                  <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
-                    <div className="relative flex-1 min-w-40">
+                  <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
+                    <div className="relative w-full sm:flex-1 sm:min-w-40">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                       <input value={bkSearch} onChange={e => setBkSearch(e.target.value)}
                         placeholder="Buscar usuario…"
                         className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
                     </div>
                     <select value={bkModule} onChange={e => setBkModule(e.target.value)}
-                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-500">
+                      className="w-full sm:w-auto px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-500">
                       <option value="">Todos los módulos</option>
                       {MODULES.map(m => <option key={m} value={m}>{MODULE_LABELS[m] ?? m}</option>)}
                     </select>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-500">Desde</span>
+                    <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                      <span className="text-xs text-gray-500 shrink-0">Desde</span>
                       <input type="date" value={bkFrom} onChange={e => setBkFrom(e.target.value)}
-                        className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                        className="flex-1 sm:flex-none px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-500">Hasta</span>
+                    <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                      <span className="text-xs text-gray-500 shrink-0">Hasta</span>
                       <input type="date" value={bkTo} onChange={e => setBkTo(e.target.value)}
-                        className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
+                        className="flex-1 sm:flex-none px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
                     </div>
                   </div>
 
@@ -449,7 +439,7 @@ export default function SysLogsPage() {
                   ) : (
                     <>
                       {/* Buscador + acciones */}
-                      <div className="px-4 py-3 border-b border-gray-100 flex gap-2 shrink-0">
+                      <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex gap-2 shrink-0">
                         <div className="relative flex-1">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                           <input value={backupSearch} onChange={e => setBackupSearch(e.target.value)}
@@ -467,14 +457,14 @@ export default function SysLogsPage() {
                       </div>
 
                       {/* Seleccionar todos */}
-                      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-3 shrink-0 bg-gray-50">
+                      <div className="px-3 sm:px-4 py-2.5 border-b border-gray-100 flex items-center gap-3 shrink-0 bg-gray-50">
                         <input type="checkbox" id="select-all-backups" checked={allSelected} onChange={toggleAll}
                           className="w-4 h-4 rounded accent-slate-700 cursor-pointer" />
                         <label htmlFor="select-all-backups" className="text-xs font-medium text-gray-600 cursor-pointer select-none">
-                          {allSelected ? 'Deseleccionar todos' : 'Seleccionar todos'} ({filteredFiles.length} archivo{filteredFiles.length !== 1 ? 's' : ''})
+                          {allSelected ? 'Deseleccionar todos' : 'Seleccionar todos'} ({filteredFiles.length})
                         </label>
                         {selectedFiles.length > 0 && (
-                          <span className="ml-auto text-xs text-slate-600 font-medium">{selectedFiles.length} seleccionado{selectedFiles.length !== 1 ? 's' : ''}</span>
+                          <span className="ml-auto text-xs text-slate-600 font-medium">{selectedFiles.length} selec.</span>
                         )}
                       </div>
 
