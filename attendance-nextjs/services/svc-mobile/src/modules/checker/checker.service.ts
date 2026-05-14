@@ -239,7 +239,7 @@ export async function checkIn(checkerKey: string, employeeCode: string, pin: str
     buildStats(emp.id, today),
   ])
 
-  createLog({ tenantId: tenant.id, userId: emp.id, userName: emp.employeeCode, action: 'mobile.checkin', module: 'mobile', detail: { name: `${emp.firstName} ${emp.lastName}`, code: emp.employeeCode }, source: 'checker' })
+  createLog({ tenantId: tenant.id, userId: emp.id, userName: emp.employeeCode, action: 'mobile.checkin', module: 'mobile', detail: { name: `${emp.firstName} ${emp.lastName}`, code: emp.employeeCode }, source: 'mobile' })
 
   return {
     attendance:      recToDto(record),
@@ -284,7 +284,7 @@ export async function checkOut(checkerKey: string, employeeCode: string, pin: st
     buildStats(emp.id, today),
   ])
 
-  createLog({ tenantId: tenant.id, userId: emp.id, userName: emp.employeeCode, action: 'mobile.checkout', module: 'mobile', detail: { name: `${emp.firstName} ${emp.lastName}`, code: emp.employeeCode }, source: 'checker' })
+  createLog({ tenantId: tenant.id, userId: emp.id, userName: emp.employeeCode, action: 'mobile.checkout', module: 'mobile', detail: { name: `${emp.firstName} ${emp.lastName}`, code: emp.employeeCode }, source: 'mobile' })
 
   return {
     attendance:      recToDto(updated),
