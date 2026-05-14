@@ -20,6 +20,8 @@ function getFirebaseApp() {
 
 // Token cacheado en memoria — getToken solo se llama una vez por sesión de navegador
 let _cachedToken: string | null = null
+// onMessage solo se registra una vez — Firebase no deduplica listeners automáticamente
+let _messageListenerRegistered = false
 
 export type PushMessage = {
   title?: string
@@ -38,13 +40,16 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
     const app       = getFirebaseApp()
     const messaging = getMessaging(app)
 
-    onMessage(messaging, payload => {
-      onMsg({
-        title: payload.notification?.title,
-        body:  payload.notification?.body,
-        data:  payload.data as Record<string, string> | undefined,
+    if (!_messageListenerRegistered) {
+      _messageListenerRegistered = true
+      onMessage(messaging, payload => {
+        onMsg({
+          title: payload.notification?.title,
+          body:  payload.notification?.body,
+          data:  payload.data as Record<string, string> | undefined,
+        })
       })
-    })
+    }
 
     if (_cachedToken) {
       onToken(_cachedToken)
