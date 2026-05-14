@@ -4,15 +4,15 @@ import { initializeApp, getApps } from 'firebase/app'
 import { getMessaging, getToken, onMessage } from 'firebase/messaging'
 
 const FIREBASE_CONFIG = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY            ?? 'AIzaSyBhPSEhtLvW5cEE-f-92PyuhAi5xGN942o',
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN        ?? 'tiempoya-admin.firebaseapp.com',
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID         ?? 'tiempoya-admin',
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET     ?? 'tiempoya-admin.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '233883273670',
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID             ?? '1:233883273670:web:6d57b881befc9674770ac7',
 }
 
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY ?? 'BKgRequKc_4uJDguVQ64C9MExgR5PDoBqTLLIJY7V8oGNjmQDfhCyogXsKYS6A--F8jRpcZDbZl-7-n7H-KGSVQ'
 
 function getFirebaseApp() {
   return getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG)

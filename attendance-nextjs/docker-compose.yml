@@ -8,6 +8,18 @@ x-service-defaults: &service-defaults
 
 services:
 
+  # ── Prisma schema push (corre una vez al levantar el stack) ──────────────────
+  prisma-migrate:
+    build:
+      context: .
+      dockerfile: packages/shared/Dockerfile.migrate
+    env_file: .env
+    networks:
+      - attendance
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: "no"
+
   # ── nginx gateway ─────────────────────────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -43,6 +55,9 @@ services:
       AUDIT_LOG_RETENTION_DAYS: ${AUDIT_LOG_RETENTION_DAYS:-7}
     volumes:
       - ./data/logs:/app/logs
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
       interval: 30s
@@ -60,6 +75,9 @@ services:
       - "3002"
     environment:
       PORT: 3002
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
       interval: 30s
@@ -77,6 +95,9 @@ services:
       - "3003"
     environment:
       PORT: 3003
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
       interval: 30s
@@ -94,6 +115,9 @@ services:
       - "3004"
     environment:
       PORT: 3004
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
       interval: 30s
@@ -111,6 +135,9 @@ services:
       - "3005"
     environment:
       PORT: 3005
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
       interval: 30s
@@ -128,6 +155,9 @@ services:
       - "3006"
     environment:
       PORT: 3006
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3006/health"]
       interval: 30s
@@ -148,6 +178,9 @@ services:
       PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
       PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
       APP_URL: ${APP_URL:-http://localhost:80}
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3007/health"]
       interval: 30s
@@ -169,6 +202,9 @@ services:
       LOGS_PATH: /app/logs
     volumes:
       - ./data/logs:/app/logs
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3008/health"]
       interval: 30s
@@ -186,6 +222,9 @@ services:
       - "3009"
     environment:
       PORT: 3009
+    depends_on:
+      prisma-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3009/health"]
       interval: 30s
