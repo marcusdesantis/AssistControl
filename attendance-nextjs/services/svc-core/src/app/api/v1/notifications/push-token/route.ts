@@ -10,8 +10,8 @@ export const PUT = withAdmin(async (req, { admin }) => {
   const { token, platform } = schema.parse(await req.json())
 
   await prisma.deviceToken.upsert({
-    where:  { token },
-    update: { userId: admin.sub, userType: 'admin', platform, updatedAt: new Date() },
+    where:  { token_userType: { token, userType: 'admin' } },
+    update: { userId: admin.sub, platform, updatedAt: new Date() },
     create: { userId: admin.sub, userType: 'admin', token, platform },
   })
 

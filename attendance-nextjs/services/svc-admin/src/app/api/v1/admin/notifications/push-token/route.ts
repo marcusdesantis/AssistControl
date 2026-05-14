@@ -11,8 +11,8 @@ export const PUT = withSuperadmin(async (req, ctx) => {
   const userId = (ctx as any).superadminId ?? (ctx as any).sub ?? 'superadmin'
 
   await prisma.deviceToken.upsert({
-    where:  { token },
-    update: { userId, userType: 'superadmin', platform, updatedAt: new Date() },
+    where:  { token_userType: { token, userType: 'superadmin' } },
+    update: { userId, platform, updatedAt: new Date() },
     create: { userId, userType: 'superadmin', token, platform },
   })
 

@@ -1,4 +1,4 @@
-import { withSuperadmin, apiOk, prisma } from '@attendance/shared'
+import { withSuperadmin, apiOk, prisma, createNotificationWithPush } from '@attendance/shared'
 import { z } from 'zod'
 import nodemailer from 'nodemailer'
 
@@ -24,9 +24,9 @@ export const POST = withSuperadmin(async (req) => {
 
   if (action === 'notify') {
     if (!title) throw { code: 'BAD_REQUEST', message: 'El título es requerido.' }
-    await prisma.notification.createMany({
-      data: tenantIds.map(tenantId => ({ tenantId, forAdmin: false, title, body, type })),
-    })
+    await Promise.all(
+      tenantIds.map(tenantId => createNotificationWithPush({ tenantId, forAdmin: false, title, body, type }))
+    )
     return apiOk({ sent: tenantIds.length }, `Notificación enviada a ${tenantIds.length} empresa(s).`)
   }
 

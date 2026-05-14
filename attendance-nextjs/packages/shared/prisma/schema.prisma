@@ -561,11 +561,12 @@ model DeviceToken {
   id        String   @id @default(uuid())
   userId    String
   userType  String   // 'admin' | 'superadmin'
-  token     String   @unique
+  token     String
   platform  String   @default("web") // 'web' | 'android'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([token, userType])
   @@index([userId, userType])
 }
 

@@ -1,4 +1,4 @@
-import { withSuperadmin, apiOk, prisma } from '@attendance/shared'
+import { withSuperadmin, apiOk, prisma, createNotificationWithPush } from '@attendance/shared'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -14,9 +14,7 @@ export const POST = withSuperadmin(async (req, _ctx, { params }: { params: Promi
   const tenant = await prisma.tenant.findUnique({ where: { id }, select: { id: true } })
   if (!tenant) throw { code: 'NOT_FOUND', message: 'Empresa no encontrada.' }
 
-  const notif = await prisma.notification.create({
-    data: { tenantId: id, forAdmin: false, title, body, type },
-  })
+  const notif = await createNotificationWithPush({ tenantId: id, forAdmin: false, title, body, type })
 
   return apiOk(notif, 'Notificación enviada.')
 })

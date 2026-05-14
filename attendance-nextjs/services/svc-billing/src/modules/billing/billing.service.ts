@@ -1,4 +1,4 @@
-import { prisma } from '@attendance/shared'
+import { prisma, createNotificationWithPush } from '@attendance/shared'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -139,12 +139,10 @@ async function notifySubscriptionEvent(
              : action === 'new' || action === 'upgrade' ? 'success'
              : 'info'
 
-  await prisma.notification.createMany({
-    data: [
-      { tenantId, forAdmin: false, title: tenantTitle, body: tenantBody, type },
-      { tenantId: null,  forAdmin: true,  title: adminTitle,  body: adminBody,  type },
-    ],
-  })
+  await Promise.all([
+    createNotificationWithPush({ tenantId, forAdmin: false, title: tenantTitle, body: tenantBody, type }),
+    createNotificationWithPush({ forAdmin: true, title: adminTitle, body: adminBody, type }),
+  ])
 }
 
 // ── Auto-downgrade on fetch ───────────────────────────────────────────────────
@@ -181,24 +179,21 @@ export async function checkAndAutoDowngrade(tenantId: string): Promise<boolean> 
 
   // Notificación específica de vencimiento al tenant y superadmin
   const tenantName = (await prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }))?.name ?? tenantId
-  await prisma.notification.createMany({
-    data: [
-      {
-        tenantId,
-        forAdmin: false,
-        title:    'Suscripción vencida',
-        body:     `Tu plan ${sub.plan.name} venció y fue cambiado al plan gratuito. Renueva para recuperar todas las funciones.`,
-        type:     'warning',
-      },
-      {
-        tenantId: null,
-        forAdmin: true,
-        title:    `Suscripción vencida — ${tenantName}`,
-        body:     `El plan ${sub.plan.name} fue degradado automáticamente al plan gratuito por vencimiento de período.`,
-        type:     'warning',
-      },
-    ],
-  }).catch(e => console.error('[billing] notify auto-downgrade error', e?.message))
+  await Promise.all([
+    createNotificationWithPush({
+      tenantId,
+      forAdmin: false,
+      title:    'Suscripción vencida',
+      body:     `Tu plan ${sub.plan.name} venció y fue cambiado al plan gratuito. Renueva para recuperar todas las funciones.`,
+      type:     'warning',
+    }),
+    createNotificationWithPush({
+      forAdmin: true,
+      title:    `Suscripción vencida — ${tenantName}`,
+      body:     `El plan ${sub.plan.name} fue degradado automáticamente al plan gratuito por vencimiento de período.`,
+      type:     'warning',
+    }),
+  ]).catch(e => console.error('[billing] notify auto-downgrade error', e?.message))
 
   return true
 }
