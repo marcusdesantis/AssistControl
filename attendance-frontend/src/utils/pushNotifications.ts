@@ -40,6 +40,7 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
     const app       = getFirebaseApp()
     const messaging = getMessaging(app)
 
+    // Registrar listener de mensajes en foreground una sola vez por sesión
     if (!_messageListenerRegistered) {
       _messageListenerRegistered = true
       onMessage(messaging, payload => {
@@ -51,6 +52,7 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
       })
     }
 
+    // Reutilizar token si ya fue obtenido en esta sesión
     if (_cachedToken) {
       onToken(_cachedToken)
       return
@@ -59,37 +61,41 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return
 
-    // Registrar SW y forzar activación si hay una versión nueva esperando
-    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    if (reg.waiting) {
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-      await new Promise<void>(resolve => {
-        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true })
-      })
-    }
+    // 1. Registrar el SW (si ya existe, devuelve el registro existente)
+    await navigator.serviceWorker.register('/firebase-messaging-sw.js')
 
-    // Sin serviceWorkerRegistration explícito — Firebase usa el SW registrado en /firebase-messaging-sw.js
-    let token: string | null = null
-    try {
-      token = await getToken(messaging, { vapidKey: VAPID_KEY })
-    } catch (e: any) {
-      if (e?.name === 'AbortError') {
-        // Limpiar suscripción inválida y reintentar con SW activo
-        await deleteToken(messaging).catch(() => {})
-        const activeSW = await navigator.serviceWorker.ready
-        const sub = await activeSW.pushManager.getSubscription()
-        if (sub) await sub.unsubscribe()
-        token = await getToken(messaging, { vapidKey: VAPID_KEY })
-      } else {
-        throw e
-      }
-    }
+    // 2. Esperar a que el SW esté ACTIVO — recomendación oficial Firebase
+    //    https://firebase.google.com/docs/cloud-messaging/js/client
+    const swRegistration = await navigator.serviceWorker.ready
+
+    // 3. Obtener token FCM pasando el registro activo explícitamente
+    const token = await getTokenWithRetry(messaging, swRegistration)
+
     if (token) {
       _cachedToken = token
       onToken(token)
     }
   } catch (e) {
     console.warn('[push] Web init error:', e)
+  }
+}
+
+async function getTokenWithRetry(
+  messaging: ReturnType<typeof getMessaging>,
+  swRegistration: ServiceWorkerRegistration,
+): Promise<string | null> {
+  try {
+    return await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swRegistration })
+  } catch (e: any) {
+    if (e?.name !== 'AbortError') throw e
+
+    // AbortError: suscripción push inválida — limpiar y reintentar una sola vez
+    console.warn('[push] AbortError en getToken — limpiando suscripción y reintentando...')
+    await deleteToken(messaging).catch(() => {})
+    const existing = await swRegistration.pushManager.getSubscription()
+    if (existing) await existing.unsubscribe().catch(() => {})
+
+    return await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swRegistration })
   }
 }
 
