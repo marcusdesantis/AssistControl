@@ -715,6 +715,106 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGi4x4DSASS50ygxbcW7dDHg0Cg2CEtGmK4bgVJhHkxR
 
 ---
 
+## Push Notifications — Web (attendance-frontend)
+
+> **Estado: ⚠️ PARCIALMENTE IMPLEMENTADO** — La infraestructura backend está completa y funcional. El envío desde el servidor a FCM responde `OK`. El problema pendiente está en el registro del token en el navegador Chrome (frontend).
+
+### Qué está implementado
+
+**Backend (attendance-nextjs):**
+
+| Componente | Archivo | Estado |
+|---|---|---|
+| Modelo `DeviceToken` en Prisma | `packages/shared/prisma/schema.prisma` | ✅ Desplegado — `@@unique([token, userType])` |
+| Lógica FCM (OAuth2 + HTTP v1 API) | `packages/shared/src/utils/fcm.ts` | ✅ Funcional — `sendToTokens` responde OK |
+| `createNotificationWithPush()` | `packages/shared/src/utils/fcm.ts` | ✅ Reemplaza `prisma.notification.create` |
+| Endpoint registro token (admin) | `svc-core/api/v1/notifications/push-token` | ✅ PUT con cleanup de tokens anteriores |
+| Endpoint registro token (superadmin) | `svc-admin/api/v1/admin/notifications/push-token` | ✅ PUT con cleanup de tokens anteriores |
+| Push en: soporte tenant→admin | `svc-support/support.service.ts` | ✅ Usa `createNotificationWithPush` |
+| Push en: soporte admin→empresa | `svc-admin/support.service.ts` | ✅ Usa `createNotificationWithPush` |
+| Push en: aprobación empresa | `svc-admin/admin.service.ts` | ✅ Usa `createNotificationWithPush` |
+| Push en: auth (nueva empresa) | `svc-core/auth.service.ts` | ✅ Usa `createNotificationWithPush` |
+| Push en: notificar empresa (superadmin) | `svc-admin/tenants/[id]/notify` | ✅ Usa `createNotificationWithPush` |
+| Push en: notificar masivo (superadmin) | `svc-admin/tenants/bulk` | ✅ Usa `createNotificationWithPush` |
+| Push en: cambio suscripción | `svc-billing/billing.service.ts` | ✅ Usa `createNotificationWithPush` |
+| Migración `prisma-migrate` en compose | `docker-compose.yml` | ✅ Corre antes de todos los servicios |
+
+**Frontend (attendance-frontend):**
+
+| Componente | Archivo | Estado |
+|---|---|---|
+| Service worker | `public/firebase-messaging-sw.js` | ✅ Con `skipWaiting` + `clients.claim()` |
+| Utilidad push web | `src/utils/pushNotifications.ts` | ✅ Con retry en AbortError, cache de token |
+| Hook `usePushNotifications` | `src/hooks/usePushNotifications.ts` | ✅ Con logging de errores |
+| Integración en Layout admin | `src/components/Layout.tsx` | ✅ |
+| Integración en SysLayout superadmin | `src/features/sys/SysLayout.tsx` | ✅ |
+| Detección y skip de Brave | `src/utils/pushNotifications.ts` | ✅ Brave bloquea FCM por diseño |
+| Variables de entorno Firebase | `pushNotifications.ts` + `firebase-messaging-sw.js` | ✅ Hardcoded como fallback |
+| SSE soporte en nginx frontend | `nginx.conf` | ✅ `proxy_buffering off` + 3600s timeout |
+
+### Cómo funciona (cuando funciona)
+
+```
+1. Usuario abre app en Chrome
+2. navigator.serviceWorker.register('/firebase-messaging-sw.js')
+3. navigator.serviceWorker.ready → espera SW activo
+4. getToken(messaging, { vapidKey, serviceWorkerRegistration }) → token FCM
+5. PUT /api/v1/notifications/push-token → guarda en DeviceToken (borra token anterior)
+6. Cuando ocurre evento → createNotificationWithPush() → FCM v1 API → browser
+7. SW recibe push → showNotification() muestra la notificación OS
+```
+
+### Variables de entorno requeridas en backend (`.env`)
+
+```env
+# JSON completo del service account de Firebase en una sola línea
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"tiempoya-admin",...}
+```
+
+Obtener en: Firebase Console → Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada.
+
+### Problema pendiente — token no se registra en Chrome
+
+**Síntoma:** El flujo llega a `getToken()` pero falla con `AbortError: Registration failed - push service error`. El retry (delete token + unsubscribe + re-getToken) tampoco funciona.
+
+**Lo que ya se descartó:**
+- ✅ VAPID key correcta (superadmin a veces logra token)
+- ✅ Firebase config correcta (fallbacks hardcoded)
+- ✅ Service worker existe y activa con `skipWaiting`
+- ✅ `FIREBASE_SERVICE_ACCOUNT` configurado en backend
+- ✅ DeviceToken table en DB (con `@@unique([token, userType])`)
+- ✅ Brave no compatible con FCM (detectado y omitido)
+- ✅ FCM envía OK cuando hay token válido en DB
+
+**Hipótesis más probables:**
+1. El `navigator.serviceWorker.ready` retorna un SW en estado inconsistente por los muchos builds consecutivos que actualizaron el SW
+2. La suscripción push en el navegador quedó en estado inválido tras los múltiples `unsubscribe()` del retry
+3. Posible race condition entre el SW que activa con `clients.claim()` y la llamada a `getToken`
+
+**Próximos pasos para resolver:**
+1. Probar en Chrome con perfil limpio (sin historial del SW) — `chrome://settings/clearBrowserData`
+2. Verificar en DevTools → Application → Service Workers si el SW está en estado `activated`
+3. Verificar en DevTools → Application → Push Messaging si existe suscripción push activa
+4. Si hay suscripción activa pero `getToken` falla: el VAPID key podría haber rotado en Firebase Console
+5. Considerar usar Firebase Admin SDK directamente en el backend en vez del JWT manual para FCM v1
+
+### Compatibilidad de navegadores
+
+| Navegador | Estado | Notas |
+|---|---|---|
+| Chrome / Chromium | ⚠️ Pendiente fix | Token registration intermitente |
+| Brave | ❌ No compatible | Brave bloquea FCM por diseño (privacy shields) |
+| Firefox | ⚠️ No probado | Usa Mozilla Push Service, no FCM |
+| Safari / iOS | ❌ No compatible | Web Push requiere iOS 16.4+ y config adicional |
+| Edge | ⚠️ No probado | Basado en Chromium, debería funcionar |
+
+### Firebase proyecto
+
+- **Proyecto admin (attendance-frontend):** `tiempoya-admin` — cuenta `superadmin@aiattendance.com`
+- **Proyecto móvil (attendance-mobile):** `tiempoya-c8cb9` — cuenta `yasmani1997@gmail.com`
+
+---
+
 ## Tecnologías principales
 
 | Categoría | Tecnología |
