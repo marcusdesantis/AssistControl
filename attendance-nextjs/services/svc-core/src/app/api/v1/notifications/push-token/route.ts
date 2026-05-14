@@ -9,6 +9,11 @@ const schema = z.object({
 export const PUT = withAdmin(async (req, { admin }) => {
   const { token, platform } = schema.parse(await req.json())
 
+  // Eliminar tokens anteriores del mismo usuario (reemplaza tokens expirados de Brave/otros)
+  await prisma.deviceToken.deleteMany({
+    where: { userId: admin.sub, userType: 'admin', token: { not: token } },
+  })
+
   await prisma.deviceToken.upsert({
     where:  { token_userType: { token, userType: 'admin' } },
     update: { userId: admin.sub, platform, updatedAt: new Date() },

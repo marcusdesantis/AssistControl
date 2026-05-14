@@ -8,7 +8,12 @@ const schema = z.object({
 
 export const PUT = withSuperadmin(async (req, ctx) => {
   const { token, platform } = schema.parse(await req.json())
-  const userId = (ctx as any).superadminId ?? (ctx as any).sub ?? 'superadmin'
+  const userId = ctx.superadminId
+
+  // Eliminar tokens anteriores del mismo superadmin (reemplaza tokens expirados)
+  await prisma.deviceToken.deleteMany({
+    where: { userId, userType: 'superadmin', token: { not: token } },
+  })
 
   await prisma.deviceToken.upsert({
     where:  { token_userType: { token, userType: 'superadmin' } },
