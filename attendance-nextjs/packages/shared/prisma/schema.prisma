@@ -557,6 +557,18 @@ model SystemSettings {
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  userType  String   // 'admin' | 'superadmin'
+  token     String   @unique
+  platform  String   @default("web") // 'web' | 'android'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, userType])
+}
+
 // ─── Support ──────────────────────────────────────────────────────────────────
 
 model SupportTicket {

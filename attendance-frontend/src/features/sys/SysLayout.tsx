@@ -5,6 +5,8 @@ import { useSysAuthStore } from '@/store/sysAuthStore'
 import NotificationBell from '@/components/NotificationBell'
 import SysProfileMenu from './SysProfileMenu'
 import clsx from 'clsx'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { sysApi } from '@/services/sysApi'
 
 const NAV = [
   { to: '/sys',               label: 'Dashboard',     icon: LayoutDashboard, end: true },
@@ -22,6 +24,10 @@ export default function SysLayout() {
   const { user } = useSysAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = useNavigate()
+
+  usePushNotifications({
+    registerToken: token => sysApi.put('/notifications/push-token', { token, platform: 'web' }).then(() => {}),
+  })
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">

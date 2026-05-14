@@ -1,4 +1,4 @@
-import { prisma, hashPassword, verifyPassword, signAdmin, getTenantCapabilities, DEFAULT_CAPABILITIES, sendSystemEmail } from '@attendance/shared'
+import { prisma, hashPassword, verifyPassword, signAdmin, getTenantCapabilities, DEFAULT_CAPABILITIES, sendSystemEmail, createNotificationWithPush } from '@attendance/shared'
 import { v4 as uuidv4 } from 'uuid'
 import type { RegisterDto, LoginDto, ChangePasswordDto, UpdateMeDto, ForgotPasswordDto, ResetPasswordDto } from './auth.schema'
 
@@ -157,15 +157,13 @@ export async function registerTenant(dto: RegisterDto) {
   } else {
     // Sin SMTP: notificación al superadmin como antes
     const requireApproval = settings?.requireApproval ?? false
-    await prisma.notification.create({
-      data: {
-        forAdmin: true,
-        title:    'Nueva empresa registrada',
-        body:     requireApproval
-          ? `La empresa "${dto.companyName.trim()}" se registró y está pendiente de aprobación.`
-          : `La empresa "${dto.companyName.trim()}" se registró exitosamente en el sistema.`,
-        type: requireApproval ? 'warning' : 'info',
-      },
+    await createNotificationWithPush({
+      forAdmin: true,
+      title:    'Nueva empresa registrada',
+      body:     requireApproval
+        ? `La empresa "${dto.companyName.trim()}" se registró y está pendiente de aprobación.`
+        : `La empresa "${dto.companyName.trim()}" se registró exitosamente en el sistema.`,
+      type: requireApproval ? 'warning' : 'info',
     })
   }
 
@@ -242,15 +240,13 @@ export async function verifyEmail(token: string) {
     },
   })
 
-  await prisma.notification.create({
-    data: {
-      forAdmin: true,
-      title:    'Nueva empresa verificada',
-      body:     requireApproval
-        ? `La empresa "${tenant.name}" verificó su correo y está pendiente de aprobación.`
-        : `La empresa "${tenant.name}" verificó su correo y ya está activa.`,
-      type: requireApproval ? 'warning' : 'info',
-    },
+  await createNotificationWithPush({
+    forAdmin: true,
+    title:    'Nueva empresa verificada',
+    body:     requireApproval
+      ? `La empresa "${tenant.name}" verificó su correo y está pendiente de aprobación.`
+      : `La empresa "${tenant.name}" verificó su correo y ya está activa.`,
+    type: requireApproval ? 'warning' : 'info',
   })
 
   return { verified: true, requiresApproval: requireApproval }

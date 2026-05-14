@@ -10,8 +10,11 @@ export * from './utils/response'
 // Plan capabilities
 export * from './utils/plan'
 
-// Push notifications
+// Push notifications (Expo - attendance-mobile)
 export * from './utils/push'
+
+// FCM push (attendance-frontend web/android)
+export * from './utils/fcm'
 
 // Schedule helpers
 export * from './utils/schedule'

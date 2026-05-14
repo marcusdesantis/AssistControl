@@ -1,4 +1,4 @@
-import { prisma } from '@attendance/shared'
+import { prisma, createNotificationWithPush } from '@attendance/shared'
 
 export async function adminGetTickets(filters: {
   status?: string
@@ -74,14 +74,12 @@ export async function adminAddMessage(ticketId: string, body: string) {
     }),
   ])
 
-  await prisma.notification.create({
-    data: {
-      tenantId: ticket.tenantId,
-      forAdmin: false,
-      title: 'Respuesta de soporte',
-      body:  `El equipo de soporte respondió tu ticket: "${ticket.subject}"`,
-      type:  'info',
-    },
+  await createNotificationWithPush({
+    tenantId: ticket.tenantId,
+    forAdmin: false,
+    title: 'Respuesta de soporte',
+    body:  `El equipo de soporte respondió tu ticket: "${ticket.subject}"`,
+    type:  'info',
   })
 
   return message

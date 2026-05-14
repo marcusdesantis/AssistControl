@@ -1,4 +1,4 @@
-import { prisma, sendSystemEmail } from '@attendance/shared'
+import { prisma, sendSystemEmail, createNotificationWithPush } from '@attendance/shared'
 
 export async function getTickets(tenantId: string) {
   return prisma.supportTicket.findMany({
@@ -26,13 +26,11 @@ export async function createTicket(tenantId: string, data: {
     prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
   ])
 
-  await prisma.notification.create({
-    data: {
-      forAdmin: true,
-      title: 'Nuevo ticket de soporte',
-      body:  `${tenant?.name ?? 'Una empresa'} abrió un ticket: "${data.subject}"`,
-      type:  'info',
-    },
+  await createNotificationWithPush({
+    forAdmin: true,
+    title: 'Nuevo ticket de soporte',
+    body:  `${tenant?.name ?? 'Una empresa'} abrió un ticket: "${data.subject}"`,
+    type:  'info',
   })
 
   sendSystemEmail({
@@ -75,13 +73,11 @@ export async function addMessage(tenantId: string, ticketId: string, body: strin
     }),
   ])
 
-  await prisma.notification.create({
-    data: {
-      forAdmin: true,
-      title: 'Nueva respuesta en ticket de soporte',
-      body:  `Una empresa respondió en el ticket: "${ticket.subject}"`,
-      type:  'info',
-    },
+  await createNotificationWithPush({
+    forAdmin: true,
+    title: 'Nueva respuesta en ticket de soporte',
+    body:  `Una empresa respondió en el ticket: "${ticket.subject}"`,
+    type:  'info',
   })
 
   return message

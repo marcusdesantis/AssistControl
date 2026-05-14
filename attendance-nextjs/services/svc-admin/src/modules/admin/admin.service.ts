@@ -1,4 +1,4 @@
-import { prisma, hashPassword } from '@attendance/shared'
+import { prisma, hashPassword, createNotificationWithPush } from '@attendance/shared'
 import { v4 as uuidv4 } from 'uuid'
 import nodemailer from 'nodemailer'
 
@@ -353,14 +353,12 @@ export async function approveTenant(id: string) {
     select: { id: true, email: true },
   })
 
-  await prisma.notification.create({
-    data: {
-      tenantId: id,
-      forAdmin: false,
-      title: '¡Tu empresa ha sido aprobada!',
-      body:  `La empresa "${tenant.name}" ha sido verificada y aprobada. Ya puedes iniciar sesión y comenzar a usar TiempoYa.`,
-      type:  'success',
-    },
+  await createNotificationWithPush({
+    tenantId: id,
+    forAdmin: false,
+    title: '¡Tu empresa ha sido aprobada!',
+    body:  `La empresa "${tenant.name}" ha sido verificada y aprobada. Ya puedes iniciar sesión y comenzar a usar TiempoYa.`,
+    type:  'success',
   })
 
   if (adminUser?.email) {
