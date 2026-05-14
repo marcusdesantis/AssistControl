@@ -34,6 +34,9 @@ function buildActionLabel(action: string, detail?: string | null): string {
     if (d.count != null)       parts.push(`${d.count} invitaciones`)
     if (d.employees != null)   parts.push(`· ${d.employees} empleado${d.employees !== 1 ? 's' : ''}`)
     if (d.reassignedTo)        parts.push(`→ ${d.reassignedTo}`)
+    if (d.year != null && !d.date) parts.push(String(d.year))
+    if (d.added != null)       parts.push(`+${d.added} nuevos`)
+    if (d.replaced != null && d.replaced > 0) parts.push(`${d.replaced} actualizados`)
     return parts.length ? `${base}: ${parts.join(' ')}` : base
   } catch {
     return base
@@ -49,7 +52,7 @@ const ACTION_LABELS: Record<string, string> = {
   'mobile.checkin': 'Check-in (móvil)', 'mobile.checkout': 'Check-out (móvil)',
   'department.create': 'Departamento creado', 'department.update': 'Departamento editado', 'department.delete': 'Departamento eliminado',
   'position.create': 'Cargo creado', 'position.update': 'Cargo editado', 'position.delete': 'Cargo eliminado',
-  'holiday.create': 'Día inhábil creado', 'holiday.update': 'Día inhábil editado', 'holiday.delete': 'Día inhábil eliminado',
+  'holiday.create': 'Día inhábil creado', 'holiday.update': 'Día inhábil editado', 'holiday.delete': 'Día inhábil eliminado', 'holiday.generate': 'Feriados del país generados',
   'company.update': 'Datos de empresa editados',
   'employee.notify': 'Notificación a empleado',
   'employee.send_credentials': 'Credenciales enviadas por correo',

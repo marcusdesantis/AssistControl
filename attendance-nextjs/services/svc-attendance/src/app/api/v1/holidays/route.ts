@@ -9,8 +9,10 @@ export const GET = withPlanGate('schedules', async (req: Request, { tenantId }) 
 export const POST = withPlanGate('schedules', async (req: Request, { tenantId, admin }) => {
   const body = await req.json() as any
   if (body.action === 'generate') {
-    const year = Number(body.year ?? new Date().getFullYear())
-    return apiOk(await svc.generate(tenantId, year))
+    const year   = Number(body.year ?? new Date().getFullYear())
+    const result = await svc.generate(tenantId, year)
+    createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'holiday.generate', module: 'holidays', detail: { year, added: result.added, replaced: result.replaced, total: result.total }, ip: getClientIp(req) })
+    return apiOk(result)
   }
   if (!body.date || !body.name)
     return Response.json({ message: 'Fecha y nombre son requeridos.' }, { status: 400 })
