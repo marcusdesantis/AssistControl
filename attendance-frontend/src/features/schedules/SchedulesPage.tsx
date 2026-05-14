@@ -378,7 +378,7 @@ function ScheduleModal({
                   <RefreshCw className="w-3.5 h-3.5" /> ¿Cómo funciona el horario rotativo?
                 </p>
                 <ul className="text-xs text-blue-700 space-y-1 pl-1 list-disc list-inside">
-                  <li>Define entre 2 y 4 horarios semanales distintos.</li>
+                  <li>Define entre 2 y 4 horarios semanales.</li>
                   <li>El sistema los aplica en ciclo: Horario 1 → Horario 2 → … → vuelve al 1.</li>
                   <li>Cada horario tiene sus propios días y horas de entrada/salida.</li>
                   <li>El ciclo se calcula automáticamente desde la fecha de inicio del empleado.</li>
