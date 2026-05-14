@@ -31,7 +31,9 @@ function buildActionLabel(action: string, detail?: string | null): string {
     if (d.reportType)    parts.push(d.reportType)
     if (d.format)        parts.push(d.format.toUpperCase())
     if (d.companyName)   parts.push(d.companyName)
-    if (d.count != null) parts.push(`${d.count} invitaciones`)
+    if (d.count != null)       parts.push(`${d.count} invitaciones`)
+    if (d.employees != null)   parts.push(`· ${d.employees} empleado${d.employees !== 1 ? 's' : ''}`)
+    if (d.reassignedTo)        parts.push(`→ ${d.reassignedTo}`)
     return parts.length ? `${base}: ${parts.join(' ')}` : base
   } catch {
     return base

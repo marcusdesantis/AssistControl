@@ -1,4 +1,4 @@
-import { withPlanGate, apiOk, createLog, getClientIp } from '@attendance/shared'
+import { withPlanGate, apiOk, createLog, getClientIp, prisma } from '@attendance/shared'
 import { bodySchema } from '../schedules.schema'
 import * as svc from '@/modules/schedules/schedules.service'
 
@@ -20,8 +20,19 @@ export const PUT = withPlanGate('schedules', async (req: Request, { tenantId, ad
 export const DELETE = withPlanGate('schedules', async (req: Request, { tenantId, admin }, { params }: Ctx) => {
   const { id }       = await params
   const reassignToId = new URL(req.url).searchParams.get('reassignTo') ?? undefined
-  const sch = await svc.getById(id, tenantId)
+  const sch      = await svc.getById(id, tenantId)
+  const affected = await prisma.employee.count({ where: { tenantId, scheduleId: id, isDeleted: false } })
+  const target   = reassignToId ? await prisma.schedule.findFirst({ where: { id: reassignToId, tenantId }, select: { name: true } }) : null
   await svc.remove(id, tenantId, reassignToId)
-  createLog({ tenantId, userId: admin.sub, userName: admin.username, action: 'schedule.delete', module: 'schedules', detail: { name: sch?.name ?? id }, ip: getClientIp(req) })
+  createLog({
+    tenantId, userId: admin.sub, userName: admin.username,
+    action: 'schedule.delete', module: 'schedules',
+    detail: {
+      name: sch?.name ?? id,
+      employees: affected > 0 ? affected : undefined,
+      reassignedTo: target?.name,
+    },
+    ip: getClientIp(req),
+  })
   return apiOk(null, 'Horario eliminado.')
 })
