@@ -38,7 +38,6 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
     const app       = getFirebaseApp()
     const messaging = getMessaging(app)
 
-    // Registrar listener de mensajes en foreground (idempotente por sesión)
     onMessage(messaging, payload => {
       onMsg({
         title: payload.notification?.title,
@@ -47,29 +46,35 @@ async function initWebPush({ onToken, onMessage: onMsg }: PushCallbacks) {
       })
     })
 
-    // Si ya tenemos el token en memoria (otra sesión del mismo navegador lo obtuvo antes),
-    // lo reutilizamos sin llamar a getToken de nuevo — evita AbortError por suscripción duplicada
     if (_cachedToken) {
       onToken(_cachedToken)
       return
     }
 
-    await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    const reg = await navigator.serviceWorker.ready
-
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return
 
+    // Registrar SW y forzar activación si hay una versión nueva esperando
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+      await new Promise<void>(resolve => {
+        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true })
+      })
+    }
+
+    // Sin serviceWorkerRegistration explícito — Firebase usa el SW registrado en /firebase-messaging-sw.js
     let token: string | null = null
     try {
-      token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+      token = await getToken(messaging, { vapidKey: VAPID_KEY })
     } catch (e: any) {
       if (e?.name === 'AbortError') {
-        // Suscripción push inválida o expirada — limpiar y reintentar
+        // Limpiar suscripción inválida y reintentar con SW activo
         await deleteToken(messaging).catch(() => {})
-        const sub = await reg.pushManager.getSubscription()
-        if (sub) await sub.unsubscribe().catch(() => {})
-        token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+        const activeSW = await navigator.serviceWorker.ready
+        const sub = await activeSW.pushManager.getSubscription()
+        if (sub) await sub.unsubscribe()
+        token = await getToken(messaging, { vapidKey: VAPID_KEY })
       } else {
         throw e
       }

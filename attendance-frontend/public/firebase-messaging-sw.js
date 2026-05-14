@@ -1,6 +1,10 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js')
 
+// Activar inmediatamente sin esperar a que los tabs se cierren
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', event => event.waitUntil(clients.claim()))
+
 firebase.initializeApp({
   apiKey:            'AIzaSyBhPSEhtLvW5cEE-f-92PyuhAi5xGN942o',
   authDomain:        'tiempoya-admin.firebaseapp.com',
