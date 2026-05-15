@@ -148,6 +148,18 @@ export default function HomeScreen() {
   const [pendingMsgs, setPendingMsgs] = useState<EmployeeMessage[]>([])
   // GPS bloqueado
   const [gpsBlocked,  setGpsBlocked]  = useState<'services' | 'permission' | null>(null)
+  const [nowTime,     setNowTime]     = useState(() => {
+    const d = new Date()
+    return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
+  })
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const d = new Date()
+      setNowTime(d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false }))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [])
 
   const loadStatus = useCallback(async () => {
     try {
@@ -397,47 +409,34 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Botón de acción circular */}
+        {/* Botón de acción */}
         {!pinStep && !otpStep && (
-          <View style={styles.circleSection}>
-            {acting ? (
-              <>
-                <View style={[styles.statusBadge, { backgroundColor: '#1e3a5f' }]}>
-                  <View style={[styles.statusDot, { backgroundColor: '#3b82f6' }]} />
-                  <Text style={[styles.statusText, { color: '#3b82f6' }]}>PROCESANDO</Text>
-                </View>
-                <View style={[styles.circleRing, { borderColor: '#1e3a5f' }]}>
-                  <View style={[styles.circleBtn, { backgroundColor: '#1e3a5f' }]}>
-                    <ActivityIndicator color="#fff" size="large" />
-                  </View>
-                </View>
-              </>
-            ) : status?.isCheckedIn ? (
-              <>
-                <View style={[styles.statusBadge, { backgroundColor: '#450a0a' }]}>
-                  <View style={[styles.statusDot, { backgroundColor: '#eb5a6d' }]} />
-                  <Text style={[styles.statusText, { color: '#eb5a6d' }]}>REGISTRAR SALIDA</Text>
-                </View>
-                <View style={[styles.circleRing, { borderColor: '#9f1239' }]}>
-                  <TouchableOpacity style={[styles.circleBtn, { backgroundColor: '#eb5a6d' }]} onPress={handleCheckOut} activeOpacity={0.85}>
-                    <Ionicons name="time-outline" size={72} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={[styles.statusBadge, { backgroundColor: '#14532d' }]}>
-                  <View style={[styles.statusDot, { backgroundColor: '#22c55e' }]} />
-                  <Text style={[styles.statusText, { color: '#22c55e' }]}>REGISTRAR ENTRADA</Text>
-                </View>
-                <View style={[styles.circleRing, { borderColor: '#15803d' }]}>
-                  <TouchableOpacity style={[styles.circleBtn, { backgroundColor: '#22c55e' }]} onPress={handleCheckIn} activeOpacity={0.85}>
-                    <Ionicons name="time-outline" size={72} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
+          acting ? (
+            <View style={[styles.actionBtn, { backgroundColor: '#334155' }]}>
+              <View style={styles.actionLeft}>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={styles.actionLabel}>Procesando…</Text>
+              </View>
+            </View>
+          ) : status?.isCheckedIn ? (
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#b71c1c' }]} onPress={handleCheckOut} activeOpacity={0.85}>
+              <View style={styles.actionLeft}>
+                <Ionicons name="pause-circle-outline" size={26} color="#fff" />
+                <Text style={styles.actionLabel}>Salida</Text>
+              </View>
+              <View style={styles.actionDivider} />
+              <Text style={styles.actionTime}>{nowTime}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#1a7a3c' }]} onPress={handleCheckIn} activeOpacity={0.85}>
+              <View style={styles.actionLeft}>
+                <Ionicons name="play-circle-outline" size={26} color="#fff" />
+                <Text style={styles.actionLabel}>Entrada</Text>
+              </View>
+              <View style={styles.actionDivider} />
+              <Text style={styles.actionTime}>{nowTime}</Text>
+            </TouchableOpacity>
+          )
         )}
 
         {/* Ubicación */}
@@ -531,7 +530,7 @@ const styles = StyleSheet.create({
   timeBlock:    { flex: 1, alignItems: 'center' },
   timeDivider:  { width: 1, height: 48, backgroundColor: '#334155' },
   timeCaption:  { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 4 },
-  timeValue:    { fontSize: 30, fontWeight: '700', color: '#f1f5f9' },
+  timeValue:    { fontSize: 26, fontWeight: '700', color: '#f1f5f9' },
   timeDim:      { color: '#334155' },
   badge:        {
     alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4,
@@ -547,26 +546,18 @@ const styles = StyleSheet.create({
     padding: 12, marginBottom: 16,
   },
   errorText:    { color: '#fca5a5', fontSize: 13, flex: 1 },
-  circleSection: { alignItems: 'center', paddingVertical: 16, gap: 18 },
-  statusBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+  actionBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderRadius: 28, paddingVertical: 16, paddingHorizontal: 24,
+    marginBottom: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 8, elevation: 6,
   },
-  statusDot:  { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
-  circleRing: {
-    width: 192, height: 192, borderRadius: 96,
-    borderWidth: 10, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 16, elevation: 12,
-  },
-  circleBtn: {
-    width: 164, height: 164, borderRadius: 82,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  actingBox:  { alignItems: 'center', paddingVertical: 24, gap: 12 },
-  actingText: { color: '#94a3b8', fontSize: 14 },
-  btnDisabled:{ opacity: 0.6 },
+  actionLeft:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  actionLabel:   { fontSize: 18, fontWeight: '700', color: '#fff' },
+  actionDivider: { width: 1, height: 26, backgroundColor: 'rgba(255,255,255,0.5)', marginHorizontal: 16 },
+  actionTime:    { fontSize: 18, fontWeight: '700', color: '#fff' },
+  btnDisabled:   { opacity: 0.6 },
   otpCard:      {
     backgroundColor: '#1e293b', borderRadius: 16,
     borderWidth: 1, borderColor: '#3b82f6',

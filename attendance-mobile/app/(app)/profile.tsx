@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
-  Alert, Platform, StyleSheet, Switch, Text,
+  Alert, Platform, ScrollView, StyleSheet, Switch, Text,
   TextInput, TouchableOpacity, View, Modal,
   ActivityIndicator, KeyboardAvoidingView,
 } from 'react-native'
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{fullName?.charAt(0).toUpperCase() ?? '?'}</Text>
         </View>
@@ -291,7 +291,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         <Text style={styles.version}>TiempoYa v1.0.0</Text>
-      </View>
+      </ScrollView>
 
       {/* ── Modal biométrico — confirmar contraseña ── */}
       <Modal visible={showPasswordModal} transparent animationType="slide" onRequestClose={() => setShowPasswordModal(false)}>
@@ -451,7 +451,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe:         { flex: 1, backgroundColor: '#0f172a' },
-  container:    { flex: 1, alignItems: 'center', padding: 24 },
+  container:    { alignItems: 'center', padding: 24, paddingBottom: 40 },
   avatarCircle: {
     width: 88, height: 88, borderRadius: 44, backgroundColor: '#1e3a5f',
     alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 12,
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24, paddingVertical: 14, width: '100%', justifyContent: 'center',
   },
   logoutText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
-  version:    { color: '#334155', fontSize: 12, marginTop: 'auto', paddingBottom: 8 },
+  version:    { color: '#334155', fontSize: 12, marginTop: 24 },
 
   // PIN numpad
   dotsRow: { flexDirection: 'row', gap: 16, marginVertical: 16 },

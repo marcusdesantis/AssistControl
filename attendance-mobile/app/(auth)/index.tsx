@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -245,7 +246,8 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* Header */}
         <View style={styles.header}>
@@ -325,7 +327,7 @@ export default function LoginScreen() {
                 }
               </TouchableOpacity>
               <Text style={styles.biometricHint}>
-                {biometricType === 'facial' ? 'Toca para escanear tu cara' : 'Toca para leer tu huella'}
+                {biometricType === 'facial' ? 'Toca para escanear' : 'Toca para leer tu huella'}
               </Text>
               {error && (
                 <View style={styles.errorBox}>
@@ -383,6 +385,7 @@ export default function LoginScreen() {
         <Text style={styles.footer}>
           Tu usuario y contraseña los encontrarás en el correo de invitación o pídelos a tu administrador.
         </Text>
+      </ScrollView>
       </KeyboardAvoidingView>
 
       {/* ── Modal: ofrecer biométrico tras login ── */}
@@ -489,7 +492,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   safe:      { flex: 1, backgroundColor: '#0f172a' },
-  container: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  container: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
 
   header:     { alignItems: 'center', marginBottom: 32 },
   iconCircle: {

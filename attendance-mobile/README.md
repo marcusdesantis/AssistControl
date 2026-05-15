@@ -1,55 +1,58 @@
-# AI Attendance — App Móvil
+# TiempoYa — App Móvil (React Native / Expo)
 
-App móvil para empleados desarrollada con **Expo + React Native + TypeScript**.
+## Generar APK Release
 
-## Requisitos previos
-- Node.js 18+
-- Expo CLI: `npm install -g expo-cli`
-- En iOS: iPhone con la app **Expo Go** instalada
-- En Android: Teléfono con la app **Expo Go** instalada
-
-## Configuración
-
-1. Copia el archivo de entorno:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edita `.env` y pon la IP de tu servidor:
-   ```
-   EXPO_PUBLIC_API_URL=http://192.168.1.X:5000
-   ```
-   > Asegúrate de que el teléfono y la PC estén en la misma red WiFi.
-
-3. Instala dependencias:
-   ```bash
-   npm install
-   ```
-
-4. Arranca el servidor de desarrollo:
-   ```bash
-   npm start
-   ```
-
-5. Escanea el QR con **Expo Go** desde tu teléfono.
-
-## Flujo de la app
-
-1. **Login**: El empleado ingresa la clave del checador (misma de la web), su número y PIN.
-2. **Asistencia**: Botón verde para entrada, rojo para salida. Se captura GPS automáticamente.
-3. **Historial**: Vista mensual con resumen de días, tardanzas y horas trabajadas.
-4. **Perfil**: Datos del empleado y opción de cerrar sesión.
-
-## Notificaciones push
-
-Las notificaciones de recordatorio se programan localmente en el dispositivo.
-El servidor puede enviar notificaciones Expo a los dispositivos registrados (push token guardado en BD).
-
-## Build para producción (EAS)
-
+### Comando estándar
 ```bash
-npm install -g eas-cli
-eas login
-eas build --platform android
-eas build --platform ios
+cd android
+.\gradlew.bat assembleRelease
+```
+
+APK generado en: `android/app/build/outputs/apk/release/app-release.apk`
+
+### ⚠️ Cuando los cambios no aparecen en el APK
+
+Gradle y Metro cachean el bundle JS. Si después de modificar código el APK no refleja los cambios, borrar las carpetas de salida del bundle **antes** de compilar:
+
+```powershell
+# PowerShell — ejecutar desde la raíz del proyecto
+$base = "android\app\build"
+Remove-Item "$base\intermediates\assets"    -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$base\generated\assets"        -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$base\outputs\apk"             -Recurse -Force -ErrorAction SilentlyContinue
+
+cd android
+.\gradlew.bat assembleRelease
+```
+
+Esto fuerza a Metro a regenerar el bundle desde cero sin recompilar el código nativo (que sí queda cacheado). El build tarda ~5 minutos.
+
+> **Importante:** NO usar `clean` ni `--rerun-tasks` — recompilan las librerías C++ nativas y fallan con `mergeDexRelease`.
+
+### Instalar en el dispositivo
+
+Siempre **desinstalar la app primero** antes de instalar el nuevo APK, para evitar que Android use la versión anterior cacheada.
+
+---
+
+## Estructura
+
+```
+app/
+  (auth)/index.tsx     — Login: 3 métodos (Usuario / Huella/Face ID / PIN)
+  (app)/
+    index.tsx          — Pantalla principal (registro entrada/salida)
+    profile.tsx        — Perfil (biométrico + PIN setup)
+    history.tsx        — Historial de asistencia
+    notifications.tsx  — Notificaciones
+
+src/
+  services/
+    biometricService.ts  — Face ID / huella digital
+    mobileService.ts     — API calls al backend
+  store/
+    authStore.ts         — Estado de sesión (Zustand)
+  utils/
+    storage.ts           — SecureStore wrapper
+    notifications.ts     — Push notifications (Expo)
 ```
