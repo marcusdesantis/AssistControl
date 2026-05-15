@@ -1,15 +1,21 @@
 import { useAuthStore } from '@/store/authStore'
 import { Slot } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+
+SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false)
   const { loadFromStorage } = useAuthStore()
 
   useEffect(() => {
-    loadFromStorage().finally(() => setReady(true))
+    loadFromStorage().finally(() => {
+      setReady(true)
+      SplashScreen.hideAsync()
+    })
   }, [])
 
   if (!ready) {

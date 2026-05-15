@@ -7,6 +7,7 @@ interface AuthState {
   employeeCode: string | null
   fullName:     string | null
   email:        string | null
+  username:     string | null
   hasSchedule:  boolean
   checkerKey:   string | null
   companyName:  string | null
@@ -19,6 +20,7 @@ interface AuthState {
     employeeCode: string
     fullName:     string
     email:        string
+    username:     string
     hasSchedule:  boolean
     companyName:  string
     logoBase64:   string | null
@@ -35,23 +37,25 @@ export const useAuthStore = create<AuthState>((set) => ({
   employeeCode: null,
   fullName:     null,
   email:        null,
+  username:     null,
   hasSchedule:  false,
   checkerKey:   null,
   companyName:  null,
   logoBase64:   null,
   logoUrl:      null,
 
-  setAuth: async ({ token, employeeId, employeeCode, fullName, email, hasSchedule, companyName, logoBase64, logoUrl }) => {
+  setAuth: async ({ token, employeeId, employeeCode, fullName, email, username, hasSchedule, companyName, logoBase64, logoUrl }) => {
     await storage.setItem('employee_token',   token)
     await storage.setItem('employee_id',      employeeId)
     await storage.setItem('employee_code',    employeeCode)
     await storage.setItem('employee_name',    fullName)
     await storage.setItem('employee_email',   email)
+    await storage.setItem('employee_username', username)
     await storage.setItem('has_schedule',     hasSchedule ? '1' : '0')
     await storage.setItem('company_name',     companyName)
     if (logoBase64) await storage.setItem('company_logo_b64', logoBase64)
     if (logoUrl)    await storage.setItem('company_logo_url', logoUrl)
-    set({ token, employeeId, employeeCode, fullName, email, hasSchedule, companyName, logoBase64, logoUrl })
+    set({ token, employeeId, employeeCode, fullName, email, username, hasSchedule, companyName, logoBase64, logoUrl })
   },
 
   clearAuth: async () => {
@@ -60,11 +64,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     await storage.deleteItem('employee_code')
     await storage.deleteItem('employee_name')
     await storage.deleteItem('employee_email')
+    await storage.deleteItem('employee_username')
     await storage.deleteItem('has_schedule')
     await storage.deleteItem('company_name')
     await storage.deleteItem('company_logo_b64')
     await storage.deleteItem('company_logo_url')
-    set({ token: null, employeeId: null, employeeCode: null, fullName: null, email: null, hasSchedule: false, checkerKey: null, companyName: null, logoBase64: null, logoUrl: null })
+    set({ token: null, employeeId: null, employeeCode: null, fullName: null, email: null, username: null, hasSchedule: false, checkerKey: null, companyName: null, logoBase64: null, logoUrl: null })
   },
 
   loadFromStorage: async () => {
@@ -73,12 +78,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     const employeeCode = await storage.getItem('employee_code')
     const fullName     = await storage.getItem('employee_name')
     const email        = await storage.getItem('employee_email')
+    const username     = await storage.getItem('employee_username')
     const hasSchedule  = (await storage.getItem('has_schedule')) === '1'
     const companyName  = await storage.getItem('company_name')
     const logoBase64   = await storage.getItem('company_logo_b64')
     const logoUrl      = await storage.getItem('company_logo_url')
     if (token) {
-      set({ token, employeeId, employeeCode, fullName, email, hasSchedule, companyName, logoBase64, logoUrl })
+      set({ token, employeeId, employeeCode, fullName, email, username, hasSchedule, companyName, logoBase64, logoUrl })
     }
   },
 }))

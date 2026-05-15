@@ -6,12 +6,17 @@ const ENABLED_KEY     = 'biometric_enabled'
 
 export type BiometricType = 'fingerprint' | 'facial' | 'iris' | 'none'
 
-/** Verifica si el dispositivo tiene hardware biométrico y tiene huellas/face registradas */
+/** Verifica si el dispositivo tiene hardware biométrico Y tiene biométricos registrados en el OS */
 export async function isBiometricAvailable(): Promise<boolean> {
   const hasHardware = await LocalAuthentication.hasHardwareAsync()
   if (!hasHardware) return false
   const isEnrolled = await LocalAuthentication.isEnrolledAsync()
   return isEnrolled
+}
+
+/** Solo verifica si hay hardware biométrico (sin importar si está enrolado o si hay permiso) */
+export async function hasBiometricHardware(): Promise<boolean> {
+  return LocalAuthentication.hasHardwareAsync()
 }
 
 /** Devuelve el tipo de biométrico disponible */
@@ -73,4 +78,15 @@ export async function getCredentials(): Promise<{ username: string; password: st
 export async function disableBiometric(): Promise<void> {
   await SecureStore.deleteItemAsync(CREDENTIALS_KEY).catch(() => {})
   await SecureStore.setItemAsync(ENABLED_KEY, 'false')
+}
+
+/** Lee el usuario guardado en las credenciales biométricas sin requerir autenticación */
+export async function getStoredCredentialUsername(): Promise<string | null> {
+  try {
+    const data = await SecureStore.getItemAsync(CREDENTIALS_KEY)
+    if (!data) return null
+    return JSON.parse(data).username ?? null
+  } catch {
+    return null
+  }
 }
