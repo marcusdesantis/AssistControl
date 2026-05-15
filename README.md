@@ -254,9 +254,25 @@ docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-
 
 **Generar APK Android (Capacitor):**
 
-La carpeta `android/` ya existe en el repo y está configurada. Hay dos métodos:
+La carpeta `android/` ya existe en el repo y está configurada.
 
-**Método A — Con Gradle directamente (recomendado, sin Android Studio):**
+**Requisitos para compilar:**
+
+| Herramienta | Versión | Notas |
+|---|---|---|
+| Java JDK | **21** | `bcprov-jdk18on 1.79` (dep. de google-services/Firebase) tiene clases Java 21 — versiones anteriores fallan |
+| Gradle | **8.7** | Gradle < 8.5 no puede procesar multi-release JARs con clases Java 21 |
+| Android SDK | API 33+ | `compileSdkVersion` en `android/variables.gradle` |
+| AGP | 8.2.1 | Android Gradle Plugin en `android/build.gradle` |
+
+Instalar Java 21 si no está:
+```powershell
+winget install EclipseAdoptium.Temurin.21.JDK
+```
+
+El `android/gradle.properties` ya tiene `org.gradle.java.home` apuntando a Eclipse Temurin 21 (`C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot`). Si instalaste en otra ruta, actualiza ese valor.
+
+**Build APK release:**
 ```powershell
 cd attendance-frontend
 
@@ -264,32 +280,32 @@ cd attendance-frontend
 npm run build:mobile
 # Equivale a: vite build --mode mobile && npx cap sync
 
-# 2. Compilar APK debug
+# 2. Compilar APK debug (firmado automáticamente, listo para instalar)
 cd android
-.\gradlew assembleDebug
+.\gradlew.bat assembleDebug
 # APK en: android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-**Método B — Con Android Studio (APK release firmado):**
-```powershell
-cd attendance-frontend
-npm run build:mobile
-npx cap open android
-# Luego en Android Studio: Build → Generate Signed Bundle / APK → APK
-# APK generado en: android\app\release\app-release.apk
-```
+> El APK `release-unsigned` **no se puede instalar** — Android rechaza APKs sin firma.
+> Para distribución interna usa siempre `assembleDebug`. Para Play Store se necesita un keystore de firma.
 
-Instalar vía USB (modo debug activado en el teléfono):
+**Si el JS no se actualiza en el APK** (Gradle marca bundle como UP-TO-DATE):
 ```powershell
-C:\Users\usuario\AppData\Local\Android\Sdk\platform-tools\adb.exe install -r android\app\build\outputs\apk\debug\app-debug.apk
+$base = "android\app\build"
+Remove-Item "$base\intermediates\assets" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$base\generated\assets"    -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$base\outputs\apk"         -Recurse -Force -ErrorAction SilentlyContinue
+cd android
+.\gradlew.bat assembleDebug
+```
+> No usar `gradlew clean` — rompe la compilación nativa (`mergeDexRelease FAILED`).
+
+Instalar vía USB (modo depuración USB activado en el teléfono):
+```powershell
+adb install -r android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
 O copiar el `.apk` al teléfono e instalar manualmente (`Ajustes → Instalar apps desconocidas`).
-
-**Requisitos para compilar:**
-- Java 17
-- Variables de entorno del sistema: `ANDROID_HOME` y `JAVA_HOME`
-- Android Studio opcional (solo para método B / release firmado)
 
 ---
 
@@ -307,7 +323,7 @@ O copiar el `.apk` al teléfono e instalar manualmente (`Ajustes → Instalar ap
 
 **Estado actual:**
 - ✅ Web: funcionando en producción (Docker puerto 80)
-- ✅ Android APK: generado con `gradlew assembleDebug` — apunta a `https://www.tiempoya.net`
+- ✅ Android APK: generado con `gradlew.bat assembleDebug` (Java 21 + Gradle 8.7) — apunta a `https://www.tiempoya.net`
 - ✅ Reportes PDF/Excel exportables desde mobile vía Share nativo
 - ✅ Comprobantes de pago descargables como PDF con márgenes A4
 - ✅ Checador adaptado para uso en tablet/móvil

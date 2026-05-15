@@ -146,8 +146,8 @@ export default function LoginScreen() {
       const p      = password.trim()
       const result = await mobileService.login(u, p)
 
-      // Si hay hardware biométrico y no está activado → mostrar offer ANTES de setAuth
-      if (biometricHardware && !biometricEnabled) {
+      // Si hay biométrico real disponible (enrollado) y no está activado → mostrar offer ANTES de setAuth
+      if (biometricAvailable && !biometricEnabled) {
         setPendingAuth({ result, username: u })
         setPendingCredentials({ username: u, password: p })
         setShowBiometricOffer(true)

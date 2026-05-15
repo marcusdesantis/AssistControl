@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+// bcprov-jdk18on 1.79 requiere Java 21 — excluir del classpath del proyecto
+configurations.all {
+    exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
+}
+
 android {
     namespace "com.abisoft.tiempoya.admin"
     compileSdk rootProject.ext.compileSdkVersion

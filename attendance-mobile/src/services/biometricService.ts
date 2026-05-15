@@ -44,7 +44,7 @@ export async function authenticate(reason: string): Promise<boolean> {
     promptMessage:         reason,
     fallbackLabel:         'Usar contraseña',
     cancelLabel:           'Cancelar',
-    disableDeviceFallback: false,
+    disableDeviceFallback: true,
   })
   return result.success
 }
