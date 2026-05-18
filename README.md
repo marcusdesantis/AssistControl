@@ -181,21 +181,22 @@ docker compose up -d
 
 ---
 
-### 2. `attendance-frontend` — Dashboard Web + App Admin (Android)
+### 2. `attendance-frontend` — Dashboard Web + App Admin (Android + iOS)
 
-Panel de administración para empresas, supervisores y empleados. Se sirve como contenedor Docker en el puerto 80 (web) y también como APK Android vía Capacitor (para administradores en móvil).
+Panel de administración para empresas, supervisores y empleados. Se sirve como contenedor Docker en el puerto 80 (web) y también como APK Android / `.ipa` iOS vía Capacitor (para administradores en móvil).
 
 **Stack:**
 - React 18 · Vite 4 · TypeScript · Tailwind CSS
 - Zustand · React Query · React Hook Form · Zod · Axios · React Router v6
 - **Capacitor 6** (Android/iOS) — empaqueta la SPA como app nativa
 - jsPDF · xlsx-js-style · html2canvas (reportes exportables)
-- Capacitor plugins: App · Filesystem · Share · SplashScreen
+- Capacitor plugins: App · Filesystem · Share · SplashScreen · PushNotifications · Preferences · `@aparajita/capacitor-biometric-auth`
 
 **Datos de la app (Capacitor):**
 - App ID: `com.abisoft.tiempoya.admin`
 - Nombre: `TiempoYa Admin`
 - Android: carpeta `android/` generada con `npx cap add android`
+- iOS: carpeta `ios/` generada con `npx cap add ios` (gitignored, regenerable)
 
 **Módulos principales:**
 
@@ -309,6 +310,80 @@ O copiar el `.apk` al teléfono e instalar manualmente (`Ajustes → Instalar ap
 
 ---
 
+**Generar build iOS local (Capacitor + Xcode):**
+
+A diferencia de `attendance-mobile` (que usa EAS Build), `attendance-frontend` compila iOS **localmente con Xcode** en la Mac. Más simple porque es Capacitor nativo y no requiere subir a la nube.
+
+**Requisitos:**
+
+| Herramienta | Versión | Notas |
+|---|---|---|
+| macOS + Xcode | Cualquier reciente (16+) | Solo Mac puede firmar iOS |
+| CocoaPods | 1.15+ | `gem install cocoapods` |
+| Node + npm | 20+ | Para Vite + Capacitor CLI |
+| @capacitor/ios | 6.2+ | Ya está en `package.json` |
+| iOS Deployment Target | **15.0** | Forzado en `ios/App/Podfile` (lo exige `@aparajita/capacitor-biometric-auth@10`) |
+
+**Scaffold inicial (una sola vez por workstation, `ios/` está en .gitignore):**
+```bash
+cd attendance-frontend
+npm install --legacy-peer-deps    # peer deps de @capacitor/preferences requieren este flag
+npx cap add ios                    # genera ios/App/ con workspace Xcode
+cp credentials/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
+```
+
+> El `GoogleService-Info.plist` se descarga de Firebase Console (proyecto `tiempoya-admin` → Settings → iOS app `com.abisoft.tiempoya.admin`) y se guarda en `credentials/` (gitignored). Ver sección **"Notificaciones push iOS (attendance-frontend)"** más abajo.
+
+**Build para simulador (testing rápido, no necesita signing):**
+```bash
+cd attendance-frontend
+npm run build && npx cap copy ios
+
+cd ios/App
+xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug \
+  -sdk iphonesimulator -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+  -derivedDataPath ./build
+
+# Instalar y abrir en simulador
+xcrun simctl install "iPhone 17 Pro" "./build/Build/Products/Debug-iphonesimulator/App.app"
+xcrun simctl launch "iPhone 17 Pro" com.abisoft.tiempoya.admin
+```
+
+Si los cambios JS no aparecen en la app, hacer `npx cap copy ios` antes de recompilar.
+
+**Build para dispositivo real (Ad-hoc o TestFlight):**
+```bash
+npm run build && npx cap copy ios
+npx cap open ios   # abre Xcode
+```
+
+En Xcode:
+1. Seleccionar target **App** → tab **Signing & Capabilities**
+2. Team: **Soft Potential Ltd (WJ38Y98349)**
+3. Bundle Identifier: `com.abisoft.tiempoya.admin`
+4. Marcar **Automatically manage signing**
+5. **Product → Archive** (genera build firmado)
+6. Una vez listo, **Distribute App → Ad Hoc** (o **App Store Connect** para TestFlight)
+
+**Generar íconos y splash desde 1 imagen base:**
+```bash
+# Pone tu logo 1024x1024 en assets/icon.png
+npx capacitor-assets generate --ios
+# Genera AppIcon + Splash para todas las resoluciones automáticamente
+```
+
+**Cosas resueltas durante el setup iOS (no repetir):**
+
+| Problema | Solución (ya aplicada) |
+|---|---|
+| `@capacitor/preferences@8` tiene peer dep conflict con Capacitor v6 | Usar `npm install --legacy-peer-deps` |
+| Pod fails: `AparajitaCapacitorBiometricAuth requires higher deployment target` | `ios/App/Podfile` ya tiene `platform :ios, '15.0'` |
+| Wizard de Firebase pide código Swift con `FirebaseApp.configure()` | Ignorar — Capacitor maneja Firebase iOS al detectar el `GoogleService-Info.plist`, no requiere modificar AppDelegate |
+| Contenido se pegaba al notch / Dynamic Island | `viewport-fit=cover` en `index.html` + `body.platform-ios { padding-top: env(safe-area-inset-top); ... }` en `src/index.css`, clase `platform-ios` se agrega vía JS en `main.tsx` solo en iOS |
+| Backend rechazaba `platform: 'ios'` (Zod enum solo aceptaba 'web' \| 'android') | Actualizado en `svc-core` y `svc-admin` notifications/push-token routes |
+
+---
+
 **Características específicas para Android:**
 
 | Feature | Descripción |
@@ -327,7 +402,56 @@ O copiar el `.apk` al teléfono e instalar manualmente (`Ajustes → Instalar ap
 - ✅ Reportes PDF/Excel exportables desde mobile vía Share nativo
 - ✅ Comprobantes de pago descargables como PDF con márgenes A4
 - ✅ Checador adaptado para uso en tablet/móvil
-- ⏳ iOS: requiere cuenta Apple Developer ($99/año) + `npx cap add ios`
+- ✅ **iOS:** App ID `com.abisoft.tiempoya.admin` registrada en Apple Developer, Firebase iOS configurado en proyecto `tiempoya-admin` con APNs Key, build local con Xcode funcional, app corriendo en simulador iPhone + iPad. Pendiente: archive Ad-hoc o TestFlight para validar en dispositivo físico
+
+---
+
+### Notificaciones push iOS — `attendance-frontend`
+
+**Cuenta Apple Developer:** misma que `attendance-mobile` — Soft Potential Ltd (Team `WJ38Y98349`, Apple ID `jeanmarcus_86@hotmail.com`). Ver detalle en sección **"Notificaciones push iOS — Configuración detallada"** de `attendance-mobile`.
+
+**App ID en Apple Developer:** `com.abisoft.tiempoya.admin` (Description: `TiempoYa Admin`) con capability **Push Notifications** activada.
+
+**Firebase project: `tiempoya-admin`** (NO `tiempoya-c8cb9` que es de attendance-mobile).
+- App iOS registrada con bundle `com.abisoft.tiempoya.admin`
+- `GoogleService-Info.plist` descargado y colocado en `attendance-frontend/credentials/` (gitignored). Capacitor lo lee desde `ios/App/App/GoogleService-Info.plist` durante el build.
+- APNs Auth Key (`AG9ACUK7YZ` reutilizada de attendance-mobile, es **Team Scoped (All Topics)** → cubre ambas apps) subida a Firebase Console → Cloud Messaging → Apple app configurations, en ambos ambientes (Sandbox + Production).
+
+**Diferencia con `attendance-mobile`:** acá SÍ se usa Firebase para iOS (no Expo Push). Razón: este proyecto usa Capacitor + el backend ya tiene Firebase Admin SDK (FCM URL `https://fcm.googleapis.com/v1/projects/tiempoya-admin/messages:send`). Los tokens iOS van por FCM, que internamente los enruta a APNs usando el `.p8` que subimos.
+
+```
+Backend (svc-core / svc-admin)
+    │
+    ▼
+  FCM HTTP v1 API (tiempoya-admin)
+    │
+    ├──► Token Android (FCM) ──► FCM ──► dispositivo
+    │
+    └──► Token iOS (FCM) ──► FCM ──► APNs (con .p8) ──► dispositivo
+```
+
+**Bug fix aplicado en el backend (commit `4a1fa14`):** Las rutas `PUT /notifications/push-token` (en `svc-core` y `svc-admin`) tenían Zod `z.enum(['web', 'android'])` que **rechazaba `'ios'` con 400**. Ahora aceptan `'ios'` también. El comentario del campo `DeviceToken.platform` en `schema.prisma` también se actualizó. El campo es `String` (no enum), por eso no requirió migración de DB.
+
+**Fix de safe-area iOS:** Capacitor por defecto pone el WebView debajo del notch / Dynamic Island. La solución (sin instalar plugins extra) es CSS puro:
+- `index.html` viewport: `width=device-width, initial-scale=1.0, viewport-fit=cover`
+- `src/main.tsx`: agrega clase `platform-ios` al `<body>` solo cuando `Capacitor.getPlatform() === 'ios'`
+- `src/index.css`: `body.platform-ios { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }`
+
+Web y Android no se ven afectados porque el CSS está scopeado a la clase `platform-ios`. Sides intencionalmente sin padding (los necesitas solo en landscape iPhone con Dynamic Island).
+
+**Configuración relevante en `ios/App/App/Info.plist`:**
+```xml
+<key>NSFaceIDUsageDescription</key>
+<string>Usa Face ID para acceder a TiempoYa Admin de forma rápida y segura.</string>
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>
+```
+
+**Pendientes para producción:**
+- Crear app `TiempoYa Admin` en App Store Connect (bundle `com.abisoft.tiempoya.admin`)
+- `Product → Archive` en Xcode → Distribute App → TestFlight o Ad Hoc
+- Submit a Apple para revisión (~24h primera vez)
+- Invitar testers por email/link público de TestFlight
 
 ---
 
