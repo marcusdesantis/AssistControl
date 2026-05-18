@@ -40,6 +40,7 @@ attendance-mobile/.env.*.local
 attendance-mobile/android/
 attendance-mobile/ios/
 attendance-mobile/.metro-health-check*
+attendance-mobile/credentials/
 *.jks
 *.p8
 *.p12

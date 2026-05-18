@@ -371,7 +371,7 @@ npm run android    # Emulador Android (sin notificaciones push)
 npm run ios        # Simulador iOS (sin notificaciones push)
 ```
 
-> Las notificaciones push **solo funcionan en APKs generadas con EAS Build**. El emulador y Expo Go no reciben tokens FCM válidos.
+> Las notificaciones push **solo funcionan en builds nativos (EAS Build o local) instalados en dispositivos físicos**. El emulador Android, simulador iOS y Expo Go no reciben tokens FCM/APNs válidos.
 
 ---
 
@@ -430,14 +430,21 @@ Requiere tener la app creada previamente en [Google Play Console](https://play.g
 
 ---
 
-**Generar build para App Store (iOS):**
+**Generar build iOS — testing y producción:**
 
 ```bash
+# Login una vez (cuenta: yasmani1997)
+eas login
+
+# Testing interno con Ad-hoc (requiere registrar UDIDs previamente — ver sección "Notificaciones push iOS")
+eas build --platform ios --profile preview
+
+# Producción para App Store / TestFlight
 eas build --platform ios --profile production
 eas submit --platform ios
 ```
 
-Requiere cuenta Apple Developer ($99/año) y la app creada en App Store Connect. EAS compila en workers con Mac, no se necesita hardware Apple.
+EAS compila en workers con Mac, no se necesita hardware Apple local. Detalles de credenciales APNs, UDIDs y TestFlight en la sección "**Notificaciones push iOS — Configuración detallada**" más abajo.
 
 ---
 
@@ -476,15 +483,166 @@ Si hay que reconfigurar Firebase en un nuevo proyecto:
 | Plataforma | Estado | Notas |
 |---|---|---|
 | Android | ✅ Funcional | FCM v1 configurado en EAS |
-| iOS | ⏳ Pendiente | Requiere cuenta Apple Developer ($99/año) y credenciales APNs |
+| iOS | 🔄 Build interno generado | Cuenta Apple Developer + APNs Key + Distribution Certificate + Provisioning Profile configurados. Primer `.ipa` Ad-hoc generado. Pendiente: validar push en iPad físico del tester |
 
-Para habilitar iOS en el futuro:
-1. Adquirir cuenta [Apple Developer](https://developer.apple.com/)
-2. Registrar app `com.abisoft.tiempoya` en App Store Connect
-3. Configurar APNs: `eas credentials --platform ios`
-4. Build: `eas build --platform ios --profile preview`
+El backend (`sendExpoPush`) ya está preparado para iOS — Expo Push Service gestiona tanto FCM (Android) como APNs (iOS) con la misma API.
 
-El backend (`sendExpoPush`) ya está preparado para iOS — Expo Push Service gestiona tanto FCM (Android) como APNs (iOS) con la misma API. Solo falta el build con credenciales Apple.
+---
+
+**Notificaciones push iOS — Configuración detallada**
+
+### Cuenta Apple Developer
+
+| Dato | Valor |
+|---|---|
+| Empresa | Soft Potential Ltd (Organization) |
+| Team ID | `WJ38Y98349` |
+| Apple ID administrador | `jeanmarcus_86@hotmail.com` |
+| Titular cuenta | Giancarlo Stoppani |
+| Programa | Apple Developer Program ($99/año) |
+| Renovación | 1 mar 2027 |
+| Reset anual dispositivos | 1 mar (hasta 100 devices/año) |
+
+### App ID registrado
+
+- **Bundle ID:** `com.abisoft.tiempoya`
+- **Description:** `TiempoYa Employee`
+- **Capabilities activadas:** Push Notifications
+
+### APNs Auth Key (`.p8`)
+
+| Dato | Valor |
+|---|---|
+| Key ID | `AG9ACUK7YZ` |
+| Tipo | APNs (Sandbox & Production), Team Scoped (All Topics) |
+| Ubicación local del archivo | `attendance-mobile/credentials/AuthKey_AG9ACUK7YZ.p8` |
+| Protección | `.gitignore` ignora `attendance-mobile/credentials/` y `*.p8` globalmente — el archivo **nunca se sube al repo** |
+| Subida a EAS | Sí — asociada al projectId `03665f3e-8e79-489e-9984-5480c7486d79`, bundle `com.abisoft.tiempoya` |
+
+> ⚠️ **El `.p8` solo se puede descargar una vez** desde Apple Developer. Si se pierde, hay que crear una nueva key (máx. 2 activas por cuenta). Mantener backup seguro (1Password, disco encriptado, etc.).
+
+### Configuración relevante en `app.json` (iOS)
+
+```json
+"ios": {
+  "bundleIdentifier": "com.abisoft.tiempoya",
+  "supportsTablet": true,
+  "config": {
+    "usesNonExemptEncryption": false   // evita prompt de App Store sobre regulaciones de cifrado
+  },
+  "infoPlist": {
+    "NSLocationWhenInUseUsageDescription": "...",
+    "NSLocationAlwaysUsageDescription": "...",
+    "NSFaceIDUsageDescription": "..."
+  }
+}
+```
+
+### Por qué NO se usa Firebase para iOS
+
+El backend usa **Expo Push Service** (`exp.host/--/api/v2/push/send` en `packages/shared/src/utils/push.ts`) que enruta automáticamente:
+
+```
+Token Android (ExponentPushToken[xxx]) → Expo → FCM → dispositivo
+Token iOS    (ExponentPushToken[yyy]) → Expo → APNs → dispositivo (directo, sin Firebase)
+```
+
+iOS NO requiere `GoogleService-Info.plist` ni registrar app iOS en Firebase Console.
+
+---
+
+**Pasos para habilitar push iOS desde cero (referencia):**
+
+1. **Apple Developer Portal** — Registrar App ID con bundle `com.abisoft.tiempoya` y activar capability Push Notifications
+2. **Apple Developer Portal** — Crear APNs Auth Key (.p8), guardar Key ID
+3. **EAS** — Subir `.p8` via `eas credentials --platform ios` (lo solicita el primer `eas build` también)
+4. **EAS** — `eas build --platform ios --profile preview`
+5. **Distribución** — Ad-hoc (registrar UDIDs) o TestFlight (revisión Apple ~24h)
+
+---
+
+**Distribución iOS — Comparación de opciones**
+
+| Método | Para quién | Costo extra | Revisión Apple | UDIDs |
+|---|---|---|---|---|
+| **Ad-hoc** | Hasta 100 iPhones específicos | Gratis | No | Cada iPhone se registra individualmente vía `eas device:create` |
+| **TestFlight** | Hasta 10,000 testers con Apple ID | Gratis | Sí, ~24h primera vez | No requeridos |
+| **App Store** | Cualquier persona en el mundo | Gratis | Sí, ~1-3 días primera vez | No requeridos |
+| **Enterprise** | Empleados de empresa solamente | +$299/año | No | No requeridos |
+
+### Distribución Ad-hoc (testing rápido)
+
+```bash
+# 1. Registrar iPhone(s) o iPad(s) del tester(s)
+cd attendance-mobile
+eas device:create
+# Elegir: Website → ingresar Apple ID + 2FA → guardar URL/QR generado (válido 14 días)
+
+# 2. Compartir URL/QR con cada tester
+# El tester abre el link en Safari (sí o sí, no Chrome) → instala perfil de config → UDID registrado
+
+# 3. Build (incluye automáticamente todos los UDIDs ya registrados)
+eas build --platform ios --profile preview
+
+# 4. Compartir link de instalación con los testers
+# El link de la página de detalles del build tiene un botón "Install" que detecta el dispositivo:
+#   https://expo.dev/accounts/yasmani1997/projects/attendance-mobile/builds/<BUILD_ID>
+# El tester lo abre en Safari de su dispositivo → "Install" → app instalada en ~30 seg
+```
+
+⚠️ **Si entra un tester nuevo después del build:** hay que rebuildelar (`eas build` otra vez) para incluir su UDID en el provisioning profile. El `.ipa` antiguo no se actualiza solo.
+
+**Prompts del primer `eas build --platform ios --profile preview` (referencia):**
+
+| Prompt | Respuesta |
+|---|---|
+| `Do you want to log in to your Apple account?` | Y |
+| `Apple ID` | `jeanmarcus_86@hotmail.com` |
+| `Password` + 2FA | (interactivo, no se puede automatizar) |
+| `Generate a new Apple Distribution Certificate?` | Y |
+| `Generate a new Apple Provisioning Profile?` | Y |
+| `Select devices for the ad hoc build` | Espacio para marcar, Enter para confirmar |
+| `Would you like to set up Push Notifications?` | Yes |
+| `Generate a new Apple Push Notifications service key?` | **No** (porque ya tenemos el `.p8`) |
+| `Path to P8 file` | `attendance-mobile/credentials/AuthKey_AG9ACUK7YZ.p8` |
+| `Key ID` | `AG9ACUK7YZ` |
+| `Apple Team ID` | `WJ38Y98349` (pre-rellenado por EAS) |
+
+Tiempo total: ~5 min de prompts interactivos + ~15-20 min de cola/compilación en EAS (cuenta gratis).
+
+### Migración a TestFlight (cuando hay 5+ testers)
+
+```bash
+# 1. Crear app en App Store Connect (una sola vez, ~15 min)
+# https://appstoreconnect.apple.com → My Apps → "+" → New App
+# - Platform: iOS
+# - Name: TiempoYa
+# - Bundle ID: com.abisoft.tiempoya (del dropdown)
+# - SKU: tiempoya-ios-001
+
+# 2. Build production
+eas build --platform ios --profile production
+
+# 3. Submit a Apple
+eas submit --platform ios --latest
+
+# 4. Esperar review Apple (~24h primera vez, ~1h subsiguientes)
+
+# 5. En App Store Connect → TestFlight → invitar testers por email
+# Cada tester instala app "TestFlight" desde App Store y abre invitación
+```
+
+### Solución de problemas frecuentes iOS
+
+| Problema | Causa | Solución |
+|---|---|---|
+| `xcodebuild error: database is locked` | Build anterior bloqueó DerivedData (build local) | `rm -rf ~/Library/Developer/Xcode/DerivedData/TiempoYa-*` y reintentar |
+| Prompt "iOS app only uses standard/exempt encryption?" durante build | EAS pregunta por regulaciones de cifrado del App Store | Ya resuelto agregando `ios.config.usesNonExemptEncryption: false` en `app.json` |
+| App instalada pero crash al abrir | Provisioning profile sin Push capability | Verificar que App ID tenga Push Notifications activado en Apple Developer Portal |
+| Tester "Unable to install" | UDID no incluido en provisioning profile | Registrar UDID con `eas device:create` y rebuildelar |
+| Push no llega | `.p8` no subida a EAS, o Key ID mal | `eas credentials --platform ios` → re-subir `.p8` |
+| 2FA modal se cierra solo | Click accidental en OK | Generar manualmente: System Settings → Apple ID → Sign-In & Security → Get Verification Code |
+| `eas device:create` Apple ID se reemplaza con "y" | Bug de expect/regex matching cuando se intenta automatizar prompts en serie | Correr el comando interactivamente en terminal real, no via expect/scripts |
 
 ---
 

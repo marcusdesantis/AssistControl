@@ -17,6 +17,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.abisoft.tiempoya",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Se usa para registrar tu ubicación al marcar entrada/salida.",
         "NSLocationAlwaysUsageDescription": "Se usa para enviarte recordatorios de asistencia.",
