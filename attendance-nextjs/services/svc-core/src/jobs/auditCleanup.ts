@@ -9,6 +9,9 @@ export function startAuditCleanupJob() {
   const mode = retentionDays <= 14 ? 'weekly' : 'monthly'
   console.log(`[audit-cleanup] Iniciado — modo ${mode} (retención ${retentionDays} días)`)
 
+  // Al arrancar: si hay logs vencidos (el job se perdió por reinicio), ejecutar de inmediato
+  runCleanupIfOverdue(retentionDays).catch(e => console.error('[audit-cleanup] error en chequeo inicial:', e))
+
   function scheduleNext() {
     const now  = new Date()
     const next = new Date(now)
@@ -37,6 +40,17 @@ export function startAuditCleanupJob() {
   }
 
   scheduleNext()
+}
+
+// Ejecuta el cleanup solo si hay logs vencidos (catch-up tras reinicio)
+async function runCleanupIfOverdue(retentionDays: number) {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - retentionDays)
+  const count = await prisma.auditLog.count({ where: { createdAt: { lt: cutoff } } })
+  if (count > 0) {
+    console.log(`[audit-cleanup] ${count} log(s) vencidos al arrancar — ejecutando respaldo inmediato`)
+    await runCleanup()
+  }
 }
 
 async function runCleanup() {
