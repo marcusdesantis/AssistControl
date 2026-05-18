@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 const schema = z.object({
   token:    z.string().min(1),
-  platform: z.enum(['web', 'android']).default('web'),
+  platform: z.enum(['web', 'android', 'ios']).default('web'),
 })
 
 export const PUT = withAdmin(async (req, { admin }) => {

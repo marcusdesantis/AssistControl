@@ -7,6 +7,7 @@ import SysProfileMenu from './SysProfileMenu'
 import clsx from 'clsx'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { sysApi } from '@/services/sysApi'
+import { isNative, isIOS } from '@/utils/platform'
 
 const NAV = [
   { to: '/sys',               label: 'Dashboard',     icon: LayoutDashboard, end: true },
@@ -26,7 +27,7 @@ export default function SysLayout() {
   const navigate = useNavigate()
 
   usePushNotifications({
-    registerToken: token => sysApi.put('/notifications/push-token', { token, platform: 'web' }).then(() => {}),
+    registerToken: token => sysApi.put('/notifications/push-token', { token, platform: isNative ? (isIOS ? 'ios' : 'android') : 'web' }).then(() => {}),
   })
 
   return (

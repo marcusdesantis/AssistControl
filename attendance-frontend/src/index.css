@@ -5,6 +5,12 @@
 @layer base {
   * { box-sizing: border-box; }
   body { @apply antialiased text-gray-900; }
+  /* Solo iOS necesita compensar el notch / Dynamic Island arriba y la home indicator abajo.
+     Android y web no se ven afectados. */
+  body.platform-ios {
+    padding-top:    env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @layer utilities {

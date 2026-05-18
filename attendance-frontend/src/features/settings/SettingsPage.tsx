@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  Mail, Plus, X, Send, Copy, Check, ChevronDown, Loader2, Save,
+  Mail, X, Send, Copy, Check, ChevronDown, Loader2, Save,
   Server, Eye, EyeOff, ToggleLeft, ToggleRight, KeyRound, RefreshCw, AlertTriangle, Lock, CreditCard, UserPlus,
 } from 'lucide-react'
 import { copyText } from '@/utils/clipboard'

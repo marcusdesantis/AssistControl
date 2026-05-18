@@ -15,7 +15,7 @@ import { DEFAULT_CAPABILITIES } from '@/types/auth'
 import type { Subscription } from '@/types/billing'
 import clsx from 'clsx'
 import { countryToLocale } from '@/utils/locale'
-import { isNative } from '@/utils/platform'
+import { isNative, isIOS } from '@/utils/platform'
 import { useAndroidBack } from '@/hooks/useAndroidBack'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { api } from '@/services/api'
@@ -48,7 +48,7 @@ export default function Layout() {
   const [sub, setSub] = useState<Subscription | null>(null)
   useAndroidBack()
   usePushNotifications({
-    registerToken: token => api.put('/notifications/push-token', { token, platform: isNative ? 'android' : 'web' }).then(() => {}),
+    registerToken: token => api.put('/notifications/push-token', { token, platform: isNative ? (isIOS ? 'ios' : 'android') : 'web' }).then(() => {}),
   })
 
   const handleDeactivatedClose = () => {

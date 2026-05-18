@@ -26,6 +26,8 @@ attendance-frontend/.env.*.local
 attendance-frontend/android/app/build/
 attendance-frontend/android/.gradle/
 attendance-frontend/android/build/
+attendance-frontend/credentials/
+attendance-frontend/ios/
 
 # ============================================================
 #  React Native / Expo — attendance-mobile

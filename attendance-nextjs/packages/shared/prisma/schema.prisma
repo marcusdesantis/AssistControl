@@ -562,7 +562,7 @@ model DeviceToken {
   userId    String
   userType  String   // 'admin' | 'superadmin'
   token     String
-  platform  String   @default("web") // 'web' | 'android'
+  platform  String   @default("web") // 'web' | 'android' | 'ios'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
