@@ -833,13 +833,13 @@ export default function CheckerPage() {
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-left bg-transparent border-0 p-0 cursor-pointer hover:opacity-75 transition-opacity">
+        <div onClick={() => navigate('/dashboard')} className="flex items-center gap-2 cursor-pointer">
           <img src="/logo-sidebar-app.png" alt="" className="w-8 h-8 object-contain shrink-0" style={{ mixBlendMode: 'screen' }} />
           <div>
             <p className="font-bold text-sm leading-tight">TiempoYa</p>
             <p className="hidden lg:block text-primary-200 text-xs capitalize">{dateStr}</p>
           </div>
-        </button>
+        </div>
         <div className="ml-auto flex items-center gap-3">
           <div className="flex items-center gap-1.5 bg-white/10 rounded-lg px-3 py-1.5">
             <Users className="w-3.5 h-3.5 text-primary-200" />
