@@ -833,9 +833,7 @@ export default function CheckerPage() {
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
-          <Clock className="w-5 h-5 text-white" />
-        </div>
+        <img src="/logo-sidebar-app.png" alt="" className="w-8 h-8 object-contain shrink-0" style={{ mixBlendMode: 'screen' }} />
         <div>
           <p className="font-bold text-sm leading-tight">TiempoYa</p>
           {/* Fecha: oculta en mobile, visible en desktop */}

@@ -17,14 +17,8 @@ function NavBar() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <span className="font-bold text-gray-900 text-lg">TiempoYa</span>
+        <Link href="/" className="flex items-center">
+          <img src="/logo-landing-pages.png" alt="TiempoYa" className="h-8 w-auto object-contain" />
         </Link>
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#funcionalidades" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Funcionalidades</Link>
@@ -273,14 +267,8 @@ function Footer() {
     <footer className="bg-gray-900 text-gray-400 py-12 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="font-bold text-white">TiempoYa</span>
+          <div className="flex items-center">
+            <img src="/logo-landing-foter.png" alt="TiempoYa" className="h-8 w-auto object-contain" />
           </div>
           <nav className="flex flex-wrap gap-6 text-sm justify-center">
             <Link href="/"         className="hover:text-white transition-colors">Inicio</Link>

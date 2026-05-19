@@ -12,14 +12,15 @@ interface AuthState {
   tenantDeactivated:  boolean
   userDeactivated:    boolean
 
-  setAuth:             (user: UserInfo, accessToken: string, refreshToken: string, capabilities: PlanCapabilities) => void
-  setCapabilities:     (capabilities: PlanCapabilities) => void
-  updateAccessToken:   (accessToken: string) => void
-  clearAuth:           () => void
-  setDeactivated:      () => void
-  clearDeactivated:    () => void
-  setUserDeactivated:  () => void
-  clearUserDeactivated:() => void
+  setAuth:               (user: UserInfo, accessToken: string, refreshToken: string, capabilities: PlanCapabilities) => void
+  setCapabilities:       (capabilities: PlanCapabilities) => void
+  updateAccessToken:     (accessToken: string) => void
+  setOnboardingComplete: () => void
+  clearAuth:             () => void
+  setDeactivated:        () => void
+  clearDeactivated:      () => void
+  setUserDeactivated:    () => void
+  clearUserDeactivated:  () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -41,6 +42,9 @@ export const useAuthStore = create<AuthState>()(
 
       updateAccessToken: (accessToken) =>
         set({ accessToken }),
+
+      setOnboardingComplete: () =>
+        set((state) => ({ user: state.user ? { ...state.user, onboardingCompleted: true } : null })),
 
       clearAuth: () =>
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, capabilities: DEFAULT_CAPABILITIES }),

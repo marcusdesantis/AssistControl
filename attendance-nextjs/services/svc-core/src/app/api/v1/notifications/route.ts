@@ -36,6 +36,17 @@ export const GET = withAdmin(async (req, { tenantId }) => {
   return apiOk({ items, total, totalPages: Math.ceil(total / pageSize), unread })
 })
 
+export const POST = withAdmin(async (req, { tenantId }) => {
+  const raw = await req.json() as { title?: unknown; body?: unknown; type?: unknown }
+  const title = String(raw.title ?? '')
+  const body  = String(raw.body  ?? '')
+  const type  = String(raw.type  ?? 'info')
+  const notif = await prisma.notification.create({
+    data: { tenantId, title, body, type, forAdmin: false, forEmployee: false },
+  })
+  return apiOk(notif)
+})
+
 export const PATCH = withAdmin(async (req, { tenantId }) => {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id') ?? undefined

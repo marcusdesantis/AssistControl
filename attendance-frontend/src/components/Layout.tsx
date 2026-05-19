@@ -4,7 +4,7 @@ import {
   Clock, LayoutDashboard, Users, CalendarCheck,
   BarChart3, Settings, Menu, X, ChevronRight,
   ScanLine, CalendarDays, MessageSquare, Building2, Network, Lock, ShieldOff,
-  AlertTriangle, Headset, CalendarOff,
+  AlertTriangle, Headset, CalendarOff, Zap,
 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import ProfileMenu from './ProfileMenu'
@@ -44,8 +44,8 @@ const navItems: NavItem[] = [
 export default function Layout() {
   const navigate = useNavigate()
   const { user, clearAuth, capabilities, tenantDeactivated, clearDeactivated } = useAuthStore()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sub, setSub] = useState<Subscription | null>(null)
+  const [sidebarOpen,       setSidebarOpen]       = useState(false)
+  const [sub,               setSub]               = useState<Subscription | null>(null)
   useAndroidBack()
   usePushNotifications({
     registerToken: token => api.put('/notifications/push-token', { token, platform: isNative ? (isIOS ? 'ios' : 'android') : 'web' }).then(() => {}),
@@ -144,10 +144,8 @@ export default function Layout() {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-primary-700">
-          <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5 text-white" />
-          </div>
+        <div className="flex items-center gap-2 px-5 py-5 border-b border-primary-700">
+          <img src="/logo-sidebar-app.png" alt="" className="w-9 h-9 object-contain shrink-0" style={{ mixBlendMode: 'screen' }} />
           <div className="min-w-0">
             <p className="font-bold text-sm leading-tight truncate">TiempoYa</p>
             <p className="text-primary-300 text-xs truncate">v1.0</p>
@@ -244,6 +242,23 @@ export default function Layout() {
           <NotificationBell />
           <ProfileMenu />
         </header>
+
+        {/* Banner plan gratuito — upsell */}
+        {sub?.plan?.isFree && !isNative && (
+          <div className="shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center gap-3 px-4 sm:px-6 py-2.5 text-sm">
+            <Zap className="w-4 h-4 shrink-0 text-indigo-200" />
+            <span className="flex-1 min-w-0">
+              <span className="font-bold">{sub.plan.name}</span>
+              <span className="hidden sm:inline text-indigo-200"> · Actualiza tu plan y desbloquea todas las funcionalidades sin límites</span>
+            </span>
+            <button
+              onClick={() => navigate('/settings?tab=subscription')}
+              className="shrink-0 px-3 py-1 bg-white text-indigo-700 hover:bg-indigo-50 rounded-lg text-xs font-bold transition-colors whitespace-nowrap shadow-sm"
+            >
+              Ver planes →
+            </button>
+          </div>
+        )}
 
         {/* Banner de suscripción */}
         {sub && !sub.plan?.isFree && (() => {

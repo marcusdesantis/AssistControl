@@ -686,9 +686,18 @@ function SchedulesPageInner() {
           <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
         </div>
       ) : schedules.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-gray-300 flex flex-col items-center justify-center py-16 text-gray-400">
-          <CalendarDays className="w-10 h-10 mb-2 opacity-30" />
-          <p className="text-sm">No hay horarios creados. Crea uno para poder registrar empleados.</p>
+        <div className="bg-white rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center">
+            <CalendarDays className="w-8 h-8 text-gray-300" />
+          </div>
+          <p className="text-sm font-medium text-gray-700">Aún no hay horarios</p>
+          <p className="text-xs text-gray-400 max-w-xs">Crea un horario de trabajo para poder asignarlo a tus empleados</p>
+          <button
+            onClick={() => document.getElementById('tour-sched-new')?.click()}
+            className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Crear primer horario
+          </button>
         </div>
       ) : (
         <div id="tour-sched-cards" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

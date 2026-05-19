@@ -1,15 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, UserCheck, UserX, Clock, TrendingUp, Calendar, ArrowRight, Loader2 } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
+import {
+  Users, UserCheck, UserX, Clock, TrendingUp, Calendar, ArrowRight, Loader2,
+  AlertTriangle, CalendarDays, BarChart2, MessageSquare, ScanLine, Settings,
+} from 'lucide-react'
+import { useAuthStore }      from '@/store/authStore'
+import UpgradeCard          from '@/components/UpgradeCard'
+import OnboardingWizard from '@/components/OnboardingWizard'
+import { billingService }    from '../settings/billingService'
+import type { Subscription } from '@/types/billing'
 import { employeeService }   from '../employees/employeeService'
 import { attendanceService } from '../attendance/attendanceService'
+import { scheduleService }                      from '../schedules/scheduleService'
+import { companyService }                       from '../company/companyService'
+import { settingsService }                      from '../settings/settingsService'
+import { departmentService, positionService }   from '../organization/organizationService'
 import type { AttendanceRecord } from '@/types/attendance'
-import type { Employee } from '@/types/employee'
-import clsx from 'clsx'
+import type { Employee }         from '@/types/employee'
+import clsx            from 'clsx'
 import { countryToLocale } from '@/utils/locale'
-import { createTour } from '@/utils/tour'
-import HelpButton from '@/components/HelpButton'
+import { createTour }      from '@/utils/tour'
+import HelpButton          from '@/components/HelpButton'
+import SetupChecklist      from '@/components/SetupChecklist'
 
 interface DashboardStats {
   total:    number
@@ -20,8 +32,8 @@ interface DashboardStats {
 }
 
 function toLocalDateString(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const y   = d.getFullYear()
+  const m   = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }
@@ -48,52 +60,139 @@ export default function DashboardPage() {
   const user     = useAuthStore((s) => s.user)
   const timeZone = user?.timeZone ?? 'America/Guayaquil'
   const locale   = countryToLocale(user?.country ?? 'EC')
-  const [stats,      setStats]      = useState<DashboardStats | null>(null)
-  const [recent,     setRecent]     = useState<AttendanceRecord[]>([])
-  const [loading,    setLoading]    = useState(true)
+
+  const [stats,          setStats]          = useState<DashboardStats | null>(null)
+  const [recent,         setRecent]         = useState<AttendanceRecord[]>([])
+  const [loading,        setLoading]        = useState(true)
+
+  // Checklist setup state
+  const [hasLogo,        setHasLogo]        = useState(false)
+  const [hasSchedules,   setHasSchedules]   = useState(false)
+  const [hasCatalog,     setHasCatalog]     = useState(false)
+  const [hasEmployees,   setHasEmployees]   = useState(false)
+  const [hasSmtp,        setHasSmtp]        = useState(false)
+  const [hasCheckerKey,  setHasCheckerKey]  = useState(false)
+  const [hasAttendance,  setHasAttendance]  = useState(false)
+  const [sub,            setSub]            = useState<Subscription | null | undefined>(undefined)
+  const setOnboardingComplete = useAuthStore((s) => s.setOnboardingComplete)
+  const showOnboarding = user !== null && user.onboardingCompleted === false
+
+  // Empleados sin horario asignado (alerta)
+  const [noScheduleCount, setNoScheduleCount] = useState(0)
 
   useEffect(() => {
     const today = toLocalDateString(new Date())
+
+    billingService.getSubscription().then(setSub).catch(() => setSub(null))
+
     Promise.all([
       employeeService.getAll(),
       attendanceService.getByDate(today),
-    ]).then(([emps, recs]: [Employee[], AttendanceRecord[]]) => {
-      const active = emps.filter(e => e.status === 'Active')
-      const recordMap = new Map(recs.map(r => [r.employeeId, r]))
-      const present  = recs.filter(r => r.status === 'Present').length
-      const late     = recs.filter(r => r.status === 'Late').length
-      const absent   = recs.filter(r => r.status === 'Absent').length
-      const noRecord = active.filter(e => !recordMap.has(e.id)).length
+      scheduleService.getAll(),
+      companyService.get().catch(() => null),
+      settingsService.get().catch(() => null),
+      departmentService.getAll().catch(() => []),
+      positionService.getAll().catch(() => []),
+      attendanceService.hasAny().catch(() => false),
+    ]).then(([emps, recs, scheds, company, settings, depts, positions, anyRecs]) => {
+      const active = emps.filter((e: Employee) => e.status === 'Active')
+      const recordMap = new Map(recs.map((r: AttendanceRecord) => [r.employeeId, r]))
+
+      const present  = recs.filter((r: AttendanceRecord) => r.status === 'Present').length
+      const late     = recs.filter((r: AttendanceRecord) => r.status === 'Late').length
+      const absent   = recs.filter((r: AttendanceRecord) => r.status === 'Absent').length
+      const noRecord = active.filter((e: Employee) => !recordMap.has(e.id)).length
 
       setStats({ total: active.length, present, late, absent, noRecord })
 
-      // Últimas 5 checadas (más recientes primero)
       const sorted = [...recs]
-        .filter(r => r.checkInTime)
-        .sort((a, b) => new Date(b.checkInTime!).getTime() - new Date(a.checkInTime!).getTime())
+        .filter((r: AttendanceRecord) => r.checkInTime)
+        .sort((a: AttendanceRecord, b: AttendanceRecord) =>
+          new Date(b.checkInTime!).getTime() - new Date(a.checkInTime!).getTime()
+        )
       setRecent(sorted.slice(0, 5))
+
+      // Checklist
+      const withSchedule = active.filter((e: Employee) => e.scheduleId)
+      const withoutSched = active.filter((e: Employee) => !e.scheduleId)
+
+      setHasLogo(!!company?.logoBase64)
+      setHasSchedules(scheds.length > 0)
+      setHasCatalog(depts.length > 0 && positions.length > 0)
+      setHasEmployees(active.length > 0)
+      setHasSmtp(!!(settings?.smtpEnabled))
+      setHasCheckerKey(!!(settings as any)?.checkerSetupDone)
+      setHasAttendance(anyRecs as boolean)
+      setNoScheduleCount(withoutSched.length)
+
     }).catch(() => {
-      /* silent – dashboard is non-critical */
+      /* silent */
     }).finally(() => setLoading(false))
   }, [])
 
   function runTour() {
-    createTour([
-      { element: '#tour-dash-stats',  title: 'Resumen del día',       description: 'Aquí ves de un vistazo cuántos empleados están presentes, ausentes o con retardo. Haz clic en cada tarjeta para filtrar la vista de asistencia.' },
-      { element: '#tour-dash-recent', title: 'Últimas entradas',      description: 'Las últimas marcaciones de entrada del día, ordenadas de más reciente a más antigua. Haz clic en "Ver todo" para ir al módulo de asistencia.' },
-      { element: '#tour-dash-links',  title: 'Accesos rápidos',       description: 'Atajos a los módulos más usados: TiempoYa y Gestión de Empleados.' },
-    ]).drive()
+    const steps = [
+      document.getElementById('tour-dash-checklist') && { element: '#tour-dash-checklist', title: 'Primeros pasos', description: 'Guía de configuración inicial. Sigue estos pasos en orden para tener todo listo.' },
+      { element: '#tour-dash-stats',  title: 'Resumen del día',  description: 'Empleados presentes, ausentes y con retardo en tiempo real.' },
+      document.getElementById('tour-dash-alerts') && { element: '#tour-dash-alerts', title: 'Alertas del día', description: 'Situaciones que requieren tu atención hoy.' },
+      { element: '#tour-dash-recent', title: 'Últimas entradas', description: 'Las 5 marcaciones más recientes del día.' },
+      { element: '#tour-dash-links',  title: 'Accesos rápidos',  description: 'Atajos a los módulos más usados.' },
+    ].filter(Boolean) as any[]
+    createTour(steps).drive()
   }
 
   const statCards = [
-    { label: 'Presentes hoy',   value: stats?.present  ?? '—', icon: UserCheck, color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-200'  },
-    { label: 'Ausentes / s/reg',value: stats != null ? (stats.absent + stats.noRecord) : '—', icon: UserX, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
-    { label: 'Retardos',        value: stats?.late     ?? '—', icon: Clock,     color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200' },
-    { label: 'Total empleados', value: stats?.total    ?? '—', icon: Users,     color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200'   },
+    {
+      label: 'Presentes hoy',
+      value: stats?.present ?? '—',
+      icon:  UserCheck,
+      color: 'text-green-600',
+      bg:    'bg-green-50',
+      border:'border-green-200',
+      to:    '/attendance',
+    },
+    {
+      label: 'Sin registro',
+      value: stats?.noRecord ?? '—',
+      icon:  UserX,
+      color: 'text-red-600',
+      bg:    'bg-red-50',
+      border:'border-red-200',
+      to:    '/attendance',
+    },
+    {
+      label: 'Retardos',
+      value: stats?.late ?? '—',
+      icon:  Clock,
+      color: 'text-yellow-600',
+      bg:    'bg-yellow-50',
+      border:'border-yellow-200',
+      to:    '/attendance',
+    },
+    {
+      label: 'Total empleados',
+      value: stats?.total ?? '—',
+      icon:  Users,
+      color: 'text-blue-600',
+      bg:    'bg-blue-50',
+      border:'border-blue-200',
+      to:    '/employees',
+    },
   ]
 
+  const showAlerts = !loading && stats && (
+    (stats.noRecord > 0 && stats.total > 0) ||
+    noScheduleCount > 0
+  )
+
   return (
-    <div className="space-y-6">
+    <>
+    {showOnboarding && (
+      <OnboardingWizard
+        onDone={() => setOnboardingComplete()}
+      />
+    )}
+    <div className="space-y-5">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -110,23 +209,83 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Checklist primeros pasos */}
+      {!loading && (
+        <SetupChecklist
+          tenantId={user?.tenantId}
+          hasLogo={hasLogo}
+          hasSchedules={hasSchedules}
+          hasCatalog={hasCatalog}
+          hasEmployees={hasEmployees}
+          hasSmtp={hasSmtp}
+          hasCheckerKey={hasCheckerKey}
+          hasAttendance={hasAttendance}
+        />
+      )}
+
+      {/* Upgrade card — solo cuando el plan tiene features bloqueadas */}
+      {sub !== undefined && sub?.plan?.isFree && (
+        <UpgradeCard planName={sub.plan.name} />
+      )}
+
       {/* Stats */}
-      <div id="tour-dash-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map(({ label, value, icon: Icon, color, bg, border }) => (
-          <div key={label} className={clsx('bg-white rounded-xl border p-5 flex items-center gap-4', border)}>
+      <div id="tour-dash-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map(({ label, value, icon: Icon, color, bg, border, to }) => (
+          <Link
+            key={label}
+            to={to}
+            className={clsx(
+              'bg-white rounded-xl border p-5 flex items-center gap-4 hover:shadow-md transition-shadow group',
+              border
+            )}
+          >
             <div className={clsx('w-12 h-12 rounded-xl flex items-center justify-center shrink-0', bg)}>
               <Icon className={clsx('w-6 h-6', color)} />
             </div>
             <div>
               {loading
                 ? <Loader2 className="w-5 h-5 animate-spin text-gray-300 mb-1" />
-                : <p className="text-2xl font-bold text-gray-900">{value}</p>
+                : <p className="text-2xl font-bold text-gray-900 group-hover:text-primary-700 transition-colors">{value}</p>
               }
               <p className="text-xs text-gray-500 mt-0.5">{label}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
+
+      {/* Alertas del día */}
+      {showAlerts && (
+        <div id="tour-dash-alerts" className="space-y-2">
+          {stats!.noRecord > 0 && stats!.total > 0 && (
+            <Link
+              to="/attendance"
+              className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                <p className="text-sm text-amber-800 font-medium">
+                  {stats!.noRecord} empleado{stats!.noRecord !== 1 ? 's' : ''} sin registrar entrada hoy
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform shrink-0" />
+            </Link>
+          )}
+          {noScheduleCount > 0 && (
+            <Link
+              to="/employees"
+              className="flex items-center justify-between gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <CalendarDays className="w-5 h-5 text-blue-500 shrink-0" />
+                <p className="text-sm text-blue-800 font-medium">
+                  {noScheduleCount} empleado{noScheduleCount !== 1 ? 's' : ''} sin horario asignado
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform shrink-0" />
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Bottom panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -148,8 +307,12 @@ export default function DashboardPage() {
               <Loader2 className="w-5 h-5 animate-spin text-gray-300" />
             </div>
           ) : recent.length === 0 ? (
-            <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            <div className="flex flex-col items-center justify-center h-32 bg-gray-50 rounded-xl border border-dashed border-gray-200 gap-2">
+              <Clock className="w-8 h-8 text-gray-300" />
               <p className="text-sm text-gray-400">Sin checadas hoy</p>
+              <Link to="/attendance" className="text-xs text-primary-600 font-medium hover:underline">
+                Ir a Asistencia →
+              </Link>
             </div>
           ) : (
             <div className="space-y-2">
@@ -178,41 +341,33 @@ export default function DashboardPage() {
             <h2 className="font-semibold text-gray-900">Accesos rápidos</h2>
           </div>
 
-          <div className="space-y-3">
-            <Link
-              to="/attendance"
-              className="flex items-center justify-between p-4 rounded-xl bg-primary-50 border border-primary-100 hover:bg-primary-100 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <UserCheck className="w-5 h-5 text-white" />
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { to: '/checker',             icon: ScanLine,      label: 'Checador',     desc: 'Kiosk entrada/salida',    color: 'bg-primary-600' },
+              { to: '/attendance',          icon: UserCheck,     label: 'Asistencia',   desc: 'Registros del día',       color: 'bg-green-600'   },
+              { to: '/employees',           icon: Users,         label: 'Empleados',    desc: 'Gestionar empleados',     color: 'bg-slate-600'   },
+              { to: '/schedules',           icon: CalendarDays,  label: 'Horarios',     desc: 'Turnos y jornadas',       color: 'bg-violet-600'  },
+              { to: '/reports',             icon: BarChart2,     label: 'Reportes',     desc: 'PDF y Excel',             color: 'bg-emerald-600' },
+              { to: '/settings?tab=email',  icon: Settings,      label: 'Configuración',desc: 'SMTP · Checador · Planes',color: 'bg-gray-600'    },
+            ].map(({ to, icon: Icon, label, desc, color }) => (
+              <Link
+                key={to}
+                to={to}
+                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all group"
+              >
+                <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center shrink-0`}>
+                  <Icon className="w-4 h-4 text-white" />
                 </div>
-                <div>
-                  <p className="font-medium text-primary-900 text-sm">TiempoYa</p>
-                  <p className="text-xs text-primary-600">Ver y registrar checadas de hoy</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 group-hover:text-primary-700 transition-colors">{label}</p>
+                  <p className="text-xs text-gray-400 truncate">{desc}</p>
                 </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-primary-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
-
-            <Link
-              to="/employees"
-              className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gray-600 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Gestión de Empleados</p>
-                  <p className="text-xs text-gray-500">Alta, baja y modificación de empleados</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
+              </Link>
+            ))}
           </div>
         </div>
       </div>
     </div>
+    </>
   )
 }

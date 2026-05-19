@@ -41,9 +41,10 @@ export interface UserInfo {
   email: string
   role: 'Admin' | 'Supervisor' | 'Employee'
   tenantId: string
-  mustChangePassword: boolean
-  timeZone: string
-  country: string
+  mustChangePassword:  boolean
+  timeZone:            string
+  country:             string
+  onboardingCompleted: boolean
 }
 
 export interface LoginRequest {

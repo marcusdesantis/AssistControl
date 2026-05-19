@@ -64,6 +64,11 @@ export const attendanceService = {
     return res.data.data!
   },
 
+  hasAny: async (): Promise<boolean> => {
+    const res = await api.get<ApiResponse<{ hasAny: boolean }>>('/attendance/has-any')
+    return res.data.data?.hasAny ?? false
+  },
+
   getDayView: async (filters: DayViewFilters = {}): Promise<PagedResult<AttendanceDayRow>> => {
     const params: Record<string, any> = {
       page:     filters.page     ?? 1,

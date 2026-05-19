@@ -100,11 +100,8 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 pt-6 pb-4 border-b border-gray-100">
-          <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-gray-900">TiempoYa</span>
+        <div className="flex items-center px-6 pt-6 pb-4 border-b border-gray-100">
+          <img src="/logo-landing-pages.png" alt="TiempoYa" className="h-8 w-auto object-contain" />
         </div>
 
         <div className="p-6">

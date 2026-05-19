@@ -107,6 +107,9 @@ model Tenant {
   emailVerificationToken    String?
   emailVerificationExpiry   DateTime?
 
+  onboardingCompleted       Boolean   @default(false)
+  checkerSetupDone          Boolean   @default(false)
+
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime? @updatedAt
   isDeleted                 Boolean   @default(false)

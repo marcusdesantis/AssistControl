@@ -249,12 +249,9 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <a href="/" className="inline-block">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur rounded-2xl mb-4 hover:bg-white/20 transition-colors">
-              <Clock className="w-9 h-9 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-white hover:text-primary-100 transition-colors">TiempoYa</h1>
+            <img src="/tiempoya-login.png" alt="TiempoYa" className="h-28 w-auto object-contain mx-auto mb-1" />
           </a>
-          <p className="text-primary-200 mt-1 text-sm">Panel de administración</p>
+          <p className="text-primary-200 text-sm">Panel de administración</p>
         </div>
 
         {/* Selector de método (solo en móvil con más de 1 opción) */}

@@ -266,7 +266,7 @@ export async function login(dto: LoginDto) {
 
   const tenant = await prisma.tenant.findUnique({
     where:  { id: user.tenantId },
-    select: { isActive: true, pendingApproval: true, timeZone: true, country: true, selfRegistered: true, emailVerified: true, emailVerificationToken: true },
+    select: { isActive: true, pendingApproval: true, timeZone: true, country: true, selfRegistered: true, emailVerified: true, emailVerificationToken: true, onboardingCompleted: true },
   })
 
   // Solo bloquear si hay un token de verificación pendiente (registro nuevo via sign-up con SMTP)
@@ -313,7 +313,7 @@ export async function login(dto: LoginDto) {
     accessToken,
     refreshToken: refreshString,
     expiresAt:    accessExpiresAt(),
-    user: { id: user.id, username: user.username, email: user.email, role: user.role, tenantId: user.tenantId, mustChangePassword: user.mustChangePassword, timeZone: tenant.timeZone, country: tenant.country },
+    user: { id: user.id, username: user.username, email: user.email, role: user.role, tenantId: user.tenantId, mustChangePassword: user.mustChangePassword, timeZone: tenant.timeZone, country: tenant.country, onboardingCompleted: tenant.onboardingCompleted },
     capabilities,
   }
 }

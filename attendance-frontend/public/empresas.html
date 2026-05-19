@@ -19,7 +19,7 @@
   <meta property="og:url" content="https://www.tiempoya.net/landing/tiempoya-landing2">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="TiempoYa">
-  <meta property="og:locale" content="es_ES">
+  <meta property="og:locale" content="es_LA">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Control de Asistencia para Empresas | TiempoYa">
   <meta name="twitter:description" content="Registra entradas y salidas, detecta tardanzas y genera reportes automáticos. Empieza gratis.">
@@ -33,7 +33,9 @@
     "url": "https://www.tiempoya.net/landing/tiempoya-landing2",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
+    "inLanguage": "es",
     "description": "Software de gestión de asistencia para empresas y PYMES. Controla entradas, salidas, tardanzas y genera reportes automáticos desde cualquier dispositivo.",
+    "aggregateRating": {"@type":"AggregateRating","ratingValue":"4.9","reviewCount":"500","bestRating":"5"},
     "featureList": [
       "Registro digital de entradas y salidas",
       "Detección automática de tardanzas e inasistencias",
@@ -44,12 +46,44 @@
       "Exportación masiva de datos RRHH"
     ],
     "screenshot": "https://www.tiempoya.net/assets/og-empresas.webp",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD",
-      "description": "Plan gratuito para empresas sin tarjeta de crédito"
-    }
+    "offers": {"@type":"AggregateOffer","priceCurrency":"USD","lowPrice":"0","highPrice":"79","offerCount":"3"},
+    "provider": {"@type":"Organization","name":"TiempoYa","url":"https://www.tiempoya.net"}
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "TiempoYa",
+    "url": "https://www.tiempoya.net",
+    "logo": "https://www.tiempoya.net/assets/logo.png",
+    "sameAs": ["https://www.linkedin.com/company/tiempoya","https://twitter.com/tiempoya"],
+    "contactPoint": {"@type":"ContactPoint","contactType":"customer support","availableLanguage":"Spanish"}
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"¿Cómo detecta TiempoYa las tardanzas?","acceptedAnswer":{"@type":"Answer","text":"TiempoYa registra la hora exacta de entrada de cada empleado y la compara con el horario asignado. Si hay una tardanza, el panel lo muestra en tiempo real y puede enviar notificaciones automáticas al encargado."}},
+      {"@type":"Question","name":"¿TiempoYa genera reportes automáticos?","acceptedAnswer":{"@type":"Answer","text":"Sí. Con un clic se genera el reporte mensual completo en PDF o Excel, listo para descargar y compartir con contabilidad o gerencia. El proceso que antes tomaba 3 horas ahora toma 3 segundos."}},
+      {"@type":"Question","name":"¿Cuánto cuesta TiempoYa para empresas?","acceptedAnswer":{"@type":"Answer","text":"TiempoYa tiene un plan gratuito para hasta 5 empleados, un plan Profesional de $29/mes para hasta 20 empleados, y un plan Empresarial de $79/mes para hasta 100 empleados. Todos sin contrato de permanencia."}},
+      {"@type":"Question","name":"¿Funciona para empresas pequeñas con pocos empleados?","acceptedAnswer":{"@type":"Answer","text":"Sí. TiempoYa está diseñado para empresas de todos los tamaños. El plan gratuito incluye control de asistencia completo para equipos de hasta 5 personas, sin tarjeta de crédito."}}
+    ]
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "itemReviewed": {"@type":"SoftwareApplication","name":"TiempoYa","url":"https://www.tiempoya.net"},
+    "author": {"@type":"Person","name":"Rodrigo Gutiérrez","jobTitle":"Gerente de RRHH","worksFor":{"@type":"Organization","name":"Distribuidora Andina"}},
+    "reviewRating": {"@type":"Rating","ratingValue":"5","bestRating":"5"},
+    "reviewBody": "Antes perdíamos 3 horas al mes consolidando planillas. Ahora el reporte está listo en segundos y las tardanzas bajaron un 80% en el primer mes. TiempoYa cambió completamente cómo gestionamos el equipo."
   }
   </script>
 
@@ -83,13 +117,8 @@
   <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm shadow-sm z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <a href="https://www.tiempoya.net" class="flex items-center gap-2">
-          <div class="w-8 h-8 bg-primary-700 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <span class="text-xl font-bold text-primary-700">TiempoYa</span>
+        <a href="https://www.tiempoya.net" class="flex items-center">
+          <img src="/logo-landing-pages.png" alt="TiempoYa" style="height:32px;width:auto;object-fit:contain;" />
         </a>
         <div class="hidden md:flex items-center gap-8">
           <a href="https://www.tiempoya.net/#funcionalidades" class="text-gray-600 hover:text-primary-700 font-medium transition">Funcionalidades</a>
@@ -497,11 +526,8 @@
   <footer class="bg-gray-900 text-gray-400 py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 bg-primary-700 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <span class="text-white font-bold text-lg">TiempoYa</span>
+        <div class="flex items-center">
+          <img src="/logo-landing-foter.png" alt="TiempoYa" style="height:32px;width:auto;object-fit:contain;" />
         </div>
         <div class="flex flex-wrap justify-center gap-6 text-sm">
           <a href="https://www.tiempoya.net/terminos" class="hover:text-white transition">Términos de uso</a>

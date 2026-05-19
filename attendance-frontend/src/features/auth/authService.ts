@@ -24,4 +24,8 @@ export const authService = {
     const res = await api.post<ApiResponse<LoginResponse>>('/auth/refresh', { token })
     return res.data
   },
+
+  completeOnboarding: async () => {
+    await api.put('/auth/onboarding-complete')
+  },
 }

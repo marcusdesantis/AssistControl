@@ -336,7 +336,7 @@ export default function EmployeesPage() {
               className="flex-1 sm:flex-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
               {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button id="tour-emp-new" onClick={openCreate}
+            <button id="tour-emp-new" data-testid="btn-nuevo-empleado" onClick={openCreate}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" /> Nuevo
             </button>
@@ -351,9 +351,27 @@ export default function EmployeesPage() {
             <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
           </div>
         ) : employees.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-            <UserCheck className="w-10 h-10 mb-2 opacity-30" />
-            <p className="text-sm">{search || statusFilter ? 'Sin resultados' : 'No hay empleados registrados'}</p>
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center">
+              <UserCheck className="w-8 h-8 text-gray-300" />
+            </div>
+            {search || statusFilter ? (
+              <>
+                <p className="text-sm font-medium text-gray-600">Sin resultados</p>
+                <p className="text-xs text-gray-400">Intenta con otro nombre, código o filtro</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-gray-700">Aún no hay empleados</p>
+                <p className="text-xs text-gray-400 max-w-xs">Crea tu primer empleado para empezar a registrar asistencia</p>
+                <button
+                  onClick={() => document.getElementById('tour-emp-new')?.click()}
+                  className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Agregar primer empleado
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <>

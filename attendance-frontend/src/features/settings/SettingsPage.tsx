@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
 import { toast } from 'sonner'
 import {
   Mail, X, Send, Copy, Check, ChevronDown, Loader2, Save,
@@ -39,6 +40,7 @@ const EMPTY: TenantSettings = {
   checkerKey:                  '',
   checkerRequires2FA:          false,
   checkerOtpExpirationMinutes: 5,
+  checkerSetupDone:            false,
 }
 
 // ─── Componentes pequeños ─────────────────────────────────────────────────────
@@ -97,6 +99,7 @@ type Tab = 'email' | 'invitations' | 'checker' | 'subscription'
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function SettingsPage() {
+  const tenantId = useAuthStore(s => s.user?.tenantId)
   const [form,       setForm]       = useState<TenantSettings>(EMPTY)
   const [loading,    setLoading]    = useState(true)
   const [saving,     setSaving]     = useState(false)
@@ -127,6 +130,12 @@ export default function SettingsPage() {
     scheduleService.getAll()
       .then(scheds => setSchedules(scheds))
       .catch(() => {})
+    // Si viene desde el checklist con ?tab=checker, abrir el modal de contraseña automáticamente
+    if (searchParams.get('tab') === 'checker') {
+      setPwdInput('')
+      setPwdError(null)
+      setShowPwdModal(true)
+    }
   }, [])
 
   const handleTabClick = (key: Tab) => {
@@ -154,6 +163,7 @@ export default function SettingsPage() {
       setCheckerUnlocked(true)
       setShowPwdModal(false)
       setActiveTab('checker')
+      settingsService.markCheckerSetupDone().catch(() => {})
     } else {
       setPwdError('Contraseña incorrecta. Intenta de nuevo.')
     }
