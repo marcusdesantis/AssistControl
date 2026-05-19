@@ -262,6 +262,8 @@ export default function SetupChecklist({
                 {!step.done && !step.locked && (
                   <Link
                     to={step.href}
+                    target={step.id === 'attendance' ? '_blank' : undefined}
+                    rel={step.id === 'attendance' ? 'noopener noreferrer' : undefined}
                     className="shrink-0 text-xs font-semibold text-primary-600 hover:text-primary-800 whitespace-nowrap mt-0.5"
                   >
                     {step.cta} →
