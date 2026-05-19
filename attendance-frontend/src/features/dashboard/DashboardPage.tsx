@@ -73,6 +73,7 @@ export default function DashboardPage() {
   const [hasSmtp,        setHasSmtp]        = useState(false)
   const [hasCheckerKey,  setHasCheckerKey]  = useState(false)
   const [hasAttendance,  setHasAttendance]  = useState(false)
+  const [setupCelebrated, setSetupCelebrated] = useState(false)
   const [sub,            setSub]            = useState<Subscription | null | undefined>(undefined)
   const setOnboardingComplete = useAuthStore((s) => s.setOnboardingComplete)
   const showOnboarding = user !== null && user.onboardingCompleted === false
@@ -122,6 +123,7 @@ export default function DashboardPage() {
       setHasEmployees(active.length > 0)
       setHasSmtp(!!(settings?.smtpEnabled))
       setHasCheckerKey(!!(settings as any)?.checkerSetupDone)
+      setSetupCelebrated(!!(settings as any)?.setupCelebrated)
       setHasAttendance(anyRecs as boolean)
       setNoScheduleCount(withoutSched.length)
 
@@ -212,7 +214,6 @@ export default function DashboardPage() {
       {/* Checklist primeros pasos */}
       {!loading && (
         <SetupChecklist
-          tenantId={user?.tenantId}
           hasLogo={hasLogo}
           hasSchedules={hasSchedules}
           hasCatalog={hasCatalog}
@@ -220,6 +221,7 @@ export default function DashboardPage() {
           hasSmtp={hasSmtp}
           hasCheckerKey={hasCheckerKey}
           hasAttendance={hasAttendance}
+          setupCelebrated={setupCelebrated}
         />
       )}
 

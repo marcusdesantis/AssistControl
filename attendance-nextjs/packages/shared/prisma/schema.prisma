@@ -109,6 +109,7 @@ model Tenant {
 
   onboardingCompleted       Boolean   @default(false)
   checkerSetupDone          Boolean   @default(false)
+  setupCelebrated           Boolean   @default(false)
 
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime? @updatedAt

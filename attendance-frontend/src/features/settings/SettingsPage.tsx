@@ -41,6 +41,7 @@ const EMPTY: TenantSettings = {
   checkerRequires2FA:          false,
   checkerOtpExpirationMinutes: 5,
   checkerSetupDone:            false,
+  setupCelebrated:             false,
 }
 
 // ─── Componentes pequeños ─────────────────────────────────────────────────────

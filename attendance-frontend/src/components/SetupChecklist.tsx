@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CheckCircle2, Circle, Lock, ChevronDown, ChevronUp, Rocket, PartyPopper } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
+import { settingsService } from '@/features/settings/settingsService'
 
 interface Step {
   id:          string
@@ -16,30 +17,25 @@ interface Step {
 }
 
 interface Props {
-  tenantId?:     string
-  hasLogo:       boolean
-  hasSchedules:  boolean
-  hasCatalog:    boolean
-  hasEmployees:  boolean
-  hasSmtp:       boolean
-  hasCheckerKey: boolean
-  hasAttendance: boolean
+  hasLogo:          boolean
+  hasSchedules:     boolean
+  hasCatalog:       boolean
+  hasEmployees:     boolean
+  hasSmtp:          boolean
+  hasCheckerKey:    boolean
+  hasAttendance:    boolean
+  setupCelebrated:  boolean
 }
 
-const COLLAPSED_KEY   = 'setup_checklist_collapsed'
-const celebrationKey  = (tid?: string) => `setup_celebrated_${tid ?? 'default'}`
-
 export default function SetupChecklist({
-  tenantId,
   hasLogo, hasSchedules, hasCatalog, hasEmployees,
-  hasSmtp, hasCheckerKey, hasAttendance,
+  hasSmtp, hasCheckerKey, hasAttendance, setupCelebrated,
 }: Props) {
-  const [collapsed,   setCollapsed]   = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1')
+  const [collapsed,   setCollapsed]   = useState(false)
   const [celebrating, setCelebrating] = useState(false)
-  // Inicializar oculto si ya se completó todo Y ya se celebró en esta sesión (evita flash)
   const [hidden, setHidden] = useState(() => {
     const allDoneNow = hasLogo && hasSchedules && hasCatalog && hasEmployees && hasCheckerKey && hasAttendance
-    return allDoneNow && sessionStorage.getItem(celebrationKey(tenantId)) === '1'
+    return allDoneNow && setupCelebrated
   })
 
   const steps: Step[] = [
@@ -116,24 +112,14 @@ export default function SetupChecklist({
 
   useEffect(() => {
     if (!allDone) return
+    if (setupCelebrated) { setHidden(true); return }
 
-    const key = celebrationKey(tenantId)
-    const alreadyCelebrated = sessionStorage.getItem(key) === '1'
-
-    if (alreadyCelebrated) {
-      // Ya celebramos en esta sesión (o estaba completo al cargar) — ocultar silenciosamente
-      setHidden(true)
-      return
-    }
-
-    // Primera vez que se completa en esta sesión — celebrar
-    sessionStorage.setItem(key, '1')
+    settingsService.markSetupCelebrated().catch(() => {})
     setCelebrating(true)
     toast.success('¡Primeros pasos completados! 🎉', {
       description: 'Tu empresa está lista para registrar asistencia.',
       duration: 5000,
     })
-    // Crear notificación en la campanita
     api.post('/notifications', {
       title: '🎉 ¡Primeros pasos completados!',
       body:  'Tu empresa está lista para registrar asistencia. ¡Bienvenido a TiempoYa!',
@@ -143,12 +129,9 @@ export default function SetupChecklist({
     }).catch(() => {})
 
     setTimeout(() => setHidden(true), 4500)
-  }, [allDone, tenantId])
+  }, [allDone, setupCelebrated])
 
-  const toggleCollapsed = (val: boolean) => {
-    setCollapsed(val)
-    localStorage.setItem(COLLAPSED_KEY, val ? '1' : '0')
-  }
+  const toggleCollapsed = (val: boolean) => setCollapsed(val)
 
   if (hidden) return null
 

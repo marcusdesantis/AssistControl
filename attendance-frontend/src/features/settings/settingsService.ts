@@ -26,6 +26,7 @@ export interface TenantSettings {
   checkerRequires2FA:          boolean
   checkerOtpExpirationMinutes: number
   checkerSetupDone:            boolean
+  setupCelebrated:             boolean
 }
 
 export interface InvitationCatalogItem {
@@ -61,6 +62,10 @@ export const settingsService = {
 
   markCheckerSetupDone: async (): Promise<void> => {
     await api.put('/settings/checker-setup')
+  },
+
+  markSetupCelebrated: async (): Promise<void> => {
+    await api.put('/settings/setup-celebrated')
   },
 
   sendInvitation: async (

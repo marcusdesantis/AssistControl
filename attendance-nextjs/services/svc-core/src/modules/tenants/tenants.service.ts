@@ -58,6 +58,7 @@ export async function getSettings(tenantId: string) {
     checkerRequires2FA:          tenant.checkerRequires2FA,
     checkerOtpExpirationMinutes: tenant.checkerOtpExpirationMinutes,
     checkerSetupDone:            tenant.checkerSetupDone,
+    setupCelebrated:             tenant.setupCelebrated,
   }
 }
 
