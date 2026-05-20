@@ -8,6 +8,7 @@ import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -251,10 +252,11 @@ export default function LoginScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="time-outline" size={44} color="#fff" />
-          </View>
-          <Text style={styles.title}>TiempoYa</Text>
+          <Image
+            source={require('../../login-logo.png')}
+            style={styles.loginLogo}
+            resizeMode="contain"
+          />
           <Text style={styles.subtitle}>Acceso para empleados</Text>
         </View>
 
@@ -495,14 +497,8 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
 
   header:     { alignItems: 'center', marginBottom: 32 },
-  iconCircle: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: '#1e3a5f',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
-    shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 10, elevation: 8,
-  },
-  title:    { fontSize: 26, fontWeight: '700', color: '#f1f5f9', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#64748b' },
+  loginLogo:  { width: 200, height: 120, marginBottom: 12 },
+  subtitle:   { fontSize: 13, color: '#64748b' },
 
   methodRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   methodCard: {

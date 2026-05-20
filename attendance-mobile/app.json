@@ -30,7 +30,7 @@
       "package": "com.abisoft.tiempoya",
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
-        "backgroundColor": "#0f172a"
+        "backgroundColor": "#ffffff"
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",

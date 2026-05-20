@@ -3,8 +3,7 @@ import { useAuthStore } from '@/store/authStore'
 import * as biometric from '@/services/biometricService'
 import { storage } from '@/utils/storage'
 import AttendanceAuthModal, { type AuthMethod } from '@/components/AttendanceAuthModal'
-
-type AttendanceMethod = AuthMethod | 'checker'
+import ChangeMethodModal, { type AttendanceMethod } from '@/components/ChangeMethodModal'
 import { Ionicons } from '@expo/vector-icons'
 import * as Location from 'expo-location'
 import { useFocusEffect } from 'expo-router'
@@ -154,12 +153,17 @@ export default function HomeScreen() {
   // GPS bloqueado
   const [gpsBlocked,  setGpsBlocked]  = useState<'services' | 'permission' | null>(null)
   // Modal de confirmación biométrica/PIN
-  const [authModal,      setAuthModal]      = useState<'checkin' | 'checkout' | null>(null)
+  const [authModal,         setAuthModal]         = useState<'checkin' | 'checkout' | null>(null)
+  // Modal de cambio de método
+  const [changeMethodModal, setChangeMethodModal] = useState(false)
+  // Acción pendiente mientras el usuario elige método por primera vez
+  const [pendingAction,     setPendingAction]     = useState<'checkin' | 'checkout' | null>(null)
   // Método preferido: 'biometric' | 'pin' | 'checker' | null (null = primera vez)
   const [preferredMethod, setPreferredMethod] = useState<AttendanceMethod | null>(null)
   // Estado de métodos disponibles
   const [bioEnabled2,    setBioEnabled2]    = useState(false)
   const [pinEnabled2,    setPinEnabled2]    = useState(false)
+  const [bioType2,       setBioType2]       = useState<biometric.BiometricType>('fingerprint')
   const [nowTime,     setNowTime]     = useState(() => {
     const d = new Date()
     return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -188,15 +192,17 @@ export default function HomeScreen() {
 
   useFocusEffect(useCallback(() => {
     loadStatus()
-    // Cargar método preferido y si tiene ambos activos
+    // Cargar método preferido y métodos disponibles
     Promise.all([
       storage.getItem('attendance_preferred_method'),
       biometric.isBiometricEnabled(),
       storage.getItem('pin_enabled'),
-    ]).then(([method, bio, pin]) => {
+      biometric.getBiometricType(),
+    ]).then(([method, bio, pin, btype]) => {
       setPreferredMethod((method as AttendanceMethod | null) ?? null)
       setBioEnabled2(bio)
       setPinEnabled2(pin === 'true')
+      setBioType2(btype)
     })
   }, [loadStatus]))
 
@@ -274,27 +280,23 @@ export default function HomeScreen() {
     }
   }
 
-  // Muestra Alert con todas las opciones disponibles para elegir método
-  const handleChangeMethod = () => {
-    const options: Array<{ text: string; method: AttendanceMethod }> = []
-    if (bioEnabled2) options.push({ text: 'Huella digital / Face ID', method: 'biometric' })
-    if (pinEnabled2) options.push({ text: 'PIN personal',             method: 'pin'       })
-    options.push(      { text: 'PIN del checador',               method: 'checker'   })
+  const handleChangeMethod = () => setChangeMethodModal(true)
 
-    Alert.alert(
-      'Método de registro',
-      'Elige cómo confirmar tu asistencia',
-      [
-        ...options.map(o => ({
-          text: o.text,
-          onPress: () => {
-            storage.setItem('attendance_preferred_method', o.method).catch(() => {})
-            setPreferredMethod(o.method)
-          },
-        })),
-        { text: 'Cancelar', style: 'cancel' as const },
-      ]
-    )
+  const handleSelectMethod = (method: AttendanceMethod) => {
+    storage.setItem('attendance_preferred_method', method).catch(() => {})
+    setPreferredMethod(method)
+    setChangeMethodModal(false)
+
+    // Si se abrió por una acción pendiente (primera vez), ejecutarla
+    if (pendingAction) {
+      const action = pendingAction
+      setPendingAction(null)
+      if (method === 'checker') {
+        setPinStep(true)
+      } else {
+        setAuthModal(action)
+      }
+    }
   }
 
   // Paso 1: verificar GPS — decide flujo según preferencia guardada
@@ -303,13 +305,21 @@ export default function HomeScreen() {
     if (!loc) return
     setErrorMsg(null)
 
-    // Si prefiere el checador → flujo clásico directo
     if (preferredMethod === 'checker') {
       setPinStep(true)
       return
     }
 
     const hasBioOrPin = await hasAuthMethod()
+
+    // Primera vez sin método elegido → mostrar selector con las 3 opciones
+    if (preferredMethod === null && hasBioOrPin) {
+      setPending({ lat: loc.latitude, lon: loc.longitude })
+      setPendingAction('checkin')
+      setChangeMethodModal(true)
+      return
+    }
+
     if (hasBioOrPin) {
       setPending({ lat: loc.latitude, lon: loc.longitude })
       setAuthModal('checkin')
@@ -351,10 +361,17 @@ export default function HomeScreen() {
   }
 
   const handleCheckOut = async () => {
-    // Si prefiere el checador → flujo clásico (Alert confirm)
-    if (preferredMethod !== 'checker') {
+    if (preferredMethod === 'checker') {
+      // checker → Alert confirm directo
+    } else {
       const hasBioOrPin = await hasAuthMethod()
       if (hasBioOrPin) {
+        // Primera vez sin método → mostrar selector con las 3 opciones
+        if (preferredMethod === null) {
+          setPendingAction('checkout')
+          setChangeMethodModal(true)
+          return
+        }
         setAuthModal('checkout')
         return
       }
@@ -530,15 +547,26 @@ export default function HomeScreen() {
           )
         )}
 
-        {/* Botón cambiar método — visible cuando hay al menos un método biométrico/PIN configurado */}
+        {/* Chip de método activo */}
         {(bioEnabled2 || pinEnabled2) && (
-          <TouchableOpacity style={styles.changeMethodBtn} onPress={handleChangeMethod}>
-            <Ionicons name="swap-horizontal-outline" size={14} color="#64748b" />
-            <Text style={styles.changeMethodText}>
-              {preferredMethod
-                ? `Método: ${preferredMethod === 'biometric' ? 'Huella/Face ID' : preferredMethod === 'pin' ? 'PIN personal' : 'PIN checador'} · Cambiar`
-                : 'Seleccionar método de registro'}
-            </Text>
+          <TouchableOpacity style={styles.methodChip} onPress={handleChangeMethod} activeOpacity={0.7}>
+            <View style={styles.methodChipLeft}>
+              <View style={styles.methodDot} />
+              <Ionicons
+                name={
+                  preferredMethod === 'biometric' ? 'finger-print' :
+                  preferredMethod === 'pin'       ? 'keypad'       : 'business'
+                }
+                size={18}
+                color="#94a3b8"
+              />
+              <Text style={styles.methodChipLabel}>
+                {preferredMethod === 'biometric' ? 'Huella / Face ID' :
+                 preferredMethod === 'pin'       ? 'PIN personal'     :
+                 preferredMethod === 'checker'   ? 'PIN del checador' : 'Elige un método'}
+              </Text>
+            </View>
+            <Text style={styles.methodChipBtnText}>Cambiar</Text>
           </TouchableOpacity>
         )}
 
@@ -560,6 +588,17 @@ export default function HomeScreen() {
           onClose={() => setPendingMsgs([])}
         />
       )}
+
+      {/* Modal: cambiar método de registro */}
+      <ChangeMethodModal
+        visible={changeMethodModal}
+        currentMethod={preferredMethod}
+        bioEnabled={bioEnabled2}
+        pinEnabled={pinEnabled2}
+        bioType={bioType2}
+        onSelect={handleSelectMethod}
+        onCancel={() => { setChangeMethodModal(false); setPendingAction(null) }}
+      />
 
       {/* Modal: confirmación biométrica/PIN personal */}
       <AttendanceAuthModal
@@ -696,11 +735,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb', alignItems: 'center',
   },
   otpConfirmText: { color: '#fff', fontWeight: '700' },
-  changeMethodBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 5, marginTop: 10, paddingVertical: 6,
+  methodChip: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#131c2e', borderRadius: 12, borderWidth: 1, borderColor: '#1e2d45',
+    paddingVertical: 12, paddingHorizontal: 16, marginTop: 10,
   },
-  changeMethodText: { fontSize: 12, color: '#64748b' },
+  methodChipLeft:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  methodDot:         { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' },
+  methodChipLabel:   { fontSize: 14, fontWeight: '600', color: '#cbd5e1' },
+  methodChipBtnText: { fontSize: 14, fontWeight: '600', color: '#3b82f6' },
   gpsBox:       {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     marginTop: 8,
