@@ -115,15 +115,18 @@ export async function getTodayStatus(employeeId: string, tenantId: string) {
 
 export async function checkIn(
   employeeId: string, tenantId: string, pin: string,
-  opts?: { otpCode?: string | null; latitude?: number | null; longitude?: number | null },
+  opts?: { otpCode?: string | null; latitude?: number | null; longitude?: number | null; useBiometric?: boolean },
 ) {
   const emp = await prisma.employee.findFirst({
     where: { id: employeeId, tenantId, isDeleted: false, status: 'Active' },
     include: { schedule: true },
   })
   if (!emp) throw { code: 'NOT_FOUND', message: 'Empleado no encontrado.' }
-  if (!emp.pinHash) throw { code: 'NO_PIN', message: 'No tienes una clave configurada.' }
-  if (!verifyPassword(pin, emp.pinHash)) throw { code: 'INVALID_PIN', message: 'Clave incorrecta.' }
+
+  if (!opts?.useBiometric) {
+    if (!emp.pinHash) throw { code: 'NO_PIN', message: 'No tienes una clave configurada.' }
+    if (!verifyPassword(pin, emp.pinHash)) throw { code: 'INVALID_PIN', message: 'Clave incorrecta.' }
+  }
   if (!emp.scheduleId) throw { code: 'NO_SCHEDULE', message: 'No tienes un horario asignado.' }
 
   const tenant = await prisma.tenant.findFirst({ where: { id: tenantId } })
@@ -136,7 +139,7 @@ export async function checkIn(
       throw { code: 'SCHEDULE_NOT_YET', message: `Tu horario aún no está vigente. Estará activo a partir del ${DateTime.fromJSDate(emp.scheduleStartDate).toFormat('dd/MM/yyyy')}.` }
   }
 
-  if (tenant?.checkerRequires2FA) {
+  if (tenant?.checkerRequires2FA && !opts?.useBiometric) {
     if (!opts?.otpCode) throw { code: 'OTP_REQUIRED', message: 'Se requiere código de verificación.' }
     const otp = await prisma.checkerOtp.findFirst({
       where: { tenantId, employeeId, isUsed: false, isDeleted: false, expiresAt: { gte: new Date() } },

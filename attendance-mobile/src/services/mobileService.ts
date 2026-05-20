@@ -81,12 +81,13 @@ export const mobileService = {
     return res.data.data
   },
 
-  checkIn: async (latitude?: number, longitude?: number, pin?: string, otpCode?: string): Promise<CheckInResult> => {
+  checkIn: async (latitude?: number, longitude?: number, pin?: string, otpCode?: string, useBiometric?: boolean): Promise<CheckInResult> => {
     const res = await api.post<ApiResponse<CheckInResult>>('/mobile/check-in', {
-      latitude:  latitude  ?? null,
-      longitude: longitude ?? null,
-      pin:       pin       ?? '',
-      otpCode:   otpCode   ?? null,
+      latitude:     latitude     ?? null,
+      longitude:    longitude    ?? null,
+      pin:          pin          ?? '',
+      otpCode:      otpCode      ?? null,
+      useBiometric: useBiometric ?? false,
     })
     if (!res.data.success || !res.data.data)
       throw new Error(res.data.message ?? 'Error al registrar entrada')

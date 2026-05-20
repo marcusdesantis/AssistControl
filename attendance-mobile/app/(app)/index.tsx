@@ -1,5 +1,10 @@
 import { mobileService, type AttendanceRecord, type EmployeeMessage, type EmployeeStatus } from '@/services/mobileService'
 import { useAuthStore } from '@/store/authStore'
+import * as biometric from '@/services/biometricService'
+import { storage } from '@/utils/storage'
+import AttendanceAuthModal, { type AuthMethod } from '@/components/AttendanceAuthModal'
+
+type AttendanceMethod = AuthMethod | 'checker'
 import { Ionicons } from '@expo/vector-icons'
 import * as Location from 'expo-location'
 import { useFocusEffect } from 'expo-router'
@@ -148,6 +153,13 @@ export default function HomeScreen() {
   const [pendingMsgs, setPendingMsgs] = useState<EmployeeMessage[]>([])
   // GPS bloqueado
   const [gpsBlocked,  setGpsBlocked]  = useState<'services' | 'permission' | null>(null)
+  // Modal de confirmación biométrica/PIN
+  const [authModal,      setAuthModal]      = useState<'checkin' | 'checkout' | null>(null)
+  // Método preferido: 'biometric' | 'pin' | 'checker' | null (null = primera vez)
+  const [preferredMethod, setPreferredMethod] = useState<AttendanceMethod | null>(null)
+  // Estado de métodos disponibles
+  const [bioEnabled2,    setBioEnabled2]    = useState(false)
+  const [pinEnabled2,    setPinEnabled2]    = useState(false)
   const [nowTime,     setNowTime]     = useState(() => {
     const d = new Date()
     return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -174,7 +186,19 @@ export default function HomeScreen() {
     }
   }, [])
 
-  useFocusEffect(useCallback(() => { loadStatus() }, [loadStatus]))
+  useFocusEffect(useCallback(() => {
+    loadStatus()
+    // Cargar método preferido y si tiene ambos activos
+    Promise.all([
+      storage.getItem('attendance_preferred_method'),
+      biometric.isBiometricEnabled(),
+      storage.getItem('pin_enabled'),
+    ]).then(([method, bio, pin]) => {
+      setPreferredMethod((method as AttendanceMethod | null) ?? null)
+      setBioEnabled2(bio)
+      setPinEnabled2(pin === 'true')
+    })
+  }, [loadStatus]))
 
   const ensureLocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
     const servicesEnabled = await Location.hasServicesEnabledAsync()
@@ -196,11 +220,11 @@ export default function HomeScreen() {
     setPending(null);  setErrorMsg(null)
   }
 
-  const doCheckIn = async (lat?: number, lon?: number, pin?: string, otp?: string) => {
+  const doCheckIn = async (lat?: number, lon?: number, pin?: string, otp?: string, useBio = false) => {
     setActing(true)
     setErrorMsg(null)
     try {
-      const result = await mobileService.checkIn(lat, lon, pin, otp)
+      const result = await mobileService.checkIn(lat, lon, pin, otp, useBio)
       resetFlow()
       await loadStatus()
       if (result.pendingMessages?.length > 0) setPendingMsgs(result.pendingMessages)
@@ -227,12 +251,71 @@ export default function HomeScreen() {
     }
   }
 
-  // Paso 1: verificar GPS y mostrar pantalla de PIN
+  // Verifica si el empleado tiene biométrico o PIN personal activo
+  const hasAuthMethod = async (): Promise<boolean> => {
+    const [bio, pin] = await Promise.all([
+      biometric.isBiometricEnabled(),
+      storage.getItem('pin_enabled'),
+    ])
+    return bio || pin === 'true'
+  }
+
+  // Guarda el método elegido y ejecuta la acción
+  const handleAuthSuccess = async (method: AuthMethod, action: 'checkin' | 'checkout') => {
+    setAuthModal(null)
+    // Guardar preferencia para la próxima vez
+    await storage.setItem('attendance_preferred_method', method)
+    setPreferredMethod(method)
+    if (action === 'checkin') {
+      if (!pending) return
+      await doCheckIn(pending.lat, pending.lon, undefined, undefined, true)
+    } else {
+      await doCheckOut()
+    }
+  }
+
+  // Muestra Alert con todas las opciones disponibles para elegir método
+  const handleChangeMethod = () => {
+    const options: Array<{ text: string; method: AttendanceMethod }> = []
+    if (bioEnabled2) options.push({ text: 'Huella digital / Face ID', method: 'biometric' })
+    if (pinEnabled2) options.push({ text: 'PIN personal',             method: 'pin'       })
+    options.push(      { text: 'PIN del checador',               method: 'checker'   })
+
+    Alert.alert(
+      'Método de registro',
+      'Elige cómo confirmar tu asistencia',
+      [
+        ...options.map(o => ({
+          text: o.text,
+          onPress: () => {
+            storage.setItem('attendance_preferred_method', o.method).catch(() => {})
+            setPreferredMethod(o.method)
+          },
+        })),
+        { text: 'Cancelar', style: 'cancel' as const },
+      ]
+    )
+  }
+
+  // Paso 1: verificar GPS — decide flujo según preferencia guardada
   const handleCheckIn = async () => {
     const loc = await ensureLocation()
     if (!loc) return
     setErrorMsg(null)
-    setPinStep(true)
+
+    // Si prefiere el checador → flujo clásico directo
+    if (preferredMethod === 'checker') {
+      setPinStep(true)
+      return
+    }
+
+    const hasBioOrPin = await hasAuthMethod()
+    if (hasBioOrPin) {
+      setPending({ lat: loc.latitude, lon: loc.longitude })
+      setAuthModal('checkin')
+    } else {
+      setPinStep(true)
+    }
   }
 
   // Paso 2: validar PIN con el backend y opcionalmente pedir OTP
@@ -267,14 +350,22 @@ export default function HomeScreen() {
     doCheckIn(pending?.lat, pending?.lon, pending?.pin, otpCode.trim())
   }
 
-  const handleCheckOut = () => {
+  const handleCheckOut = async () => {
+    // Si prefiere el checador → flujo clásico (Alert confirm)
+    if (preferredMethod !== 'checker') {
+      const hasBioOrPin = await hasAuthMethod()
+      if (hasBioOrPin) {
+        setAuthModal('checkout')
+        return
+      }
+    }
     if (Platform.OS === 'web') {
       if (window.confirm('¿Deseas registrar tu salida ahora?')) doCheckOut()
       return
     }
     Alert.alert('Confirmar salida', '¿Deseas registrar tu salida ahora?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Registrar', onPress: doCheckOut },
+      { text: 'Registrar', onPress: () => doCheckOut() },
     ])
   }
 
@@ -439,6 +530,18 @@ export default function HomeScreen() {
           )
         )}
 
+        {/* Botón cambiar método — visible cuando hay al menos un método biométrico/PIN configurado */}
+        {(bioEnabled2 || pinEnabled2) && (
+          <TouchableOpacity style={styles.changeMethodBtn} onPress={handleChangeMethod}>
+            <Ionicons name="swap-horizontal-outline" size={14} color="#64748b" />
+            <Text style={styles.changeMethodText}>
+              {preferredMethod
+                ? `Método: ${preferredMethod === 'biometric' ? 'Huella/Face ID' : preferredMethod === 'pin' ? 'PIN personal' : 'PIN checador'} · Cambiar`
+                : 'Seleccionar método de registro'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Ubicación */}
         {today?.latitude != null && (
           <View style={styles.gpsBox}>
@@ -457,6 +560,15 @@ export default function HomeScreen() {
           onClose={() => setPendingMsgs([])}
         />
       )}
+
+      {/* Modal: confirmación biométrica/PIN personal */}
+      <AttendanceAuthModal
+        visible={authModal !== null}
+        action={authModal ?? 'checkin'}
+        initialMode={(preferredMethod === 'biometric' || preferredMethod === 'pin') ? preferredMethod : undefined}
+        onSuccess={(method) => handleAuthSuccess(method, authModal ?? 'checkin')}
+        onCancel={() => setAuthModal(null)}
+      />
 
       {/* Modal: GPS requerido */}
       <Modal
@@ -584,6 +696,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb', alignItems: 'center',
   },
   otpConfirmText: { color: '#fff', fontWeight: '700' },
+  changeMethodBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 5, marginTop: 10, paddingVertical: 6,
+  },
+  changeMethodText: { fontSize: 12, color: '#64748b' },
   gpsBox:       {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     marginTop: 8,
