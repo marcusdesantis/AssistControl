@@ -6,9 +6,9 @@ const config: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, '../..'),
   async rewrites() {
     return [
-      { source: '/landing/tiempoya-landing1', destination: '/empleados.html'    },
-      { source: '/landing/tiempoya-landing2', destination: '/empresas.html'     },
-      { source: '/landing/tiempoya-landing3', destination: '/productividad.html' },
+      { source: '/control-asistencia', destination: '/control-asistencia.html' },
+      { source: '/asistencia-laboral', destination: '/asistencia-laboral.html' },
+      { source: '/huella-biometrica',  destination: '/huella-biometrica.html'  },
     ]
   },
 }

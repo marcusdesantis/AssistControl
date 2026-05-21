@@ -365,9 +365,9 @@ export default function LandingPage() {
       </main>
       <Footer />
       <div>
-        <a href="/landing/tiempoya-landing1" hidden>Control de asistencia para empresas</a>
-        <a href="/landing/tiempoya-landing2" hidden>Productividad y gestión del tiempo</a>
-        <a href="/landing/tiempoya-landing3" hidden>App de asistencia para empleados</a>
+        <a href="/control-asistencia" hidden>Control de asistencia para equipos en campo y sucursales</a>
+        <a href="/asistencia-laboral" hidden>Automatiza el control de asistencia laboral sin Excel</a>
+        <a href="/huella-biometrica"  hidden>Control de asistencia sin relojes biométricos</a>
       </div>
     </>
   )

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automatiza el Control de Asistencia Laboral sin Excel | TiempoYa</title>
+  <meta name="description" content="Genera reportes de nómina en un clic y gestiona turnos rotativos. TiempoYa automatiza el control de asistencia laboral sin papeleo. Empieza gratis.">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="TiempoYa">
+  <link rel="canonical" href="https://www.tiempoya.net/asistencia-laboral">
+
+  <meta property="og:title" content="Automatiza el Control de Asistencia Laboral sin Excel | TiempoYa">
+  <meta property="og:description" content="Genera reportes de nómina en un clic y elimina el papeleo de RRHH. TiempoYa automatiza la asistencia de tu personal desde la nube.">
+  <meta property="og:image" content="https://www.tiempoya.net/assets/og-asistencia-laboral.webp">
+  <meta property="og:url" content="https://www.tiempoya.net/asistencia-laboral">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Automatiza el Control de Asistencia Laboral | TiempoYa">
+  <meta name="twitter:description" content="Genera reportes de nómina en un clic y elimina el papeleo de RRHH. Empieza gratis.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "TiempoYa",
+    "url": "https://www.tiempoya.net",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, iOS, Android",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Plan gratuito disponible sin tarjeta de crédito"
+    }
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿TiempoYa genera reportes de nómina automáticamente?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Al finalizar el mes puedes descargar con un solo clic el consolidado de asistencia de toda tu plantilla en formato Excel o PDF, listo para enviar a contabilidad sin revisiones previas."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Se pueden gestionar turnos rotativos desde la plataforma?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Puedes configurar jornadas especiales, turnos rotativos y asignar días libres por empleado o departamento. La plataforma adapta las variables horarias de forma automatizada sin intervención manual constante."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cómo se registra la asistencia laboral sin papeleo?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Los colaboradores descargan la app de TiempoYa en iOS o Android y registran su jornada desde su celular usando geolocalización GPS o escaneando un código QR. No se necesitan formularios, firmas físicas ni hojas de cálculo."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿TiempoYa cumple con las normativas laborales vigentes?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. TiempoYa registra de forma precisa horas de entrada, salida, horas extra, tardanzas y ausencias, permitiendo a los departamentos de RRHH cumplir con los requerimientos legales de control de asistencia en LATAM."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .gradient-hero { background: linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%); }
+    .card-hover { transition: transform .2s, box-shadow .2s; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,.1); }
+  </style>
+</head>
+<body class="font-sans text-[#0F172A] bg-[#F8FAFC]">
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm shadow-sm z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <a href="https://www.tiempoya.net" class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-[#1E3A8A] rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="text-xl font-bold text-[#1E3A8A]">TiempoYa</span>
+        </a>
+        <div class="hidden md:flex items-center gap-8">
+          <a href="https://www.tiempoya.net/#funcionalidades" class="text-gray-600 hover:text-[#1E3A8A] font-medium transition">Funcionalidades</a>
+          <a href="https://www.tiempoya.net/precios" class="text-gray-600 hover:text-[#1E3A8A] font-medium transition">Precios</a>
+          <a href="https://www.tiempoya.net/login" class="text-gray-600 hover:text-[#1E3A8A] font-medium transition">Iniciar sesión</a>
+          <a href="https://www.tiempoya.net/sign-up" class="bg-[#00F5D4] text-gray-900 px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition min-h-[44px] flex items-center">Comenzar gratis</a>
+        </div>
+        <button id="menu-btn" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition" aria-label="Abrir menú">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+      <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-gray-100 pt-3 space-y-1">
+        <a href="https://www.tiempoya.net/#funcionalidades" class="block px-4 py-3 text-gray-600 hover:text-[#1E3A8A] hover:bg-gray-50 rounded-lg font-medium">Funcionalidades</a>
+        <a href="https://www.tiempoya.net/precios" class="block px-4 py-3 text-gray-600 hover:text-[#1E3A8A] hover:bg-gray-50 rounded-lg font-medium">Precios</a>
+        <a href="https://www.tiempoya.net/login" class="block px-4 py-3 text-gray-600 hover:text-[#1E3A8A] hover:bg-gray-50 rounded-lg font-medium">Iniciar sesión</a>
+        <a href="https://www.tiempoya.net/sign-up" class="block mx-4 mt-2 bg-[#00F5D4] text-gray-900 px-4 py-3 rounded-lg font-semibold text-center hover:opacity-90 transition">Comenzar gratis</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="gradient-hero pt-16 min-h-screen flex items-center">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-medium px-4 py-2 rounded-full mb-6">
+            <svg class="w-4 h-4 text-[#00F5D4]" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+            Plataforma para Gerentes de RR.HH. — Reportes automáticos sin papeleo
+          </div>
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
+            Automatiza el control de asistencia de tu personal y olvídate de las plantillas de Excel.
+          </h1>
+          <p class="text-xl text-blue-100 mb-8 leading-relaxed">
+            Centraliza turnos rotativos, gestiona justificaciones y genera reportes de nómina listos en un solo clic con TiempoYa. La plataforma que elimina los costosos relojes biométricos físicos.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a href="https://www.tiempoya.net/sign-up" class="bg-[#00F5D4] text-gray-900 px-8 py-4 rounded-xl font-bold text-lg hover:opacity-90 transition text-center min-h-[56px] flex items-center justify-center">
+              Comenzar gratis →
+            </a>
+            <a href="https://www.tiempoya.net/precios" class="border-2 border-white/50 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/10 transition text-center min-h-[56px] flex items-center justify-center">
+              Ver planes y precios
+            </a>
+          </div>
+          <div class="flex flex-wrap gap-x-6 gap-y-2 mt-5 text-blue-100 text-sm">
+            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-[#00F5D4]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Configuración lista en minutos</span>
+            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-[#00F5D4]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>No requiere tarjeta de crédito</span>
+            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-[#00F5D4]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Sin papeleo</span>
+          </div>
+        </div>
+        <!-- Admin panel mockup -->
+        <div class="hidden lg:flex justify-center">
+          <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden w-full max-w-md">
+            <div class="bg-[#1E3A8A] px-5 py-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <span class="text-white font-semibold text-sm">Panel de Reportes</span>
+              </div>
+              <span class="text-xs text-blue-200">Mayo 2026</span>
+            </div>
+            <div class="p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="font-bold text-gray-900 text-sm">Resumen de Asistencia</h4>
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">✓ Listo</span>
+              </div>
+              <div class="grid grid-cols-3 gap-3 mb-4">
+                <div class="bg-blue-50 rounded-xl p-3 text-center">
+                  <p class="text-2xl font-extrabold text-[#1E3A8A]">42</p>
+                  <p class="text-xs text-gray-500">Empleados</p>
+                </div>
+                <div class="bg-green-50 rounded-xl p-3 text-center">
+                  <p class="text-2xl font-extrabold text-green-600">97%</p>
+                  <p class="text-xs text-gray-500">Puntualidad</p>
+                </div>
+                <div class="bg-orange-50 rounded-xl p-3 text-center">
+                  <p class="text-2xl font-extrabold text-orange-500">3</p>
+                  <p class="text-xs text-gray-500">Incidencias</p>
+                </div>
+              </div>
+              <div class="border border-gray-100 rounded-xl overflow-hidden mb-4">
+                <div class="bg-gray-50 px-3 py-2 grid grid-cols-3 text-xs text-gray-500 font-semibold">
+                  <span>Empleado</span><span class="text-center">Estado</span><span class="text-right">Horas</span>
+                </div>
+                <div class="divide-y divide-gray-50">
+                  <div class="px-3 py-2 grid grid-cols-3 text-xs items-center">
+                    <span class="text-gray-700 font-medium">Ana Torres</span>
+                    <span class="text-center"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Puntual</span></span>
+                    <span class="text-right font-semibold">168h</span>
+                  </div>
+                  <div class="px-3 py-2 grid grid-cols-3 text-xs items-center">
+                    <span class="text-gray-700 font-medium">Carlos Ruiz</span>
+                    <span class="text-center"><span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">1 tardanza</span></span>
+                    <span class="text-right font-semibold">165h</span>
+                  </div>
+                  <div class="px-3 py-2 grid grid-cols-3 text-xs items-center">
+                    <span class="text-gray-700 font-medium">María López</span>
+                    <span class="text-center"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Puntual</span></span>
+                    <span class="text-right font-semibold">168h</span>
+                  </div>
+                </div>
+              </div>
+              <button class="w-full bg-[#00F5D4] text-gray-900 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Exportar reporte en Excel / PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CONFIANZA INSTITUCIONAL ===== -->
+  <section class="py-10 bg-[#F8FAFC] border-y border-gray-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p class="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-4">Desarrollado con el sello de calidad, seguridad de datos y solidez institucional de</p>
+      <div class="flex flex-wrap justify-center items-center gap-8 text-gray-400 font-bold">
+        <span class="text-xl font-bold text-gray-500">Abisoft</span>
+        <span class="hidden sm:inline text-gray-200">|</span>
+        <span class="text-sm font-semibold">Infraestructura Cloud</span>
+        <span class="hidden sm:inline text-gray-200">|</span>
+        <span class="text-sm font-semibold">Seguridad de Datos</span>
+        <span class="hidden sm:inline text-gray-200">|</span>
+        <span class="text-sm font-semibold">Cumplimiento Normativo</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== LOS 3 DESAFÍOS DEL DEPARTAMENTO ===== -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">Por qué los departamentos de RRHH abandonan el Excel para gestionar asistencia laboral</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">El cierre de nómina no tiene por qué consumirte horas de trabajo manual.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-[#F8FAFC] border border-gray-100 rounded-2xl p-8 card-hover">
+          <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mb-5">
+            <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-[#0F172A] mb-3">Hojas de cálculo llenas de errores</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Invierte menos horas al mes corrigiendo incongruencias, celdas dañadas o datos incompletos en hojas de cálculo tradicionales. Deja que el sistema consolide la información por ti.</p>
+        </div>
+        <div class="bg-[#F8FAFC] border border-gray-100 rounded-2xl p-8 card-hover">
+          <div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center mb-5">
+            <svg class="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-[#0F172A] mb-3">Perseguir firmas y justificaciones en papel</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Abandona la tarea de perseguir firmas físicas o recolectar justificaciones en papel. TiempoYa centraliza las incidencias con total transparencia para ti y tus colaboradores.</p>
+        </div>
+        <div class="bg-[#F8FAFC] border border-gray-100 rounded-2xl p-8 card-hover">
+          <div class="w-14 h-14 bg-yellow-100 rounded-2xl flex items-center justify-center mb-5">
+            <svg class="w-7 h-7 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-[#0F172A] mb-3">Errores en horas extra y recargos</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Elimina las fallas manuales al contabilizar horas extra, jornadas nocturnas o recargos por feriados que causan disputas internas y afectan el clima laboral de tu organización.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PILARES DE LA SOLUCIÓN ===== -->
+  <section class="py-20 bg-[#F8FAFC]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">Software de asistencia laboral: reportes, turnos y nómina automatizados</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Automatiza, centraliza y elimina el trabajo manual del cierre de mes.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-white rounded-2xl p-8 card-hover border border-gray-100">
+          <div class="w-14 h-14 bg-[#1E3A8A]/10 rounded-2xl flex items-center justify-center mb-5">
+            <svg class="w-7 h-7 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-[#0F172A] mb-3">Reportes automáticos en tres segundos</h3>
+          <p class="text-gray-600 leading-relaxed">Al finalizar el mes, descarga con un solo clic el consolidado de asistencia de toda tu plantilla. Exporta reportes limpios en Excel o PDF, listos para contabilidad sin revisiones previas.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-8 card-hover border border-gray-100">
+          <div class="w-14 h-14 bg-[#0EA5E9]/10 rounded-2xl flex items-center justify-center mb-5">
+            <svg class="w-7 h-7 text-[#0EA5E9]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-[#0F172A] mb-3">Gestión ágil de turnos y horarios</h3>
+          <p class="text-gray-600 leading-relaxed">Configura jornadas especiales, turnos rotativos y asigna días libres por empleado o departamento en segundos. La plataforma adapta las variables horarias de forma automatizada.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-8 card-hover border border-gray-100">
+          <div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-5">
+            <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-[#0F172A] mb-3">Registro transparente mediante GPS o Código QR</h3>
+          <p class="text-gray-600 leading-relaxed">Tus colaboradores descargan la aplicación en iOS o Android y registran su jornada desde su celular utilizando geolocalización o escaneo de códigos QR. Un proceso limpio, moderno y sin filas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PROCESO EN 3 PASOS ===== -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">Cómo implementar el control de asistencia laboral en tu empresa en 3 pasos</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Tu equipo estará registrando asistencia desde el primer día.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-20 h-20 bg-[#1E3A8A]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 relative">
+            <span class="absolute -top-2 -right-2 w-7 h-7 bg-[#1E3A8A] text-white text-sm font-bold rounded-full flex items-center justify-center">1</span>
+            <svg class="w-9 h-9 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-[#0F172A] mb-2">Registra tu empresa</h3>
+          <p class="text-gray-600">Crea tu cuenta corporativa en la plataforma e ingresa tus departamentos en minutos.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-20 h-20 bg-[#0EA5E9]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 relative">
+            <span class="absolute -top-2 -right-2 w-7 h-7 bg-[#0EA5E9] text-white text-sm font-bold rounded-full flex items-center justify-center">2</span>
+            <svg class="w-9 h-9 text-[#0EA5E9]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-[#0F172A] mb-2">Integra a tu personal</h3>
+          <p class="text-gray-600">Envía el enlace de registro automático a tus colaboradores para que configuren la aplicación en sus dispositivos.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6 relative">
+            <span class="absolute -top-2 -right-2 w-7 h-7 bg-green-600 text-white text-sm font-bold rounded-full flex items-center justify-center">3</span>
+            <svg class="w-9 h-9 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-[#0F172A] mb-2">Monitorea la puntualidad</h3>
+          <p class="text-gray-600">Revisa las marcas en tiempo real y descarga tus informes consolidados de inmediato.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRECIOS ===== -->
+  <section class="py-20 bg-[#F8FAFC]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">Un plan para cada empresa</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Empieza gratis. Escala cuando lo necesites. Sin contratos largos.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+
+        <!-- Básico -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-8 flex flex-col">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-[#0F172A] mb-1">Básico</h3>
+            <p class="text-sm text-gray-500">Hasta 5 empleados</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold text-[#0F172A]">Gratis</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Registro de entrada y salida</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Reporte mensual básico</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Acceso desde app móvil</li>
+          </ul>
+          <a href="https://www.tiempoya.net/sign-up" class="block text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-xl transition">Comenzar gratis</a>
+        </div>
+
+        <!-- Profesional -->
+        <div class="bg-white border-2 border-[#1E3A8A] rounded-2xl p-8 flex flex-col relative">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#1E3A8A] text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">MÁS POPULAR</div>
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-[#0F172A] mb-1">Profesional</h3>
+            <p class="text-sm text-gray-500">Hasta 20 empleados</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold text-[#0F172A]">$29</span>
+            <span class="text-gray-500 text-base">/mes</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Todo lo del plan Básico</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Geolocalización en tiempo real</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Reportes avanzados y exportación</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Soporte prioritario</li>
+          </ul>
+          <a href="https://www.tiempoya.net/sign-up" class="block text-center bg-[#00F5D4] hover:opacity-90 text-gray-900 font-semibold py-3 px-6 rounded-xl transition">Elegir este plan</a>
+        </div>
+
+        <!-- Empresarial -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-8 flex flex-col">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-[#0F172A] mb-1">Empresarial</h3>
+            <p class="text-sm text-gray-500">Hasta 100 empleados</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold text-[#0F172A]">$79</span>
+            <span class="text-gray-500 text-base">/mes</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Todo lo del plan Profesional</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Múltiples sucursales</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> Integración con nómina</li>
+            <li class="flex items-start gap-2 text-gray-700"><span class="text-[#1E3A8A] font-bold mt-0.5">✓</span> API y acceso a desarrolladores</li>
+          </ul>
+          <a href="https://www.tiempoya.net/sign-up" class="block text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-xl transition">Elegir este plan</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA FINAL ===== -->
+  <section class="py-20 gradient-hero">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">
+        Recupera tu tiempo y transforma la gestión administrativa de tu personal.
+      </h2>
+      <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">Únete a los departamentos de talento humano que ya gestionan sus equipos con una solución moderna, transparente y libre de papeleo manual.</p>
+      <a href="https://www.tiempoya.net/sign-up" class="inline-block bg-[#00F5D4] text-gray-900 px-10 py-4 rounded-xl font-bold text-xl hover:opacity-90 transition">
+        Comenzar gratis →
+      </a>
+      <div class="flex flex-wrap justify-center gap-6 mt-6 text-blue-100 text-sm">
+        <span class="flex items-center gap-1"><svg class="w-4 h-4 text-[#00F5D4]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Cumple con las normativas de asistencia laboral vigentes</span>
+        <span class="flex items-center gap-1"><svg class="w-4 h-4 text-[#00F5D4]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Compatible con iOS y Android</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TAMBIÉN TE PUEDE INTERESAR ===== -->
+  <section class="py-12 bg-[#F1F5F9] border-t border-gray-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <p class="text-xs text-gray-400 font-semibold uppercase tracking-widest text-center mb-6">También te puede interesar</p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <a href="https://www.tiempoya.net/control-asistencia" class="flex items-center gap-4 bg-white rounded-xl p-5 border border-gray-200 hover:border-[#1E3A8A] hover:shadow-sm transition group">
+          <div class="w-10 h-10 bg-[#1E3A8A]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <div>
+            <p class="font-semibold text-[#0F172A] group-hover:text-[#1E3A8A] transition text-sm">Control de asistencia para equipos en campo y sucursales</p>
+            <p class="text-xs text-gray-500 mt-0.5">Para Gerentes de Operaciones y Producción →</p>
+          </div>
+        </a>
+        <a href="https://www.tiempoya.net/huella-biometrica" class="flex items-center gap-4 bg-white rounded-xl p-5 border border-gray-200 hover:border-[#1E3A8A] hover:shadow-sm transition group">
+          <div class="w-10 h-10 bg-[#1E3A8A]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <p class="font-semibold text-[#0F172A] group-hover:text-[#1E3A8A] transition text-sm">Eliminar el reloj biométrico y reducir costos ocultos</p>
+            <p class="text-xs text-gray-500 mt-0.5">Para Dueños de Negocio y CEOs →</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="bg-[#0F172A] text-gray-400 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-[#1E3A8A] rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <span class="text-white font-bold text-lg">TiempoYa</span>
+        </div>
+        <div class="flex flex-wrap justify-center gap-6 text-sm">
+          <a href="https://www.tiempoya.net/terminos" class="hover:text-white transition">Términos de uso</a>
+          <a href="https://www.tiempoya.net/privacidad" class="hover:text-white transition">Privacidad</a>
+          <a href="https://www.tiempoya.net/login" class="hover:text-white transition">Iniciar sesión</a>
+          <a href="https://www.tiempoya.net/sign-up" class="hover:text-white transition">Registrarse</a>
+        </div>
+        <p class="text-sm">© 2026 TiempoYa. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script defer>
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+  </script>
+</body>
+</html>
