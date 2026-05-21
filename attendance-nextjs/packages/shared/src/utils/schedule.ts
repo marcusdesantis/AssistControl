@@ -109,8 +109,9 @@ export function calcAttendanceStatus(
   // Variable: sin hora de entrada fija, nunca hay retardo
   if (schedule.type === 'Variable') return { status: 'Present', lateMinutes: 0 }
 
-  const local    = DateTime.fromJSDate(checkInUtc, { zone: tz })
-  const schedDay = getScheduleDay(schedule, local, employeeStartDate)
+  const local      = DateTime.fromJSDate(checkInUtc, { zone: tz })
+  const localMinute = local.set({ second: 0, millisecond: 0 })
+  const schedDay   = getScheduleDay(schedule, local, employeeStartDate)
 
   if (!schedDay?.isWorkDay) return { status: 'Present', lateMinutes: 0 }
 
@@ -121,24 +122,24 @@ export function calcAttendanceStatus(
       .set({ hour: lh, minute: lm, second: 0, millisecond: 0 })
       .plus({ minutes: schedule.lateToleranceMinutes ?? 0 })
 
-    if (local <= threshold) return { status: 'Present', lateMinutes: 0 }
+    if (localMinute <= threshold) return { status: 'Present', lateMinutes: 0 }
     return {
       status:      'Late',
-      lateMinutes: Math.round(local.diff(threshold, 'minutes').minutes),
+      lateMinutes: Math.round(localMinute.diff(threshold, 'minutes').minutes),
     }
   }
 
   // Entrada normal: comparar contra entryTime
   if (!schedDay.entryTime) return { status: 'Present', lateMinutes: 0 }
 
-  const [h, m]  = schedDay.entryTime.split(':').map(Number)
+  const [h, m]    = schedDay.entryTime.split(':').map(Number)
   const threshold = local
     .set({ hour: h, minute: m, second: 0, millisecond: 0 })
     .plus({ minutes: schedule.lateToleranceMinutes ?? 0 })
 
-  if (local <= threshold) return { status: 'Present', lateMinutes: 0 }
+  if (localMinute <= threshold) return { status: 'Present', lateMinutes: 0 }
   return {
     status:      'Late',
-    lateMinutes: Math.round(local.diff(threshold, 'minutes').minutes),
+    lateMinutes: Math.round(localMinute.diff(threshold, 'minutes').minutes),
   }
 }
