@@ -6,40 +6,27 @@ const LOGS_BASE = process.env.LOGS_PATH ?? '/app/logs'
 
 export function startAuditCleanupJob() {
   const retentionDays = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS ?? '7', 10)
-  const mode = retentionDays <= 14 ? 'weekly' : 'monthly'
-  console.log(`[audit-cleanup] Iniciado — modo ${mode} (retención ${retentionDays} días)`)
+  console.log(`[audit-cleanup] Iniciado — retención ${retentionDays} días — chequeo cada medianoche`)
 
   // Al arrancar: si hay logs vencidos (el job se perdió por reinicio), ejecutar de inmediato
   runCleanupIfOverdue(retentionDays).catch(e => console.error('[audit-cleanup] error en chequeo inicial:', e))
 
-  function scheduleNext() {
+  // Corre cada medianoche. runCleanup solo actúa si hay logs más antiguos que retentionDays,
+  // por lo que reiniciar el contenedor no genera backups duplicados ni se pierden por reinicios.
+  function scheduleNextMidnight() {
     const now  = new Date()
     const next = new Date(now)
-
-    if (mode === 'weekly') {
-      // Próximo lunes a las 00:00
-      const daysUntilMonday = (8 - now.getDay()) % 7 || 7
-      next.setDate(now.getDate() + daysUntilMonday)
-      next.setHours(0, 0, 0, 0)
-    } else {
-      // Próximo día 1 del mes siguiente a las 00:00
-      next.setMonth(now.getMonth() + 1, 1)
-      next.setHours(0, 0, 0, 0)
-    }
-
+    next.setDate(now.getDate() + 1)
+    next.setHours(0, 0, 0, 0)
     const ms = next.getTime() - now.getTime()
-    const label = mode === 'weekly'
-      ? `lunes ${next.toLocaleDateString('es-EC')} 00:00`
-      : `1° de ${next.toLocaleDateString('es-EC', { month: 'long', year: 'numeric' })} 00:00`
-    console.log(`[audit-cleanup] Próxima ejecución: ${label}`)
-
+    console.log(`[audit-cleanup] Próximo chequeo: ${next.toLocaleDateString('es-EC')} 00:00`)
     setTimeout(async () => {
       await runCleanup().catch(e => console.error('[audit-cleanup] error:', e))
-      scheduleNext()
+      scheduleNextMidnight()
     }, ms)
   }
 
-  scheduleNext()
+  scheduleNextMidnight()
 }
 
 // Ejecuta el cleanup solo si hay logs vencidos (catch-up tras reinicio)
@@ -54,24 +41,32 @@ async function runCleanupIfOverdue(retentionDays: number) {
 }
 
 async function runCleanup() {
-  console.log('[audit-cleanup] Iniciando respaldo y limpieza de logs...')
-
   const retentionDays = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS ?? '7', 10)
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - retentionDays)
-  console.log(`[audit-cleanup] Retención configurada: ${retentionDays} días`)
 
-  // Obtener todos los tenantIds con logs vencidos
   const tenants = await prisma.auditLog.groupBy({
     by: ['tenantId'],
     where: { createdAt: { lt: cutoff } },
   })
 
+  if (tenants.length === 0) return
+
+  console.log(`[audit-cleanup] ${tenants.length} empresa(s) con logs vencidos (corte: ${cutoff.toISOString().slice(0, 10)})`)
+
+  let ok = 0
+  let fail = 0
   for (const { tenantId } of tenants) {
-    await backupAndDeleteTenantLogs(tenantId, cutoff)
+    try {
+      await backupAndDeleteTenantLogs(tenantId, cutoff)
+      ok++
+    } catch (e) {
+      fail++
+      console.error(`[audit-cleanup] Error en tenant ${tenantId}:`, e)
+    }
   }
 
-  console.log(`[audit-cleanup] Completado. ${tenants.length} empresa(s) procesadas.`)
+  console.log(`[audit-cleanup] Completado — OK: ${ok}  Falló: ${fail}`)
 }
 
 async function backupAndDeleteTenantLogs(tenantId: string, cutoff: Date) {
