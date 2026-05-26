@@ -36,10 +36,14 @@ async function runReminders() {
       const today   = nowDt.toFormat('yyyy-MM-dd')
       const nowMins = nowDt.hour * 60 + nowDt.minute
 
-      // Verificar si hoy es feriado para este tenant
+      // Si hoy es feriado del tenant no se envían recordatorios a nadie
       const holiday = await prisma.holiday.findFirst({
         where: { tenantId: tenant.id, date: today, isDeleted: false },
       })
+      if (holiday) {
+        console.log(`[reminders] tenant=${tenant.id} feriado="${holiday.name}" — sin recordatorios`)
+        continue
+      }
 
       const employees = await prisma.employee.findMany({
         where:   { tenantId: tenant.id, isDeleted: false, status: 'Active', expoPushToken: { not: null } },
@@ -50,9 +54,6 @@ async function runReminders() {
       for (const emp of employees) {
         if (!emp.schedule || !emp.expoPushToken) continue
         if (emp.schedule.type === 'Variable') continue
-
-        // Si el empleado trabaja en feriados o es feriado
-        if (holiday && !emp.worksOnHolidays) continue
 
         const schedDay = getScheduleDay(emp.schedule, nowDt, emp.scheduleStartDate ?? null)
         const entryTarget = schedDay?.entryTime ? minsFromHHMM(schedDay.entryTime) - 5 : null
