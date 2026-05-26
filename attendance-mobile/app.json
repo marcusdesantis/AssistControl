@@ -2,7 +2,7 @@
   "expo": {
     "name": "TiempoYa",
     "slug": "attendance-mobile",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./icon.png",
     "userInterfaceStyle": "automatic",
@@ -59,11 +59,10 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "1.9.25"
+            "kotlinVersion": "2.0.21"
           }
         }
-      ],
-      "./plugins/withKotlinVersion"
+      ]
     ],
     "scheme": "attendance",
     "extra": {

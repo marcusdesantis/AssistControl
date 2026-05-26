@@ -3,10 +3,16 @@ import Link from 'next/link'
 import RedirectIfAuth from './components/RedirectIfAuth'
 
 export const metadata: Metadata = {
-  title: 'Software de Control de Asistencia para Empresas en la Nube | TiempoYa',
+  title: 'TiempoYa — Control de Asistencia para Empresas en Ecuador',
   description:
-    'TiempoYa: registra entradas y salidas, detecta tardanzas y genera reportes automáticos. App móvil iOS y Android. Empieza gratis, sin tarjeta de crédito.',
-  alternates: { canonical: '/' },
+    'Software de control de asistencia para empresas en Ecuador. Quito, Guayaquil, Cuenca, Ambato y Manta. Registra asistencia, gestiona horarios y genera reportes automáticos.',
+  alternates: {
+    canonical: 'https://www.tiempoya.net/',
+    languages: {
+      'es-EC': 'https://www.tiempoya.net/',
+      'es': 'https://www.tiempoya.net/',
+    },
+  },
 }
 
 export const dynamic = 'force-dynamic'
@@ -49,7 +55,7 @@ function Hero() {
         </span>
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">
           Software de Control de Asistencia para Empresas{' '}
-          <span className="text-primary-600">en Tiempo Real</span>
+          <span className="text-primary-600">en Ecuador</span>
         </h1>
         <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
           Registra entradas y salidas, gestiona horarios y genera reportes automáticos.
@@ -223,7 +229,7 @@ function Stats() {
           { value: '100%',  label: 'En la nube'          },
           { value: 'iOS & Android', label: 'App móvil'  },
           { value: '24/7',  label: 'Disponible siempre'  },
-          { value: 'LATAM', label: 'Soporte en español'  },
+          { value: 'Ecuador', label: 'Quito · Guayaquil · Cuenca'  },
         ].map(s => (
           <div key={s.label}>
             <div className="text-3xl font-extrabold">{s.value}</div>
@@ -289,12 +295,31 @@ const jsonLdSoftware = {
   '@type': 'SoftwareApplication',
   name: 'TiempoYa',
   url: 'https://www.tiempoya.net',
-  description: 'Software de control de asistencia para empresas. Registra entradas y salidas, gestiona horarios y genera reportes automáticos con app móvil incluida.',
+  description: 'Sistema de control de asistencia y gestión de RRHH para empresas en Ecuador y LATAM.',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, iOS, Android',
   inLanguage: 'es',
+  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', ratingCount: '500', bestRating: '5', worstRating: '1' },
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Plan gratuito disponible sin tarjeta de crédito' },
   provider: { '@type': 'Organization', name: 'TiempoYa', url: 'https://www.tiempoya.net' },
+}
+
+const jsonLdLocalBusiness = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: 'TiempoYa',
+  url: 'https://www.tiempoya.net',
+  description: 'Software de control de asistencia para empresas en Ecuador. Sin relojes biométricos, sin papeleo.',
+  areaServed: [
+    { '@type': 'City', name: 'Quito', addressCountry: 'EC' },
+    { '@type': 'City', name: 'Guayaquil', addressCountry: 'EC' },
+    { '@type': 'City', name: 'Cuenca', addressCountry: 'EC' },
+    { '@type': 'City', name: 'Ambato', addressCountry: 'EC' },
+    { '@type': 'City', name: 'Manta', addressCountry: 'EC' },
+  ],
+  serviceType: 'Software de Control de Asistencia',
+  priceRange: 'Gratis - $$$',
+  address: { '@type': 'PostalAddress', addressCountry: 'EC' },
 }
 
 const jsonLdOrganization = {
@@ -311,9 +336,9 @@ const jsonLdFaq = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
   mainEntity: [
-    { '@type': 'Question', name: '¿TiempoYa funciona para empresas pequeñas?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. TiempoYa está diseñado para empresas de todos los tamaños, desde 2 hasta cientos de empleados. El plan gratuito es ideal para empezar sin costo.' } },
-    { '@type': 'Question', name: '¿Cómo marcan asistencia los empleados?', acceptedAnswer: { '@type': 'Answer', text: 'Los empleados descargan la app de TiempoYa en iOS o Android y marcan su entrada y salida con un solo toque desde su celular.' } },
-    { '@type': 'Question', name: '¿Se puede controlar asistencia en trabajo remoto?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. TiempoYa incluye geolocalización para verificar la ubicación del empleado al momento de marcar asistencia.' } },
+    { '@type': 'Question', name: '¿TiempoYa funciona en Ecuador?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. TiempoYa está disponible en todo Ecuador, incluyendo Quito, Guayaquil, Cuenca, Ambato y Manta. El registro de asistencia funciona 100% en la nube, sin instalar hardware ni relojes biométricos.' } },
+    { '@type': 'Question', name: '¿Cuánto cuesta TiempoYa en Ecuador?', acceptedAnswer: { '@type': 'Answer', text: 'TiempoYa ofrece un plan gratuito para hasta 5 empleados sin tarjeta de crédito. Los planes de pago escalan según el tamaño de la empresa y se pueden cancelar cuando quieras.' } },
+    { '@type': 'Question', name: '¿TiempoYa reemplaza los relojes biométricos en Ecuador?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. TiempoYa elimina la necesidad de relojes biométricos. Los empleados registran su asistencia desde su celular mediante geolocalización GPS o código QR, sin ningún costo de hardware ni instalación.' } },
     { '@type': 'Question', name: '¿TiempoYa genera reportes automáticos?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Con un clic se genera el reporte mensual completo en PDF o Excel, listo para descargar. El proceso que antes tomaba horas ahora toma segundos.' } },
   ],
 }
@@ -328,9 +353,9 @@ function FAQ() {
         </div>
         <div className="space-y-4">
           {[
-            { q: '¿TiempoYa funciona para empresas pequeñas?', a: 'Sí. TiempoYa está diseñado para empresas de todos los tamaños, desde 2 hasta cientos de empleados. El plan gratuito es ideal para empezar sin costo.' },
-            { q: '¿Cómo marcan asistencia los empleados?', a: 'Los empleados descargan la app de TiempoYa en iOS o Android y marcan su entrada y salida con un solo toque desde su celular.' },
-            { q: '¿Se puede controlar asistencia en trabajo remoto?', a: 'Sí. TiempoYa incluye geolocalización para verificar la ubicación del empleado al momento de marcar asistencia.' },
+            { q: '¿TiempoYa funciona en Ecuador?', a: 'Sí. TiempoYa está disponible en todo Ecuador, incluyendo Quito, Guayaquil, Cuenca, Ambato y Manta. El registro de asistencia funciona 100% en la nube, sin instalar hardware ni relojes biométricos.' },
+            { q: '¿Cuánto cuesta TiempoYa en Ecuador?', a: 'TiempoYa ofrece un plan gratuito para hasta 5 empleados sin tarjeta de crédito. Los planes de pago escalan según el tamaño de la empresa y se pueden cancelar cuando quieras.' },
+            { q: '¿TiempoYa reemplaza los relojes biométricos en Ecuador?', a: 'Sí. TiempoYa elimina la necesidad de relojes biométricos. Los empleados registran su asistencia desde su celular mediante geolocalización GPS o código QR, sin ningún costo de hardware ni instalación.' },
             { q: '¿TiempoYa genera reportes automáticos?', a: 'Sí. Con un clic se genera el reporte mensual completo en PDF o Excel, listo para descargar. El proceso que antes tomaba horas ahora toma segundos.' },
           ].map(item => (
             <details key={item.q} className="group bg-gray-50 rounded-xl border border-gray-200 p-5">
@@ -351,6 +376,7 @@ export default function LandingPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSoftware) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdLocalBusiness) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }} />
       <RedirectIfAuth />
@@ -362,13 +388,24 @@ export default function LandingPage() {
         <Stats />
         <FAQ />
         <CTA />
+        <section className="py-12 px-6 bg-gray-50 border-t border-gray-100">
+          <div className="max-w-4xl mx-auto text-center space-y-6">
+            <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest">También te puede interesar</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <a href="/control-asistencia" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
+                Control de asistencia para equipos en campo y sucursales →
+              </a>
+              <a href="/asistencia-laboral" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
+                Automatiza el control de asistencia laboral sin Excel →
+              </a>
+              <a href="/huella-biometrica" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
+                Control de asistencia sin relojes biométricos →
+              </a>
+            </div>
+          </div>
+        </section>
       </main>
       <Footer />
-      <div>
-        <a href="/control-asistencia" hidden>Control de asistencia para equipos en campo y sucursales</a>
-        <a href="/asistencia-laboral" hidden>Automatiza el control de asistencia laboral sin Excel</a>
-        <a href="/huella-biometrica"  hidden>Control de asistencia sin relojes biométricos</a>
-      </div>
     </>
   )
 }
