@@ -11,22 +11,22 @@ export function startAuditCleanupJob() {
   // Al arrancar: si hay logs vencidos (el job se perdió por reinicio), ejecutar de inmediato
   runCleanupIfOverdue(retentionDays).catch(e => console.error('[audit-cleanup] error en chequeo inicial:', e))
 
-  // Corre cada medianoche. runCleanup solo actúa si hay logs más antiguos que retentionDays,
-  // por lo que reiniciar el contenedor no genera backups duplicados ni se pierden por reinicios.
-  function scheduleNextMidnight() {
+  // Corre cada retentionDays días a medianoche (ej: cada 7 días si retentionDays=7).
+  // runCleanupIfOverdue al arrancar cubre reinicios del contenedor.
+  function scheduleNext() {
     const now  = new Date()
     const next = new Date(now)
-    next.setDate(now.getDate() + 1)
+    next.setDate(now.getDate() + retentionDays)
     next.setHours(0, 0, 0, 0)
     const ms = next.getTime() - now.getTime()
-    console.log(`[audit-cleanup] Próximo chequeo: ${next.toLocaleDateString('es-EC')} 00:00`)
+    console.log(`[audit-cleanup] Próxima ejecución: ${next.toLocaleDateString('es-EC')} 00:00 (en ${retentionDays} días)`)
     setTimeout(async () => {
       await runCleanup().catch(e => console.error('[audit-cleanup] error:', e))
-      scheduleNextMidnight()
+      scheduleNext()
     }, ms)
   }
 
-  scheduleNextMidnight()
+  scheduleNext()
 }
 
 // Ejecuta el cleanup solo si hay logs vencidos (catch-up tras reinicio)
