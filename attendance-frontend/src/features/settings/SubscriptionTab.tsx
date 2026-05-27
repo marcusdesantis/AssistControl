@@ -14,7 +14,7 @@ import type { PlanCapabilities } from '@/types/auth'
 import { fmtDate as _fmtDate, fmtMoney as _fmtMoney, countryToLocale as _countryToLocale } from '@/utils/locale'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
-import { isIOS } from '@/utils/platform'
+import { isNative } from '@/utils/platform'
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   // Suscripción
@@ -323,9 +323,10 @@ export default function SubscriptionTab() {
   const [cancelPwd,       setCancelPwd]       = useState('')
   const [cancelPwdError,  setCancelPwdError]  = useState<string | null>(null)
   const [cancelVerifying, setCancelVerifying] = useState(false)
-  const [subscribingId,   setSubscribingId]  = useState<string | null>(null)
-  const [payphoneData,    setPayphoneData]   = useState<PayphoneData | null>(null)
-  const [confirmPlan,     setConfirmPlan]    = useState<{ plan: Plan; result: InitiatePaymentResult & { creditCents: number; fullPriceCents: number; amountCents: number } } | null>(null)
+  const [subscribingId,      setSubscribingId]     = useState<string | null>(null)
+  const [payphoneData,       setPayphoneData]      = useState<PayphoneData | null>(null)
+  const [confirmPlan,        setConfirmPlan]       = useState<{ plan: Plan; result: InitiatePaymentResult & { creditCents: number; fullPriceCents: number; amountCents: number } } | null>(null)
+  const [showNativeWebModal, setShowNativeWebModal] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -368,8 +369,8 @@ export default function SubscriptionTab() {
   }
 
   async function handleSelectPlan(plan: Plan) {
-    if (isIOS && !plan.isFree) {
-      toast.info('Para gestionar tu suscripción, visita tiempoya.net desde Safari.', { duration: 6000 })
+    if (isNative && !plan.isFree) {
+      setShowNativeWebModal(true)
       return
     }
     setSubscribingId(plan.id)
@@ -454,6 +455,41 @@ export default function SubscriptionTab() {
 
       {payphoneData && (
         <PayphoneModal data={payphoneData} onClose={() => setPayphoneData(null)} />
+      )}
+
+      {/* Modal: completar suscripción desde la web (solo dispositivos nativos) */}
+      {showNativeWebModal && createPortal(
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="h-1.5 w-full bg-primary-600" />
+            <div className="px-6 pt-6 pb-4">
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
+                <div className="w-14 h-14 rounded-full bg-primary-50 flex items-center justify-center">
+                  <ExternalLink className="w-6 h-6 text-primary-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Gestiona tu plan desde la web</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Los pagos y cambios de plan deben realizarse desde el portal web por políticas de las tiendas de aplicaciones.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-primary-50 border border-primary-200 rounded-xl px-4 py-3 mb-5 text-center">
+                <p className="text-xs text-primary-700 font-medium mb-1">Visítanos en</p>
+                <p className="text-sm font-bold text-primary-800 tracking-wide">www.tiempoya.net</p>
+                <p className="text-xs text-primary-600 mt-1">Inicia sesión con tu cuenta y dirígete a <span className="font-semibold">Configuración → Suscripción</span></p>
+              </div>
+            </div>
+            <div className="px-6 pb-6">
+              <button
+                onClick={() => setShowNativeWebModal(false)}
+                className="w-full py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors">
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal cancelar suscripción */}
@@ -663,8 +699,8 @@ export default function SubscriptionTab() {
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-2 flex items-center justify-center gap-1.5">
-          {isIOS ? (
-            <><ExternalLink className="w-3 h-3" /> Para pagar, visita tiempoya.net desde Safari</>
+          {isNative ? (
+            <><ExternalLink className="w-3 h-3" /> Para pagar, visita tiempoya.net desde tu navegador</>
           ) : (
             <><CreditCard className="w-3 h-3" /> Pagos procesados de forma segura a través de Payphone</>
           )}

@@ -90,6 +90,11 @@ export default function RegisterCompanyPage() {
           Te enviamos un enlace de verificación. Haz clic en él para activar tu cuenta.
           <br /><span className="text-gray-400 text-xs mt-2 block">El enlace es válido por 24 horas.</span>
         </p>
+        <Link
+          to="/login"
+          className="mt-6 inline-block w-full py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors">
+          Ir al inicio de sesión
+        </Link>
       </div>
     </div>
   )
