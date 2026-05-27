@@ -4,7 +4,7 @@ import type { RegisterDto, LoginDto, ChangePasswordDto, UpdateMeDto, ForgotPassw
 
 const REFRESH_TOKEN_DAYS       = 7
 const ACCESS_TOKEN_HOURS       = 24
-const VERIFY_TOKEN_EXPIRY_HOURS = 24
+const VERIFY_TOKEN_EXPIRY_HOURS = 72 // 3 días
 
 function refreshExpiresAt(): Date {
   const d = new Date()
@@ -87,129 +87,92 @@ function verificationEmailHtml(companyName: string, verifyUrl: string): string {
 
 // ─── Register new tenant + admin ──────────────────────────────────────────────
 export async function registerTenant(dto: RegisterDto) {
-  const existingUser = await prisma.user.findFirst({ where: { username: dto.username.toLowerCase() } })
-  if (existingUser) throw { code: 'USERNAME_TAKEN', message: 'El nombre de usuario ya está en uso.' }
+  const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } })
+  const smtpReady = !!(settings?.smtpEnabled && settings?.smtpHost && settings?.smtpUsername && settings?.smtpPassword)
 
-  const existingEmail = await prisma.user.findFirst({ where: { email: dto.email.toLowerCase() } })
-  if (existingEmail) throw { code: 'EMAIL_TAKEN', message: 'El correo electrónico ya está registrado.' }
+  if (!smtpReady)
+    throw { code: 'SMTP_NOT_CONFIGURED', message: 'El registro de empresas no está disponible en este momento. Contacta al administrador.' }
 
-  const existingCompany = await prisma.tenant.findFirst({ where: { name: { equals: dto.companyName.trim(), mode: 'insensitive' }, isDeleted: false } })
-  if (existingCompany) throw { code: 'COMPANY_NAME_TAKEN', message: 'Ya existe una empresa con ese nombre.' }
-
-  const [defaultPlan, settings] = await Promise.all([
-    prisma.plan.findFirst({ where: { isDefault: true, isActive: true } }),
-    prisma.systemSettings.findUnique({ where: { id: 'system' } }),
+  // Validar duplicados en tenants activos
+  const [existingUser, existingEmail, existingCompany] = await Promise.all([
+    prisma.user.findFirst({ where: { username: dto.username.toLowerCase() } }),
+    prisma.user.findFirst({ where: { email: dto.email.toLowerCase() } }),
+    prisma.tenant.findFirst({ where: { name: { equals: dto.companyName.trim(), mode: 'insensitive' }, isDeleted: false } }),
   ])
+  if (existingUser)    throw { code: 'USERNAME_TAKEN',      message: 'El nombre de usuario ya está en uso.' }
+  if (existingEmail)   throw { code: 'EMAIL_TAKEN',         message: 'El correo electrónico ya está registrado.' }
+  if (existingCompany) throw { code: 'COMPANY_NAME_TAKEN',  message: 'Ya existe una empresa con ese nombre.' }
+
+  // Validar duplicados en registros pendientes de verificación
+  const [pendingUser, pendingEmail, pendingCompany] = await Promise.all([
+    prisma.pendingRegistration.findFirst({ where: { username: dto.username.toLowerCase(), expiresAt: { gt: new Date() } } }),
+    prisma.pendingRegistration.findFirst({ where: { email: dto.email.toLowerCase(),       expiresAt: { gt: new Date() } } }),
+    prisma.pendingRegistration.findFirst({ where: { companyName: { equals: dto.companyName.trim(), mode: 'insensitive' }, expiresAt: { gt: new Date() } } }),
+  ])
+  if (pendingUser)    throw { code: 'USERNAME_TAKEN',     message: 'El nombre de usuario ya está en uso.' }
+  if (pendingEmail)   throw { code: 'EMAIL_TAKEN',        message: 'El correo electrónico ya tiene un registro pendiente de verificación.' }
+  if (pendingCompany) throw { code: 'COMPANY_NAME_TAKEN', message: 'Ya existe un registro pendiente con ese nombre de empresa.' }
+
+  const defaultPlan = await prisma.plan.findFirst({ where: { isDefault: true, isActive: true } })
   if (!defaultPlan) throw { code: 'NO_DEFAULT_PLAN', message: 'No hay un plan por defecto configurado.' }
 
-  const smtpReady       = !!(settings?.smtpEnabled && settings?.smtpHost && settings?.smtpUsername && settings?.smtpPassword)
-  const verificationToken = smtpReady ? uuidv4() : null
-
-  // Tenant siempre inactivo hasta verificar email (si hay SMTP).
-  // Si no hay SMTP, usamos el comportamiento anterior.
-  const tenant = await prisma.tenant.create({
+  const token = uuidv4()
+  await prisma.pendingRegistration.create({
     data: {
-      name:            dto.companyName.trim(),
-      timeZone:        dto.timeZone,
-      country:         dto.country,
-      checkerKey:      uuidv4(),
-      selfRegistered:  true,
-      // Con SMTP: siempre inactivo hasta verificar. Sin SMTP: comportamiento anterior.
-      isActive:          smtpReady ? false : !(settings?.requireApproval ?? false),
-      pendingApproval:   smtpReady ? false : (settings?.requireApproval ?? false),
-      emailVerified:     !smtpReady,  // si no hay SMTP, se considera verificado
-      emailVerificationToken:  verificationToken,
-      emailVerificationExpiry: verificationToken ? verifyTokenExpiry() : null,
+      token,
+      expiresAt:    verifyTokenExpiry(),
+      companyName:  dto.companyName.trim(),
+      timeZone:     dto.timeZone,
+      country:      dto.country,
+      username:     dto.username.toLowerCase().trim(),
+      email:        dto.email.toLowerCase().trim(),
+      passwordHash: hashPassword(dto.password),
     },
   })
 
-  await prisma.user.create({
-    data: {
-      tenantId:           tenant.id,
-      username:           dto.username.toLowerCase().trim(),
-      email:              dto.email.toLowerCase().trim(),
-      passwordHash:       hashPassword(dto.password),
-      role:               'Admin',
-      mustChangePassword: false,
-    },
-  })
+  const frontendUrl = process.env.FRONTEND_URL ?? process.env.APP_URL ?? 'http://localhost:3000'
+  const verifyUrl   = `${frontendUrl}/verify-email?token=${token}`
 
-  await prisma.subscription.create({
-    data: { tenantId: tenant.id, planId: defaultPlan.id, billingCycle: 'monthly', status: 'active' },
-  })
-
-  // Enviar email de verificación (solo si SMTP está configurado)
-  if (verificationToken) {
-    const frontendUrl = process.env.FRONTEND_URL ?? process.env.APP_URL ?? 'http://localhost:3000'
-    const verifyUrl   = `${frontendUrl}/verify-email?token=${verificationToken}`
-    try {
-      await sendSystemEmail({
-        to:      dto.email.toLowerCase().trim(),
-        subject: 'Confirma tu correo electrónico — TiempoYa',
-        html:    verificationEmailHtml(dto.companyName.trim(), verifyUrl),
-      })
-    } catch {
-      // Si falla el envío, eliminamos el tenant y lanzamos error
-      await prisma.tenant.delete({ where: { id: tenant.id } })
-      await prisma.user.deleteMany({ where: { tenantId: tenant.id } })
-      throw { code: 'EMAIL_SEND_ERROR', message: 'No se pudo enviar el correo de verificación. Intenta más tarde.' }
-    }
-  } else {
-    // Sin SMTP: notificación al superadmin como antes
-    const requireApproval = settings?.requireApproval ?? false
-    await createNotificationWithPush({
-      forAdmin: true,
-      title:    'Nueva empresa registrada',
-      body:     requireApproval
-        ? `La empresa "${dto.companyName.trim()}" se registró y está pendiente de aprobación.`
-        : `La empresa "${dto.companyName.trim()}" se registró exitosamente en el sistema.`,
-      type: requireApproval ? 'warning' : 'info',
+  try {
+    await sendSystemEmail({
+      to:      dto.email.toLowerCase().trim(),
+      subject: 'Confirma tu correo electrónico — TiempoYa',
+      html:    verificationEmailHtml(dto.companyName.trim(), verifyUrl),
     })
+  } catch {
+    await prisma.pendingRegistration.delete({ where: { token } })
+    throw { code: 'EMAIL_SEND_ERROR', message: 'No se pudo enviar el correo de verificación. Intenta más tarde.' }
   }
 
-  return {
-    registered:        true,
-    emailVerification: smtpReady,
-    pendingApproval:   smtpReady ? false : (settings?.requireApproval ?? false),
-    tenantId:          tenant.id,
-  }
+  return { registered: true, emailVerification: true }
 }
 
 // ─── Resend verification email ────────────────────────────────────────────────
 export async function resendVerificationEmail(email: string) {
-  const user = await prisma.user.findFirst({
-    where: { email: email.toLowerCase().trim(), isDeleted: false },
-  })
-  if (!user) throw { code: 'EMAIL_NOT_FOUND', message: 'No existe una cuenta con ese correo electrónico.' }
+  const normalEmail = email.toLowerCase().trim()
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: user.tenantId },
-    select: { id: true, name: true, selfRegistered: true, emailVerified: true, isDeleted: true },
-  })
-
-  if (!tenant || tenant.isDeleted)
-    throw { code: 'TENANT_NOT_FOUND', message: 'Empresa no encontrada.' }
-  if (!tenant.selfRegistered)
-    throw { code: 'NOT_SELF_REGISTERED', message: 'Esta cuenta no requiere verificación de correo.' }
-  if (tenant.emailVerified)
+  // Si ya existe como tenant verificado, no hay nada que reenviar
+  const existingUser = await prisma.user.findFirst({ where: { email: normalEmail, isDeleted: false } })
+  if (existingUser)
     throw { code: 'ALREADY_VERIFIED', message: 'Este correo ya fue verificado. Puedes iniciar sesión.' }
 
-  const newToken  = uuidv4()
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: {
-      emailVerificationToken:  newToken,
-      emailVerificationExpiry: verifyTokenExpiry(),
-    },
+  const pending = await prisma.pendingRegistration.findFirst({ where: { email: normalEmail } })
+  if (!pending)
+    throw { code: 'EMAIL_NOT_FOUND', message: 'No existe un registro pendiente con ese correo electrónico.' }
+
+  const newToken = uuidv4()
+  await prisma.pendingRegistration.update({
+    where: { id: pending.id },
+    data:  { token: newToken, expiresAt: verifyTokenExpiry() },
   })
 
   const frontendUrl = process.env.FRONTEND_URL ?? process.env.APP_URL ?? 'http://localhost:3000'
   const verifyUrl   = `${frontendUrl}/verify-email?token=${newToken}`
 
   await sendSystemEmail({
-    to:      email.toLowerCase().trim(),
+    to:      normalEmail,
     subject: 'Nuevo enlace de verificación — TiempoYa',
-    html:    verificationEmailHtml(tenant.name, verifyUrl),
+    html:    verificationEmailHtml(pending.companyName, verifyUrl),
   })
 
   return { sent: true }
@@ -217,39 +180,67 @@ export async function resendVerificationEmail(email: string) {
 
 // ─── Verify email ──────────────────────────────────────────────────────────────
 export async function verifyEmail(token: string) {
-  const tenant = await prisma.tenant.findFirst({
-    where: { emailVerificationToken: token, emailVerified: false, isDeleted: false },
-  })
+  const pending = await prisma.pendingRegistration.findUnique({ where: { token } })
 
-  if (!tenant) throw { code: 'INVALID_TOKEN', message: 'El enlace de verificación no es válido o ya fue utilizado.' }
+  if (!pending)
+    throw { code: 'INVALID_TOKEN', message: 'El enlace de verificación no es válido o ya fue utilizado.' }
 
-  if (tenant.emailVerificationExpiry && tenant.emailVerificationExpiry < new Date())
+  if (pending.expiresAt < new Date())
     throw { code: 'TOKEN_EXPIRED', message: 'El enlace de verificación ha expirado. Por favor regístrate de nuevo.' }
 
-  const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } })
+  const [defaultPlan, settings] = await Promise.all([
+    prisma.plan.findFirst({ where: { isDefault: true, isActive: true } }),
+    prisma.systemSettings.findUnique({ where: { id: 'system' } }),
+  ])
+  if (!defaultPlan) throw { code: 'NO_DEFAULT_PLAN', message: 'No hay un plan por defecto configurado.' }
+
   const requireApproval = settings?.requireApproval ?? false
 
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: {
-      emailVerified:           true,
-      emailVerificationToken:  null,
-      emailVerificationExpiry: null,
-      pendingApproval:         requireApproval,
-      isActive:                !requireApproval,
-    },
+  // Crear tenant + usuario + suscripción en una transacción
+  const tenant = await prisma.$transaction(async (tx) => {
+    const newTenant = await tx.tenant.create({
+      data: {
+        name:           pending.companyName,
+        timeZone:       pending.timeZone,
+        country:        pending.country,
+        checkerKey:     uuidv4(),
+        selfRegistered: true,
+        emailVerified:  true,
+        isActive:       !requireApproval,
+        pendingApproval: requireApproval,
+      },
+    })
+
+    await tx.user.create({
+      data: {
+        tenantId:           newTenant.id,
+        username:           pending.username,
+        email:              pending.email,
+        passwordHash:       pending.passwordHash,
+        role:               'Admin',
+        mustChangePassword: false,
+      },
+    })
+
+    await tx.subscription.create({
+      data: { tenantId: newTenant.id, planId: defaultPlan.id, billingCycle: 'monthly', status: 'active' },
+    })
+
+    await tx.pendingRegistration.delete({ where: { id: pending.id } })
+
+    return newTenant
   })
 
-  await createNotificationWithPush({
+  createNotificationWithPush({
     forAdmin: true,
     title:    'Nueva empresa verificada',
     body:     requireApproval
       ? `La empresa "${tenant.name}" verificó su correo y está pendiente de aprobación.`
       : `La empresa "${tenant.name}" verificó su correo y ya está activa.`,
     type: requireApproval ? 'warning' : 'info',
-  })
+  }).catch(() => {})
 
-  return { verified: true, requiresApproval: requireApproval }
+  return { verified: true, requiresApproval: requireApproval, tenantId: tenant.id, companyName: tenant.name }
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -269,9 +260,7 @@ export async function login(dto: LoginDto) {
     select: { isActive: true, pendingApproval: true, timeZone: true, country: true, selfRegistered: true, emailVerified: true, emailVerificationToken: true, onboardingCompleted: true },
   })
 
-  // Solo bloquear si hay un token de verificación pendiente (registro nuevo via sign-up con SMTP)
-  // Usuarios antiguos o creados desde superadmin no tienen token → entran sin restricción
-  if (tenant?.selfRegistered && !tenant.emailVerified && tenant.emailVerificationToken)
+  if (tenant?.selfRegistered && !tenant.emailVerified)
     throw { code: 'EMAIL_NOT_VERIFIED', message: 'Debes confirmar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.' }
 
   if (tenant?.pendingApproval)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FileText, ChevronRight, ArrowLeft, Download, Activity, Monitor, Smartphone, Search, Database, Archive, Loader2 } from 'lucide-react'
+import { FileText, ChevronRight, ArrowLeft, Download, Activity, Monitor, Smartphone, Search, Database, Archive, Loader2, UserPlus, Building2 } from 'lucide-react'
 import { sysApi } from '@/services/sysApi'
 import Pagination from '@/components/Pagination'
 import { createTour } from '@/utils/tour'
@@ -7,7 +7,92 @@ import HelpButton from '@/components/HelpButton'
 
 interface TenantRow  { id: string; name: string }
 interface BackupFile { month: string; filename: string; sizeKb: number }
-interface AuditLog   { id: string; userName?: string; action: string; module: string; detail?: string; ip?: string; source: string; createdAt: string }
+interface AuditLog   { id: string; userName?: string; tenantName?: string; action: string; module: string; detail?: string; ip?: string; source: string; createdAt: string }
+
+const REGISTRATIONS_ID  = '__registrations__'
+const REGISTRATIONS_ROW: TenantRow = { id: REGISTRATIONS_ID, name: 'Nuevos Registros' }
+
+interface RegistrationEntry {
+  id: string; companyName: string; email: string | null; username: string | null
+  status: 'pending' | 'expired' | 'active' | 'pending_approval' | 'inactive'
+  createdAt: string; expiresAt: string | null; deletesAt: string | null; tenantId: string | null
+}
+
+const STATUS_CFG = {
+  pending:          { label: 'Pendiente verificación', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+  expired:          { label: 'Expirado',               color: 'bg-red-50 text-red-600 border-red-200'         },
+  active:           { label: 'Activa',                 color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  pending_approval: { label: 'Pendiente aprobación',   color: 'bg-orange-50 text-orange-700 border-orange-200' },
+  inactive:         { label: 'Inactiva',               color: 'bg-gray-50 text-gray-500 border-gray-200'       },
+}
+
+function RegistrationsTable({ items, loading }: { items: RegistrationEntry[]; loading: boolean }) {
+  if (loading) return <div className="p-8 text-center text-gray-400">Cargando…</div>
+  if (!items.length) return (
+    <div className="p-10 text-center text-gray-400">
+      <UserPlus className="w-8 h-8 mx-auto mb-2 opacity-30" />
+      <p className="text-sm">Sin registros en este período</p>
+    </div>
+  )
+  const fmt    = (iso: string) => new Date(iso).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })
+  const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })
+  return (
+    <>
+      {/* Mobile cards */}
+      <div className="divide-y divide-gray-100 md:hidden">
+        {items.map(r => {
+          const s = STATUS_CFG[r.status]
+          return (
+            <div key={r.id} className="px-4 py-3 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-gray-900 text-sm truncate">{r.companyName}</p>
+                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border font-medium ${s.color}`}>{s.label}</span>
+              </div>
+              {r.email && <p className="text-xs text-gray-500">{r.email} {r.username ? `· @${r.username}` : ''}</p>}
+              <p className="text-xs text-gray-400">{fmt(r.createdAt)}</p>
+              {r.status === 'expired' && r.deletesAt && (
+                <p className="text-[10px] text-gray-400">Se eliminará el {fmtDay(r.deletesAt)}</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">Fecha</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Empresa</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Email / Usuario</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Estado</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {items.map(r => {
+              const s = STATUS_CFG[r.status]
+              return (
+                <tr key={r.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 text-gray-500 text-xs whitespace-nowrap">{fmt(r.createdAt)}</td>
+                  <td className="px-4 py-2.5 font-medium text-gray-800">{r.companyName}</td>
+                  <td className="px-4 py-2.5 text-gray-500 text-xs">
+                    {r.email ? <>{r.email}{r.username ? <span className="ml-1 text-gray-400">· @{r.username}</span> : null}</> : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-flex text-xs px-2 py-0.5 rounded-full border font-medium ${s.color}`}>{s.label}</span>
+                    {r.status === 'expired' && r.deletesAt && (
+                      <p className="text-[10px] text-gray-400 mt-0.5">Se eliminará el {fmtDay(r.deletesAt)}</p>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
 
 function buildActionLabel(action: string, detail?: string | null): string {
   const base = ACTION_LABELS[action] ?? action
@@ -73,6 +158,9 @@ const ACTION_LABELS: Record<string, string> = {
   'billing.subscribe': 'Plan activado',
   'billing.cancel': 'Suscripción cancelada',
   'billing.payment_confirmed': 'Pago confirmado',
+  'auth.email_verified': 'Correo verificado',
+  'subscription.create': 'Suscripción creada',
+  'user.create': 'Usuario creado',
 }
 
 const MODULE_COLORS: Record<string, string> = {
@@ -96,7 +184,7 @@ const MODULE_LABELS: Record<string, string> = {
 
 type Tab = 'active' | 'backups'
 
-function LogsTable({ logs, loading }: { logs: AuditLog[]; loading: boolean }) {
+function LogsTable({ logs, loading, showTenant }: { logs: AuditLog[]; loading: boolean; showTenant?: boolean }) {
   if (loading) return <div className="p-8 text-center text-gray-400">Cargando…</div>
   if (!logs.length) return (
     <div className="p-10 text-center text-gray-400">
@@ -135,7 +223,7 @@ function LogsTable({ logs, loading }: { logs: AuditLog[]; loading: boolean }) {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">Fecha</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Usuario</th>
+              {showTenant && <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Empresa</th>}
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Módulo</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Acción</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Origen</th>
@@ -148,7 +236,7 @@ function LogsTable({ logs, loading }: { logs: AuditLog[]; loading: boolean }) {
                 <td className="px-4 py-2.5 text-gray-500 text-xs whitespace-nowrap">
                   {new Date(log.createdAt).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
                 </td>
-                <td className="px-4 py-2.5 font-medium text-gray-800">{log.userName ?? '—'}</td>
+                {showTenant && <td className="px-4 py-2.5 font-medium text-primary-700 text-xs">{log.tenantName ?? '—'}</td>}
                 <td className="px-4 py-2.5">
                   <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${MODULE_COLORS[log.module] ?? 'bg-gray-100 text-gray-700'}`}>
                     {MODULE_LABELS[log.module] ?? log.module}
@@ -187,6 +275,11 @@ export default function SysLogsPage() {
   const [selected, setSelected] = useState<TenantRow | null>(null)
   const [tab, setTab]           = useState<Tab>('active')
   const [auditConfig, setAuditConfig] = useState<{ retentionDays: number; mode: string } | null>(null)
+  const [regItems,   setRegItems]   = useState<RegistrationEntry[]>([])
+  const [regTotal,   setRegTotal]   = useState(0)
+  const [regPage,    setRegPage]    = useState(1)
+  const [regSize,    setRegSize]    = useState(50)
+  const [regLoading, setRegLoading] = useState(false)
 
   // Filtros
   const [search,   setSearch]   = useState('')
@@ -240,6 +333,21 @@ export default function SysLogsPage() {
     { element: '#tour-logs-backups',    title: 'Respaldos históricos',    description: 'Selecciona uno o varios archivos con el checkbox y pulsa <b>Ver</b> para combinarlos. Dentro puedes filtrar por módulo, usuario y fechas — igual que en logs activos. El botón <b>Descargar</b> exporta solo los registros filtrados.' },
   ]).drive()
 
+  const loadRegistrations = useCallback(async (p = 1, size = regSize) => {
+    setRegLoading(true)
+    try {
+      const q = new URLSearchParams({ page: String(p), pageSize: String(size) })
+      if (search)   q.set('search', search)
+      if (fromDate) q.set('from', fromDate)
+      if (toDate)   q.set('to', toDate)
+      const r = await sysApi.get(`/logs/registrations?${q}`)
+      setRegItems(r.data.data.items)
+      setRegTotal(r.data.data.total)
+      setRegPage(p)
+      setRegSize(size)
+    } catch { } finally { setRegLoading(false) }
+  }, [search, fromDate, toDate, regSize])
+
   const loadActive = useCallback(async (tenantId: string, p = 1, size = activeSize) => {
     setActiveLoading(true)
     try {
@@ -259,15 +367,22 @@ export default function SysLogsPage() {
   const selectTenant = (t: TenantRow) => {
     setSelected(t); setTab('active')
     setActiveLogs([]); setFiles([]); setMergedLogs([])
+    setRegItems([]); setRegTotal(0); setRegPage(1)
     setSelectedFiles([]); setViewingBackup(false)
     setActivePage(1); setBackupPage(1); setFilesPage(1)
     setBkSearch(''); setBkModule(''); setBkFrom(''); setBkTo('')
-    loadActive(t.id, 1)
-    sysApi.get(`/logs?tenantId=${t.id}`).then(r => setFiles(r.data.data)).catch(() => {})
+    if (t.id === REGISTRATIONS_ID) {
+      loadRegistrations(1)
+    } else {
+      loadActive(t.id, 1)
+      sysApi.get(`/logs?tenantId=${t.id}`).then(r => setFiles(r.data.data)).catch(() => {})
+    }
   }
 
   useEffect(() => {
-    if (selected && tab === 'active') loadActive(selected.id, 1)
+    if (!selected) return
+    if (selected.id === REGISTRATIONS_ID) loadRegistrations(1)
+    else loadActive(selected.id, 1)
   }, [search, module, fromDate, toDate])
 
   useEffect(() => { setBackupPage(1) }, [bkSearch, bkModule, bkFrom, bkTo])
@@ -357,13 +472,21 @@ export default function SysLogsPage() {
           </div>
           {/* móvil: scroll horizontal; desktop: scroll vertical */}
           <div className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible overflow-y-visible lg:overflow-y-auto flex-1">
+            {/* Entrada especial: Nuevos Registros */}
+            <button onClick={() => selectTenant(REGISTRATIONS_ROW)}
+              className={`shrink-0 lg:shrink text-left px-4 py-3 lg:border-b border-r lg:border-r-0 border-gray-100 hover:bg-gray-50 transition-colors flex items-center gap-2 ${selected?.id === REGISTRATIONS_ID ? 'bg-slate-50 lg:border-l-2 lg:border-l-slate-700 border-b-2 border-b-slate-700' : ''}`}>
+              <UserPlus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <p className="text-xs font-medium text-gray-800 truncate max-w-[120px] lg:max-w-none">Nuevos Registros</p>
+              <ChevronRight className="w-3 h-3 text-gray-300 shrink-0 hidden lg:block ml-auto" />
+            </button>
             {tenants.length === 0
               ? <div className="p-6 text-center text-gray-400 text-sm w-full">Cargando…</div>
               : tenants.map(t => (
                 <button key={t.id} onClick={() => selectTenant(t)}
                   className={`shrink-0 lg:shrink text-left px-4 py-3 lg:border-b border-r lg:border-r-0 border-gray-100 hover:bg-gray-50 transition-colors flex items-center gap-2 ${selected?.id === t.id ? 'bg-slate-50 lg:border-l-2 lg:border-l-slate-700 border-b-2 border-b-slate-700' : ''}`}>
+                  <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <p className="text-xs font-medium text-gray-800 truncate max-w-[120px] lg:max-w-none">{t.name}</p>
-                  <ChevronRight className="w-3 h-3 text-gray-300 shrink-0 hidden lg:block" />
+                  <ChevronRight className="w-3 h-3 text-gray-300 shrink-0 hidden lg:block ml-auto" />
                 </button>
               ))}
           </div>
@@ -382,21 +505,62 @@ export default function SysLogsPage() {
 
             {/* Header tabs */}
             <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex items-center gap-2 sm:gap-4 shrink-0">
-              <p className="text-sm font-semibold text-gray-800 flex-1 truncate min-w-0">{selected.name}</p>
-              <div id="tour-logs-tabs" className="flex gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
-                <button onClick={() => setTab('active')}
-                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'active' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                  <Database className="w-3.5 h-3.5" /><span>Activos</span>
-                </button>
-                <button onClick={() => setTab('backups')}
-                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'backups' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                  <Archive className="w-3.5 h-3.5" /><span>Respaldos ({files.length})</span>
-                </button>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {selected.id === REGISTRATIONS_ID && <UserPlus className="w-4 h-4 text-primary-500 shrink-0" />}
+                <p className="text-sm font-semibold text-gray-800 truncate">{selected.name}</p>
               </div>
+              {selected.id !== REGISTRATIONS_ID && (
+                <div id="tour-logs-tabs" className="flex gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
+                  <button onClick={() => setTab('active')}
+                    className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'active' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <Database className="w-3.5 h-3.5" /><span>Activos</span>
+                  </button>
+                  <button onClick={() => setTab('backups')}
+                    className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'backups' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <Archive className="w-3.5 h-3.5" /><span>Respaldos ({files.length})</span>
+                  </button>
+                </div>
+              )}
             </div>
 
+            {/* ── Vista: Nuevos Registros ── */}
+            {selected.id === REGISTRATIONS_ID && (
+              <>
+                <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
+                  <div className="relative w-full sm:flex-1 sm:min-w-40">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                    <input value={search} onChange={e => setSearch(e.target.value)}
+                      placeholder="Buscar empresa o email…"
+                      className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                  </div>
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    <span className="text-xs text-gray-500 shrink-0">Desde</span>
+                    <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+                      className="flex-1 sm:flex-none px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                  </div>
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    <span className="text-xs text-gray-500 shrink-0">Hasta</span>
+                    <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+                      className="flex-1 sm:flex-none px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <RegistrationsTable items={regItems} loading={regLoading} />
+                </div>
+                <Pagination
+                  page={regPage}
+                  totalPages={Math.ceil(regTotal / regSize)}
+                  totalCount={regTotal}
+                  pageSize={regSize}
+                  pageSizeOptions={PAGE_SIZE_OPTIONS}
+                  onPageChange={p => loadRegistrations(p)}
+                  onPageSizeChange={s => loadRegistrations(1, s)}
+                />
+              </>
+            )}
+
             {/* ── Tab: logs activos ── */}
-            {tab === 'active' && (
+            {tab === 'active' && selected.id !== REGISTRATIONS_ID && (
               <>
                 {/* Filtros */}
                 <div id="tour-logs-filters" className="px-3 sm:px-4 py-3 border-b border-gray-100 flex flex-wrap gap-2 shrink-0">
@@ -422,11 +586,9 @@ export default function SysLogsPage() {
                       className="flex-1 sm:flex-none px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500" />
                   </div>
                 </div>
-
                 <div id="tour-logs-table" className="flex-1 overflow-y-auto">
                   <LogsTable logs={activeLogs} loading={activeLoading} />
                 </div>
-
                 <Pagination
                   page={activePage}
                   totalPages={Math.ceil(activeTotal / activeSize)}

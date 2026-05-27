@@ -648,6 +648,24 @@ model AuditLog {
   @@index([tenantId, module])
 }
 
+// ─── PendingRegistration ─────────────────────────────────────────────────────
+model PendingRegistration {
+  id           String   @id @default(cuid())
+  token        String   @unique
+  expiresAt    DateTime
+  companyName  String
+  timeZone     String   @default("America/Guayaquil")
+  country      String   @default("EC")
+  username     String
+  email        String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@index([token])
+  @@index([email])
+  @@index([expiresAt])
+}
+
 // ─── LeadEvent ───────────────────────────────────────────────────────────────
 model LeadEvent {
   id        String   @id @default(cuid())

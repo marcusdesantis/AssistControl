@@ -179,17 +179,16 @@ export default function SysLeadsPage() {
             </div>
           </>
         )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={size => { setPageSize(size); setPage(1) }}
+        />
       </div>
-
-      <Pagination
-        page={page}
-        totalPages={totalPages}
-        totalCount={total}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-        onPageSizeChange={size => { setPageSize(size); setPage(1) }}
-      />
     </div>
   )
 }
