@@ -1,4 +1,11 @@
-import { withPublic, apiOk, prisma, getClientIp } from '@attendance/shared'
+import { withPublic, apiOk, prisma, getClientIp, createNotificationWithPush } from '@attendance/shared'
+
+const PAGE_LABELS: Record<string, string> = {
+  'home':               'Inicio',
+  'control-asistencia': 'Control de Asistencia',
+  'asistencia-laboral': 'Asistencia Laboral',
+  'huella-biometrica':  'Huella Biométrica',
+}
 
 export const POST = withPublic(async (req: Request) => {
   const body   = (await req.json().catch(() => ({}))) as any
@@ -15,6 +22,16 @@ export const POST = withPublic(async (req: Request) => {
       userAgent: req.headers.get('user-agent')?.slice(0, 500) ?? null,
     },
   })
+
+  const pageLabel = PAGE_LABELS[page] ?? page
+  const deviceLabel = device === 'mobile' ? '📱 Móvil' : '🖥️ Desktop'
+
+  createNotificationWithPush({
+    forAdmin: true,
+    title:    '💬 Nueva consulta por WhatsApp',
+    body:     `${option ?? 'Consulta personalizada'} — ${pageLabel} (${deviceLabel})`,
+    type:     'info',
+  }).catch(() => {})
 
   return apiOk(null, 'ok')
 })
