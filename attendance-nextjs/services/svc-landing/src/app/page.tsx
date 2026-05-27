@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import RedirectIfAuth from './components/RedirectIfAuth'
+import WhatsAppButton from './components/WhatsAppButton'
 
 export const metadata: Metadata = {
   title: 'TiempoYa — Control de Asistencia para Empresas en Ecuador',
@@ -406,6 +407,7 @@ export default function LandingPage() {
         </section>
       </main>
       <Footer />
+      <WhatsAppButton page="home" />
     </>
   )
 }

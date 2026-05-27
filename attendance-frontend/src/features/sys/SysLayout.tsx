@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Building2, CreditCard, Package, ShieldCheck, ChevronRight, Settings, FileText, Users, Headset, Menu, X, Activity } from 'lucide-react'
+import { LayoutDashboard, Building2, CreditCard, Package, ShieldCheck, ChevronRight, Settings, FileText, Users, Headset, Menu, X, Activity, MessageCircle } from 'lucide-react'
 import { useSysAuthStore } from '@/store/sysAuthStore'
 import NotificationBell from '@/components/NotificationBell'
 import SysProfileMenu from './SysProfileMenu'
@@ -17,6 +17,7 @@ const NAV = [
   { to: '/sys/subscriptions', label: 'Suscripciones', icon: CreditCard },
   { to: '/sys/invoices',      label: 'Comprobantes',  icon: FileText },
   { to: '/sys/support',       label: 'Soporte',       icon: Headset },
+  { to: '/sys/leads',         label: 'Consultas',     icon: MessageCircle },
   { to: '/sys/logs',          label: 'Logs',          icon: Activity },
   { to: '/sys/settings',      label: 'Configuración', icon: Settings },
 ]

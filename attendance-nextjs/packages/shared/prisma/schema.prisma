@@ -648,6 +648,20 @@ model AuditLog {
   @@index([tenantId, module])
 }
 
+// ─── LeadEvent ───────────────────────────────────────────────────────────────
+model LeadEvent {
+  id        String   @id @default(cuid())
+  page      String   // "home" | "control-asistencia" | "asistencia-laboral" | "huella-biometrica"
+  option    String?  // opción seleccionada o mensaje personalizado
+  ip        String?
+  userAgent String?
+  device    String?  // "mobile" | "desktop"
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([page])
+}
+
 // ─── Holiday ──────────────────────────────────────────────────────────────────
 model Holiday {
   id          String   @id @default(uuid())
