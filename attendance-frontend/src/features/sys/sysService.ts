@@ -21,9 +21,14 @@ export const sysAuthService = {
 
 // ─── Metrics ─────────────────────────────────────────────────────────────────
 
+export interface PlanDistItem {
+  planId: string; name: string; count: number; isFree: boolean; priceMonthly: number; sortOrder: number
+}
+
 export interface SysMetrics {
   totalTenants: number; activeTenants: number; inactiveTenants: number
   totalEmployees: number; mrr: number; arr: number
+  planDistribution: PlanDistItem[]
   recentTenants: { id: string; name: string; country: string; createdAt: string; isActive: boolean }[]
 }
 
@@ -44,10 +49,15 @@ export interface SysTenant {
   _count?: { employees: number }
 }
 
+export interface SysTenantUser {
+  id: string; username: string; email: string; role: string; isActive: boolean; lastLoginAt: string | null
+}
+
 export interface SysTenantDetail extends SysTenant {
   taxId?: string; logoUrl?: string
-  subscription?: SysTenant['subscription'] & { billingCycle: string; plan: { id: string; name: string; priceMonthly: number } }
+  subscription?: SysTenant['subscription'] & { billingCycle: string; currentPeriodStart?: string; currentPeriodEnd?: string; plan: { id: string; name: string; priceMonthly: number } }
   invoices: { id: string; amount: number; currency: string; status: string; createdAt: string }[]
+  users: SysTenantUser[]
   _count: { employees: number; users: number }
 }
 

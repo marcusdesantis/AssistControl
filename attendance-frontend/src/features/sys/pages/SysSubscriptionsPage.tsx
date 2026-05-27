@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, CalendarDays, X, History, Search } from 'lucide-react'
+import { Loader2, CalendarDays, X, History, Search, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { sysSubscriptionsService, sysPlansService, type SysSubscription, type SysPlan } from '../sysService'
 import Pagination from '@/components/Pagination'
@@ -211,8 +211,16 @@ export default function SysSubscriptionsPage() {
                     return (
                       <tr key={sub.tenantId} className="hover:bg-gray-50/50">
                         <td className="px-5 py-3.5">
-                          <p className="font-medium text-gray-900">{sub.tenant.name}</p>
-                          <p className="text-xs text-gray-400">{sub.tenant.country}</p>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium text-gray-900">{sub.tenant.name}</p>
+                              <p className="text-xs text-gray-400">{sub.tenant.country}</p>
+                            </div>
+                            <button onClick={() => navigate(`/sys/tenants/${sub.tenantId}`)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0" title="Ver empresa">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                         <td className="px-4 py-3.5 font-medium text-gray-800">{sub.plan.name}</td>
                         <td className="px-4 py-3.5">

@@ -79,10 +79,10 @@ export async function createTenant(data: {
   return { id: tenant.id, name: tenant.name, timeZone: tenant.timeZone, createdAt: tenant.createdAt }
 }
 
-export async function listTenants(page: number, pageSize: number, search?: string) {
-  const where = search
-    ? { OR: [{ name: { contains: search, mode: 'insensitive' as const } }, { legalName: { contains: search, mode: 'insensitive' as const } }] }
-    : {}
+export async function listTenants(page: number, pageSize: number, search?: string, planId?: string) {
+  const where: any = {}
+  if (search)  where.OR = [{ name: { contains: search, mode: 'insensitive' as const } }, { legalName: { contains: search, mode: 'insensitive' as const } }]
+  if (planId)  where.subscription = { planId }
 
   const [items, total] = await Promise.all([
     prisma.tenant.findMany({
@@ -120,6 +120,7 @@ export async function getTenantDetail(id: string) {
         },
       },
       invoices: { take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, amount: true, currency: true, status: true, createdAt: true } },
+      users: { where: { isDeleted: false }, orderBy: { createdAt: 'asc' }, select: { id: true, username: true, email: true, role: true, isActive: true, lastLoginAt: true } },
       _count: { select: { employees: true, users: true } },
     },
   })
@@ -281,10 +282,23 @@ export async function changeTenantPlan(tenantId: string, planId: string, billing
     ? { lastPaidPeriodEnd: existing?.currentPeriodEnd ?? existing?.lastPaidPeriodEnd ?? null }
     : { lastPaidPeriodEnd: null, expiryRemindersSent: '[]' }
 
+  const now = new Date()
+  const periodEnd = plan.isFree ? null : (() => {
+    const d = new Date(now)
+    if (billingCycle === 'annual') d.setFullYear(d.getFullYear() + 1)
+    else d.setMonth(d.getMonth() + 1)
+    return d
+  })()
+
+  const dateFields = {
+    currentPeriodStart: plan.isFree ? null : now,
+    currentPeriodEnd:   periodEnd,
+  }
+
   return prisma.subscription.upsert({
     where:  { tenantId },
-    create: { tenantId, planId, billingCycle, status: 'active', ...reminderFields },
-    update: { planId, billingCycle, status: 'active', cancelAtPeriodEnd: false, ...reminderFields },
+    create: { tenantId, planId, billingCycle, status: 'active', ...dateFields, ...reminderFields },
+    update: { planId, billingCycle, status: 'active', cancelAtPeriodEnd: false, ...dateFields, ...reminderFields },
   })
 }
 
@@ -472,16 +486,17 @@ export async function deleteSysUser(id: string) {
 export async function getDashboardMetrics() {
   const [
     totalTenants, activeTenants,
-    totalEmployees, subscriptions, recentTenants,
+    totalEmployees, subscriptions, recentTenants, allPlans,
   ] = await Promise.all([
     prisma.tenant.count(),
     prisma.tenant.count({ where: { isActive: true } }),
     prisma.employee.count(),
-    prisma.subscription.findMany({ include: { plan: { select: { priceMonthly: true, priceAnnual: true, isFree: true } } } }),
+    prisma.subscription.findMany({ include: { plan: { select: { id: true, name: true, priceMonthly: true, priceAnnual: true, isFree: true, sortOrder: true } } } }),
     prisma.tenant.findMany({
       take: 5, orderBy: { createdAt: 'desc' },
       select: { id: true, name: true, country: true, createdAt: true, isActive: true },
     }),
+    prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
   ])
 
   const mrr = subscriptions.reduce((sum, sub) => {
@@ -492,11 +507,21 @@ export async function getDashboardMetrics() {
     return sum + monthly
   }, 0)
 
-  const planDist = subscriptions.reduce<Record<string, number>>((acc, sub) => {
-    const key = sub.planId
-    acc[key] = (acc[key] ?? 0) + 1
-    return acc
-  }, {})
+  // Contar suscripciones por plan
+  const countByPlan = new Map<string, number>()
+  for (const sub of subscriptions) {
+    countByPlan.set(sub.planId, (countByPlan.get(sub.planId) ?? 0) + 1)
+  }
+
+  // Todos los planes activos, con 0 si no tienen empresas
+  const planDistribution = allPlans.map(p => ({
+    planId:       p.id,
+    name:         p.name,
+    count:        countByPlan.get(p.id) ?? 0,
+    isFree:       p.isFree,
+    priceMonthly: p.priceMonthly,
+    sortOrder:    p.sortOrder ?? 0,
+  }))
 
   return {
     totalTenants,
@@ -505,7 +530,7 @@ export async function getDashboardMetrics() {
     totalEmployees,
     mrr: Math.round(mrr * 100) / 100,
     arr: Math.round(mrr * 12 * 100) / 100,
-    planDistribution: planDist,
+    planDistribution,
     recentTenants,
   }
 }

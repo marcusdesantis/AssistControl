@@ -15,9 +15,10 @@ const createSchema = z.object({
 export const GET = withSuperadmin(async (req) => {
   const { searchParams } = new URL(req.url)
   const page     = Math.max(1, parseInt(searchParams.get('page')     ?? '1'))
-  const pageSize = Math.min(50, parseInt(searchParams.get('pageSize') ?? '20'))
-  const search   = searchParams.get('search') ?? undefined
-  return apiOk(await listTenants(page, pageSize, search))
+  const pageSize = Math.min(200, parseInt(searchParams.get('pageSize') ?? '20'))
+  const search   = searchParams.get('search')  ?? undefined
+  const planId   = searchParams.get('planId')  ?? undefined
+  return apiOk(await listTenants(page, pageSize, search, planId))
 })
 
 export const POST = withSuperadmin(async (req) => {
