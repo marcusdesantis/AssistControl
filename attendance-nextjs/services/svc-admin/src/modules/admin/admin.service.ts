@@ -10,8 +10,13 @@ async function sendSystemEmail(toOrOpts: string | { to?: string; subject: string
   const opts = typeof toOrOpts === 'string'
     ? { to: toOrOpts, subject: subject!, html: html! }
     : toOrOpts
+  const isSupportEmail = !opts.to
   const recipient = opts.to ?? settings.supportEmail
   if (!recipient) return
+  let ccEmails: string[] = []
+  if (isSupportEmail && settings.supportEmailCcEnabled) {
+    try { ccEmails = JSON.parse(settings.supportEmailCc ?? '[]') } catch {}
+  }
   const secure = settings.smtpPort === 465
   const transporter = nodemailer.createTransport({
     host: settings.smtpHost, port: settings.smtpPort, secure,
@@ -20,6 +25,7 @@ async function sendSystemEmail(toOrOpts: string | { to?: string; subject: string
   await transporter.sendMail({
     from: `"${settings.smtpFromName ?? 'TiempoYa'}" <${settings.smtpUsername}>`,
     to: recipient, subject: opts.subject, html: opts.html,
+    cc: ccEmails.length > 0 ? ccEmails.join(',') : undefined,
   }).catch(e => console.error('[sendSystemEmail]', e))
 }
 
