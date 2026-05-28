@@ -21,6 +21,8 @@ const schema = z.object({
   supportWhatsapp:          z.string().nullable().optional(),
   supportPhone:             z.string().nullable().optional(),
   supportEmail:             z.string().nullable().optional(),
+  supportEmailCcEnabled:    z.boolean().optional(),
+  supportEmailCc:           z.string().optional(),
 })
 
 export const GET = withSuperadmin(async () => {

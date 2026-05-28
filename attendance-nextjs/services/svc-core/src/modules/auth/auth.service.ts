@@ -85,6 +85,73 @@ function verificationEmailHtml(companyName: string, verifyUrl: string): string {
 </html>`
 }
 
+function newRegistrationEmailHtml(d: {
+  companyName: string; email: string; country: string; timeZone: string
+  plan: string; requiresApproval: boolean; tenantId: string
+}): string {
+  const statusBadge = d.requiresApproval
+    ? `<span style="color:#d97706;font-weight:600;">⏳ Pendiente de aprobación</span>`
+    : `<span style="color:#16a34a;font-weight:600;">✅ Activa automáticamente</span>`
+  const approvalNote = d.requiresApproval
+    ? `<div style="background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:12px 16px;margin:0 0 24px;font-size:13px;color:#92400e;">
+        Esta empresa requiere <strong>aprobación manual</strong> antes de poder acceder al sistema.
+       </div>`
+    : ''
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:600px;margin:32px auto;padding:0 16px;">
+  <div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+
+    <div style="background:linear-gradient(135deg,#3b82f6 0%,#6366f1 100%);padding:28px 32px;">
+      <p style="margin:0;font-size:13px;color:#bfdbfe;font-weight:500;letter-spacing:1px;text-transform:uppercase;">TiempoYa · Sistema</p>
+      <h1 style="margin:8px 0 0;font-size:22px;color:#ffffff;font-weight:700;">🏢 Nueva empresa registrada</h1>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;">
+        Se ha completado el proceso de verificación de correo electrónico. A continuación los datos de la nueva empresa:
+      </p>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:0 0 24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;width:150px;vertical-align:top;">Empresa</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;">${d.companyName}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Email administrador</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.email}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">País</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.country}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Zona horaria</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.timeZone}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Plan asignado</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.plan}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">ID empresa</td>
+              <td style="padding:7px 0;color:#64748b;font-size:12px;font-family:monospace;border-top:1px solid #e2e8f0;">${d.tenantId}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Estado</td>
+              <td style="padding:7px 0;font-size:13px;border-top:1px solid #e2e8f0;">${statusBadge}</td></tr>
+        </table>
+      </div>
+
+      ${approvalNote}
+
+      <p style="margin:0;font-size:13px;color:#94a3b8;">
+        Puedes revisar y gestionar esta empresa desde el panel de administración de TiempoYa.
+      </p>
+    </div>
+
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center;">
+      <p style="margin:0;font-size:12px;color:#94a3b8;">
+        Este es un correo automático del sistema TiempoYa &mdash; Por favor no respondas a este mensaje.
+      </p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>`
+}
+
 // ─── Register new tenant + admin ──────────────────────────────────────────────
 export async function registerTenant(dto: RegisterDto) {
   const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } })
@@ -238,6 +305,19 @@ export async function verifyEmail(token: string) {
       ? `La empresa "${tenant.name}" verificó su correo y está pendiente de aprobación.`
       : `La empresa "${tenant.name}" verificó su correo y ya está activa.`,
     type: requireApproval ? 'warning' : 'info',
+  }).catch(() => {})
+
+  sendSystemEmail({
+    subject: `🏢 Nueva empresa registrada — ${tenant.name}`,
+    html:    newRegistrationEmailHtml({
+      companyName:     tenant.name,
+      email:           pending.email,
+      country:         pending.country,
+      timeZone:        pending.timeZone,
+      plan:            defaultPlan.name,
+      requiresApproval: requireApproval,
+      tenantId:        tenant.id,
+    }),
   }).catch(() => {})
 
   return { verified: true, requiresApproval: requireApproval, tenantId: tenant.id, companyName: tenant.name }

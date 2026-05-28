@@ -1,4 +1,4 @@
-import { prisma, createNotificationWithPush } from '@attendance/shared'
+import { prisma, createNotificationWithPush, sendSystemEmail } from '@attendance/shared'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -274,6 +274,55 @@ export async function activateSubscription(
     notifySubscriptionEvent(tenantId, action, plan.name, billingCycle, logOpts?.amountPaid).catch(
       e => console.error('[billing] notify error', e?.message)
     )
+  }
+
+  // Email al supportEmail cuando la empresa cambia de plan (no en renovaciones ni auto-downgrade)
+  const isPlanChange = existing?.planId !== planId
+  const isAutoAction = action === 'cancelled' || action === 'auto_downgrade'
+  if (isPlanChange && !isAutoAction) {
+    const oldPlanName = existing
+      ? await prisma.plan.findUnique({ where: { id: existing.planId }, select: { name: true } }).then(p => p?.name ?? '—')
+      : '—'
+    const cycleFmt = (c: string) => c === 'annual' ? 'Anual' : 'Mensual'
+    const priceInfo = !plan.isFree
+      ? `<tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Precio</td>
+             <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:600;border-top:1px solid #e2e8f0;">$${(billingCycle === 'annual' ? (plan.priceAnnual ?? plan.priceMonthly * 12) : plan.priceMonthly).toFixed(2)} / ${cycleFmt(billingCycle)}</td></tr>`
+      : ''
+    sendSystemEmail({
+      subject: `📋 Cambio de plan — ${tenant.name}`,
+      html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:600px;margin:32px auto;padding:0 16px;">
+  <div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+    <div style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:28px 32px;">
+      <p style="margin:0;font-size:13px;color:#c7d2fe;font-weight:500;letter-spacing:1px;text-transform:uppercase;">TiempoYa · Sistema</p>
+      <h1 style="margin:8px 0 0;font-size:22px;color:#fff;font-weight:700;">📋 Cambio de plan</h1>
+    </div>
+    <div style="padding:28px 32px;">
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;">La empresa ha cambiado su plan de suscripción:</p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:0 0 24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;width:150px;">Empresa</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;">${tenant.name}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">País</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${tenant.country ?? ''}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">Plan anterior</td>
+              <td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;text-decoration:line-through;">${oldPlanName}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">Plan nuevo</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;border-top:1px solid #e2e8f0;">${plan.name} · ${cycleFmt(billingCycle)}</td></tr>
+          ${priceInfo}
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">ID empresa</td>
+              <td style="padding:7px 0;color:#64748b;font-size:12px;font-family:monospace;border-top:1px solid #e2e8f0;">${tenantId}</td></tr>
+        </table>
+      </div>
+      <p style="margin:0;font-size:13px;color:#94a3b8;">El cambio fue solicitado por la empresa desde su panel de configuración.</p>
+    </div>
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center;">
+      <p style="margin:0;font-size:12px;color:#94a3b8;">Este es un correo automático del sistema TiempoYa &mdash; Por favor no respondas a este mensaje.</p>
+    </div>
+  </div>
+</div></body></html>`,
+    }).catch(() => {})
   }
 
   return sub

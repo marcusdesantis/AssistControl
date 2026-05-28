@@ -4,9 +4,14 @@ import nodemailer from 'nodemailer'
 
 // ─── System email (usa SMTP del sistema, no del tenant) ───────────────────────
 
-async function sendSystemEmail(to: string, subject: string, html: string) {
+async function sendSystemEmail(toOrOpts: string | { to?: string; subject: string; html: string }, subject?: string, html?: string) {
   const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } })
   if (!settings?.smtpEnabled || !settings.smtpHost || !settings.smtpUsername || !settings.smtpPassword) return
+  const opts = typeof toOrOpts === 'string'
+    ? { to: toOrOpts, subject: subject!, html: html! }
+    : toOrOpts
+  const recipient = opts.to ?? settings.supportEmail
+  if (!recipient) return
   const secure = settings.smtpPort === 465
   const transporter = nodemailer.createTransport({
     host: settings.smtpHost, port: settings.smtpPort, secure,
@@ -14,7 +19,7 @@ async function sendSystemEmail(to: string, subject: string, html: string) {
   })
   await transporter.sendMail({
     from: `"${settings.smtpFromName ?? 'TiempoYa'}" <${settings.smtpUsername}>`,
-    to, subject, html,
+    to: recipient, subject: opts.subject, html: opts.html,
   }).catch(e => console.error('[sendSystemEmail]', e))
 }
 
@@ -268,6 +273,73 @@ export async function listSubscriptions(page: number, pageSize: number, search?:
   return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) }
 }
 
+function planChangedEmailHtml(d: {
+  companyName: string; country: string
+  oldPlan: string; newPlan: string
+  oldCycle: string; newCycle: string
+  newPrice: number | null; periodEnd: Date | null
+  tenantId: string
+}): string {
+  const cycleFmt = (c: string) => c === 'annual' ? 'Anual' : c === 'monthly' ? 'Mensual' : c
+  const priceLine = d.newPrice != null
+    ? `<tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Precio nuevo</td>
+           <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:600;border-top:1px solid #e2e8f0;">$${d.newPrice.toFixed(2)} / ${cycleFmt(d.newCycle)}</td></tr>`
+    : ''
+  const periodLine = d.periodEnd
+    ? `<tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Vence</td>
+           <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.periodEnd.toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' })}</td></tr>`
+    : ''
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:600px;margin:32px auto;padding:0 16px;">
+  <div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+
+    <div style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:28px 32px;">
+      <p style="margin:0;font-size:13px;color:#c7d2fe;font-weight:500;letter-spacing:1px;text-transform:uppercase;">TiempoYa · Sistema</p>
+      <h1 style="margin:8px 0 0;font-size:22px;color:#ffffff;font-weight:700;">📋 Cambio de plan</h1>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;">
+        Se ha realizado un cambio de plan para la siguiente empresa:
+      </p>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:0 0 24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;width:150px;vertical-align:top;">Empresa</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;">${d.companyName}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">País</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.country}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Plan anterior</td>
+              <td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;text-decoration:line-through;">${d.oldPlan} · ${cycleFmt(d.oldCycle)}</td></tr>
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Plan nuevo</td>
+              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;border-top:1px solid #e2e8f0;">${d.newPlan} · ${cycleFmt(d.newCycle)}</td></tr>
+          ${priceLine}
+          ${periodLine}
+          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">ID empresa</td>
+              <td style="padding:7px 0;color:#64748b;font-size:12px;font-family:monospace;border-top:1px solid #e2e8f0;">${d.tenantId}</td></tr>
+        </table>
+      </div>
+
+      <p style="margin:0;font-size:13px;color:#94a3b8;">
+        Este cambio fue realizado por el administrador del sistema desde el panel de administración de TiempoYa.
+      </p>
+    </div>
+
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center;">
+      <p style="margin:0;font-size:12px;color:#94a3b8;">
+        Este es un correo automático del sistema TiempoYa &mdash; Por favor no respondas a este mensaje.
+      </p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>`
+}
+
 export async function changeTenantPlan(tenantId: string, planId: string, billingCycle: 'monthly' | 'annual') {
   const [tenant, plan] = await Promise.all([
     prisma.tenant.findUnique({ where: { id: tenantId } }),
@@ -276,7 +348,10 @@ export async function changeTenantPlan(tenantId: string, planId: string, billing
   if (!tenant) throw { code: 'NOT_FOUND', message: 'Tenant no encontrado.' }
   if (!plan)   throw { code: 'NOT_FOUND', message: 'Plan no encontrado.' }
 
-  const existing = await prisma.subscription.findUnique({ where: { tenantId } })
+  const existing = await prisma.subscription.findUnique({
+    where:   { tenantId },
+    include: { plan: { select: { name: true } } },
+  })
 
   const reminderFields = plan.isFree
     ? { lastPaidPeriodEnd: existing?.currentPeriodEnd ?? existing?.lastPaidPeriodEnd ?? null }
@@ -295,11 +370,29 @@ export async function changeTenantPlan(tenantId: string, planId: string, billing
     currentPeriodEnd:   periodEnd,
   }
 
-  return prisma.subscription.upsert({
+  const result = await prisma.subscription.upsert({
     where:  { tenantId },
     create: { tenantId, planId, billingCycle, status: 'active', ...dateFields, ...reminderFields },
     update: { planId, billingCycle, status: 'active', cancelAtPeriodEnd: false, ...dateFields, ...reminderFields },
   })
+
+  // Solo se ejecuta si el upsert fue exitoso
+  sendSystemEmail({
+    subject: `📋 Cambio de plan — ${tenant.name}`,
+    html:    planChangedEmailHtml({
+      companyName:  tenant.name,
+      country:      tenant.country ?? '',
+      oldPlan:      existing?.plan?.name ?? '—',
+      newPlan:      plan.name,
+      oldCycle:     existing?.billingCycle ?? '—',
+      newCycle:     billingCycle,
+      newPrice:     plan.isFree ? null : (billingCycle === 'annual' ? (plan.priceAnnual ?? plan.priceMonthly * 12) : plan.priceMonthly),
+      periodEnd:    periodEnd,
+      tenantId,
+    }),
+  }).catch(() => {})
+
+  return result
 }
 
 export async function updateSubscriptionDates(tenantId: string, currentPeriodStart: string | null, currentPeriodEnd: string | null) {
@@ -340,6 +433,11 @@ export async function updateSystemSettings(data: Partial<{
   requireApproval:       boolean
   termsOfUse:            string | null
   privacyPolicy:         string | null
+  supportWhatsapp:       string | null
+  supportPhone:          string | null
+  supportEmail:          string | null
+  supportEmailCcEnabled: boolean
+  supportEmailCc:        string
 }>) {
   if (data.requireApproval === false) {
     await prisma.tenant.updateMany({

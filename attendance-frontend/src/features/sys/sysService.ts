@@ -198,6 +198,8 @@ export interface SystemSettings {
   supportWhatsapp:          string | null
   supportPhone:             string | null
   supportEmail:             string | null
+  supportEmailCcEnabled:    boolean
+  supportEmailCc:           string
 }
 
 export const sysSettingsService = {

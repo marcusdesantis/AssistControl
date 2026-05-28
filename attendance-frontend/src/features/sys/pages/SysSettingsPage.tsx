@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Save, Mail, Server, Eye, EyeOff, ToggleLeft, ToggleRight, CreditCard, Settings2, FileText, Shield, ExternalLink, Copy, Check, Headset } from 'lucide-react'
+import { Loader2, Save, Mail, Server, Eye, EyeOff, ToggleLeft, ToggleRight, CreditCard, Settings2, FileText, Shield, ExternalLink, Copy, Check, Headset, Plus, X } from 'lucide-react'
 import { sysSettingsService, type SystemSettings } from '../sysService'
 import { copyText } from '@/utils/clipboard'
 import { createTour } from '@/utils/tour'
@@ -31,6 +31,8 @@ const EMPTY: SystemSettings = {
   supportWhatsapp: null,
   supportPhone: null,
   supportEmail: null,
+  supportEmailCcEnabled: false,
+  supportEmailCc: '[]',
 }
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }: {
@@ -64,6 +66,64 @@ function PasswordField({ label, value, onChange, placeholder }: {
           {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
       </div>
+    </div>
+  )
+}
+
+function CcEmailsSection({ enabled, ccJson, onToggle, onChange }: {
+  enabled: boolean; ccJson: string
+  onToggle: () => void; onChange: (json: string) => void
+}) {
+  const [input, setInput] = useState('')
+  const list: string[] = (() => { try { return JSON.parse(ccJson || '[]') } catch { return [] } })()
+
+  const add = () => {
+    const v = input.trim().toLowerCase()
+    if (!v || list.includes(v)) { setInput(''); return }
+    onChange(JSON.stringify([...list, v]))
+    setInput('')
+  }
+  const remove = (email: string) => onChange(JSON.stringify(list.filter(e => e !== email)))
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-gray-600">Contactos adicionales (CC)</label>
+        <button type="button" onClick={onToggle}
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">
+          {enabled
+            ? <><ToggleRight className="w-5 h-5 text-gray-900" /><span className="text-gray-900 font-semibold">Habilitado</span></>
+            : <><ToggleLeft className="w-5 h-5 text-gray-400" /><span>Deshabilitado</span></>}
+        </button>
+      </div>
+      {enabled && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input type="email" value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())}
+              placeholder="otro@empresa.com"
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300" />
+            <button type="button" onClick={add}
+              className="px-3 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700">
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          {list.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {list.map(email => (
+                <span key={email} className="flex items-center gap-1.5 bg-gray-100 border border-gray-300 text-gray-800 text-xs px-2.5 py-1 rounded-full">
+                  {email}
+                  <button type="button" onClick={() => remove(email)} className="hover:text-primary-900">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">Agrega correos que recibirán una copia de cada notificación enviada al email de soporte.</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -282,6 +342,14 @@ export default function SysSettingsPage() {
                 <Field label="Email de contacto de soporte" value={form.supportEmail ?? ''}
                   onChange={v => setForm(p => ({ ...p, supportEmail: v || null }))}
                   placeholder="soporte@empresa.com" />
+
+                {/* CC adicionales */}
+                <CcEmailsSection
+                  enabled={form.supportEmailCcEnabled}
+                  ccJson={form.supportEmailCc}
+                  onToggle={() => setForm(p => ({ ...p, supportEmailCcEnabled: !p.supportEmailCcEnabled }))}
+                  onChange={json => setForm(p => ({ ...p, supportEmailCc: json }))}
+                />
 
                 <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 space-y-2">
                   <p className="font-medium text-gray-700 flex items-center gap-1.5">

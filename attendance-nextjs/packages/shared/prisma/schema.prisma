@@ -556,6 +556,8 @@ model SystemSettings {
   supportWhatsapp            String?
   supportPhone               String?
   supportEmail               String?
+  supportEmailCcEnabled      Boolean  @default(false)
+  supportEmailCc             String   @default("[]")
   updatedAt                  DateTime @updatedAt
 }
 
