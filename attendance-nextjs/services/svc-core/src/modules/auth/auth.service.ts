@@ -97,53 +97,53 @@ function newRegistrationEmailHtml(d: {
         Esta empresa requiere <strong>aprobación manual</strong> antes de poder acceder al sistema.
        </div>`
     : ''
+  const row = (label: string, value: string, mono = false) =>
+    `<div style="padding:10px 0;border-top:1px solid #e2e8f0;">
+      <p style="margin:0 0 3px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${label}</p>
+      <p style="margin:0;color:${mono ? '#64748b' : '#0f172a'};font-size:${mono ? '11px' : '14px'};font-family:${mono ? 'monospace,monospace' : 'inherit'};word-break:break-all;overflow-wrap:anywhere;">${value}</p>
+    </div>`
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
-<div style="max-width:600px;margin:32px auto;padding:0 16px;">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+<div style="max-width:600px;margin:0 auto;padding:20px 12px;">
   <div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
 
-    <div style="background:linear-gradient(135deg,#3b82f6 0%,#6366f1 100%);padding:28px 32px;">
-      <p style="margin:0;font-size:13px;color:#bfdbfe;font-weight:500;letter-spacing:1px;text-transform:uppercase;">TiempoYa · Sistema</p>
-      <h1 style="margin:8px 0 0;font-size:22px;color:#ffffff;font-weight:700;">🏢 Nueva empresa registrada</h1>
+    <div style="background:linear-gradient(135deg,#3b82f6 0%,#6366f1 100%);padding:24px 20px;">
+      <p style="margin:0;font-size:11px;color:#bfdbfe;font-weight:600;letter-spacing:1px;text-transform:uppercase;">TiempoYa · Sistema</p>
+      <h1 style="margin:6px 0 0;font-size:20px;color:#ffffff;font-weight:700;">🏢 Nueva empresa registrada</h1>
     </div>
 
-    <div style="padding:28px 32px;">
-      <p style="margin:0 0 20px;font-size:14px;color:#475569;">
-        Se ha completado el proceso de verificación de correo electrónico. A continuación los datos de la nueva empresa:
+    <div style="padding:20px;">
+      <p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.5;">
+        Se ha completado la verificación de correo. Datos de la nueva empresa:
       </p>
 
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:0 0 24px;">
-        <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;width:150px;vertical-align:top;">Empresa</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;">${d.companyName}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Email administrador</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.email}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">País</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.country}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Zona horaria</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.timeZone}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Plan asignado</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${d.plan}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">ID empresa</td>
-              <td style="padding:7px 0;color:#64748b;font-size:12px;font-family:monospace;border-top:1px solid #e2e8f0;">${d.tenantId}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Estado</td>
-              <td style="padding:7px 0;font-size:13px;border-top:1px solid #e2e8f0;">${statusBadge}</td></tr>
-        </table>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:4px 16px 10px;">
+        <div style="padding:10px 0;">
+          <p style="margin:0 0 3px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Empresa</p>
+          <p style="margin:0;color:#0f172a;font-size:15px;font-weight:700;word-break:break-word;">${d.companyName}</p>
+        </div>
+        ${row('Email administrador', d.email)}
+        ${row('País', d.country)}
+        ${row('Zona horaria', d.timeZone)}
+        ${row('Plan asignado', d.plan)}
+        ${row('ID empresa', d.tenantId, true)}
+        <div style="padding:10px 0;border-top:1px solid #e2e8f0;">
+          <p style="margin:0 0 3px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Estado</p>
+          <p style="margin:0;font-size:13px;">${statusBadge}</p>
+        </div>
       </div>
 
       ${approvalNote}
 
-      <p style="margin:0;font-size:13px;color:#94a3b8;">
-        Puedes revisar y gestionar esta empresa desde el panel de administración de TiempoYa.
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">
+        Puedes revisar esta empresa desde el panel de administración de TiempoYa.
       </p>
     </div>
 
-    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center;">
-      <p style="margin:0;font-size:12px;color:#94a3b8;">
-        Este es un correo automático del sistema TiempoYa &mdash; Por favor no respondas a este mensaje.
-      </p>
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 20px;text-align:center;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;">Correo automático · TiempoYa &mdash; No respondas este mensaje.</p>
     </div>
 
   </div>

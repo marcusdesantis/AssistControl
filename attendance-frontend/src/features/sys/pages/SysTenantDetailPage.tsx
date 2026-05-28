@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Loader2, Users, FileText, Building2, ToggleLeft, ToggleRight, Bell, Mail, X, Pencil, Trash2, AlertTriangle, CreditCard, CheckCircle2, UserCog } from 'lucide-react'
+import { ArrowLeft, Loader2, Users, FileText, Building2, ToggleLeft, ToggleRight, Bell, Mail, X, Pencil, Trash2, AlertTriangle, CreditCard, CheckCircle2, UserCog, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { sysTenantsService, sysPlansService, sysSubscriptionsService, type SysTenantDetail, type SysTenant, type SysPlan } from '../sysService'
 import { createTour } from '@/utils/tour'
@@ -338,7 +338,6 @@ function EditTenantModal({ tenant, onClose, onSaved }: {
 }
 
 // ─── Modal cambiar plan ───────────────────────────────────────────────────────
-function toDateInput(d: Date) { return d.toISOString().slice(0, 10) }
 
 function ChangePlanModal({ tenantId, currentPlanId, initDateFrom, initDateTo, timeZone, onClose, onSaved }: {
   tenantId: string; currentPlanId?: string
@@ -349,7 +348,7 @@ function ChangePlanModal({ tenantId, currentPlanId, initDateFrom, initDateTo, ti
   const tz = timeZone || DEFAULT_TZ
   const [plans,   setPlans]   = useState<SysPlan[]>([])
   const [planId,  setPlanId]  = useState(currentPlanId ?? '')
-  const [cycle,   setCycle]   = useState<'monthly' | 'annual'>('monthly')
+  const [cycle] = useState<'monthly' | 'annual'>('monthly')
   const [dateFrom, setDateFrom] = useState(initDateFrom ? utcToLocalDt(initDateFrom, tz) : '')
   const [dateTo,   setDateTo]   = useState(initDateTo   ? utcToLocalDt(initDateTo, tz)   : '')
   const [datesModified, setDatesModified] = useState(false)
@@ -362,25 +361,7 @@ function ChangePlanModal({ tenantId, currentPlanId, initDateFrom, initDateTo, ti
       .finally(() => setLoading(false))
   }, [])
 
-  function handleCycle(c: 'monthly' | 'annual') {
-    setCycle(c)
-    if (dateFrom) {
-      const d = new Date(dateFrom)
-      if (c === 'annual') d.setFullYear(d.getFullYear() + 1)
-      else d.setMonth(d.getMonth() + 1)
-      setDateTo(toDateInput(d))
-    }
-  }
 
-  function handleDateFrom(v: string) {
-    setDateFrom(v)
-    if (v) {
-      const d = new Date(v)
-      if (cycle === 'annual') d.setFullYear(d.getFullYear() + 1)
-      else d.setMonth(d.getMonth() + 1)
-      setDateTo(toDateInput(d))
-    }
-  }
 
   const selected = plans.find(p => p.id === planId)
 
@@ -496,7 +477,7 @@ export default function SysTenantDetailPage() {
     setToggling(true)
     try {
       const updated = await sysTenantsService.toggle(tenant.id)
-      setTenant(prev => prev ? { ...prev, isActive: updated.isActive } : prev)
+      setTenant(prev => prev ? { ...prev, isActive: updated.isActive } as SysTenantDetail : prev)
       toast.success(`Empresa ${updated.isActive ? 'activada' : 'desactivada'}.`)
     } catch { toast.error('Error al cambiar el estado.') }
     finally { setToggling(false) }
@@ -540,7 +521,7 @@ export default function SysTenantDetailPage() {
         <EditTenantModal
           tenant={tenant as unknown as SysTenant}
           onClose={() => setShowEdit(false)}
-          onSaved={updated => { setTenant(t => t ? { ...t, ...updated } : t); setShowEdit(false) }}
+          onSaved={updated => { setTenant(t => t ? { ...t, ...updated } as SysTenantDetail : t); setShowEdit(false) }}
         />
       )}
 

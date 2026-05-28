@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
-import { ArrowLeft, Clock, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 
 interface Props { type: 'terms' | 'privacy' }
 

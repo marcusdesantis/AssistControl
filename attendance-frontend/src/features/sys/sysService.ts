@@ -53,9 +53,9 @@ export interface SysTenantUser {
   id: string; username: string; email: string; role: string; isActive: boolean; lastLoginAt: string | null
 }
 
-export interface SysTenantDetail extends SysTenant {
+export interface SysTenantDetail extends Omit<SysTenant, 'subscription'> {
   taxId?: string; logoUrl?: string
-  subscription?: SysTenant['subscription'] & { billingCycle: string; currentPeriodStart?: string; currentPeriodEnd?: string; plan: { id: string; name: string; priceMonthly: number } }
+  subscription?: { status: string; billingCycle?: string; currentPeriodStart?: string; currentPeriodEnd?: string; plan: { id?: string; name: string; priceMonthly?: number } }
   invoices: { id: string; amount: number; currency: string; status: string; createdAt: string }[]
   users: SysTenantUser[]
   _count: { employees: number; users: number }

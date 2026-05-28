@@ -100,7 +100,7 @@ type Tab = 'email' | 'invitations' | 'checker' | 'subscription'
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const tenantId = useAuthStore(s => s.user?.tenantId)
+  useAuthStore(s => s.user?.tenantId)
   const [form,       setForm]       = useState<TenantSettings>(EMPTY)
   const [loading,    setLoading]    = useState(true)
   const [saving,     setSaving]     = useState(false)

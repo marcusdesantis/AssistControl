@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { Clock, CheckCircle2, XCircle, Loader2, AlertCircle, Mail, Send } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, AlertCircle, Mail, Send } from 'lucide-react'
 import axios from 'axios'
 
 type State = 'loading' | 'success' | 'pending' | 'invalid' | 'expired' | 'error' | 'resend_form' | 'resend_sent' | 'resend_error'

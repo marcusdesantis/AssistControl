@@ -284,41 +284,35 @@ export async function activateSubscription(
       ? await prisma.plan.findUnique({ where: { id: existing.planId }, select: { name: true } }).then(p => p?.name ?? '—')
       : '—'
     const cycleFmt = (c: string) => c === 'annual' ? 'Anual' : 'Mensual'
-    const priceInfo = !plan.isFree
-      ? `<tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;vertical-align:top;">Precio</td>
-             <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:600;border-top:1px solid #e2e8f0;">$${(billingCycle === 'annual' ? (plan.priceAnnual ?? plan.priceMonthly * 12) : plan.priceMonthly).toFixed(2)} / ${cycleFmt(billingCycle)}</td></tr>`
+    const row = (label: string, value: string, style = '') =>
+      `<div style="padding:10px 0;border-top:1px solid #e2e8f0;"><p style="margin:0 0 3px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${label}</p><p style="margin:0;color:#0f172a;font-size:14px;word-break:break-word;${style}">${value}</p></div>`
+    const priceRow = !plan.isFree
+      ? row('Precio', `$${(billingCycle === 'annual' ? (plan.priceAnnual ?? plan.priceMonthly * 12) : plan.priceMonthly).toFixed(2)} / ${cycleFmt(billingCycle)}`, 'font-weight:600;')
       : ''
     sendSystemEmail({
       subject: `📋 Cambio de plan — ${tenant.name}`,
-      html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
-<div style="max-width:600px;margin:32px auto;padding:0 16px;">
+      html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+<div style="max-width:600px;margin:0 auto;padding:20px 12px;">
   <div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
-    <div style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:28px 32px;">
-      <p style="margin:0;font-size:13px;color:#c7d2fe;font-weight:500;letter-spacing:1px;text-transform:uppercase;">TiempoYa · Sistema</p>
-      <h1 style="margin:8px 0 0;font-size:22px;color:#fff;font-weight:700;">📋 Cambio de plan</h1>
+    <div style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:24px 20px;">
+      <p style="margin:0;font-size:11px;color:#c7d2fe;font-weight:600;letter-spacing:1px;text-transform:uppercase;">TiempoYa · Sistema</p>
+      <h1 style="margin:6px 0 0;font-size:20px;color:#fff;font-weight:700;">📋 Cambio de plan</h1>
     </div>
-    <div style="padding:28px 32px;">
-      <p style="margin:0 0 20px;font-size:14px;color:#475569;">La empresa ha cambiado su plan de suscripción:</p>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:0 0 24px;">
-        <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;width:150px;">Empresa</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;">${tenant.name}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">País</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;border-top:1px solid #e2e8f0;">${tenant.country ?? ''}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">Plan anterior</td>
-              <td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;text-decoration:line-through;">${oldPlanName}</td></tr>
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">Plan nuevo</td>
-              <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:700;border-top:1px solid #e2e8f0;">${plan.name} · ${cycleFmt(billingCycle)}</td></tr>
-          ${priceInfo}
-          <tr><td style="padding:7px 0;color:#64748b;font-size:13px;border-top:1px solid #e2e8f0;">ID empresa</td>
-              <td style="padding:7px 0;color:#64748b;font-size:12px;font-family:monospace;border-top:1px solid #e2e8f0;">${tenantId}</td></tr>
-        </table>
+    <div style="padding:20px;">
+      <p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.5;">La empresa ha cambiado su plan de suscripción:</p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:4px 16px 10px;">
+        <div style="padding:10px 0;"><p style="margin:0 0 3px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Empresa</p><p style="margin:0;color:#0f172a;font-size:15px;font-weight:700;word-break:break-word;">${tenant.name}</p></div>
+        ${row('País', tenant.country ?? '')}
+        <div style="padding:10px 0;border-top:1px solid #e2e8f0;"><p style="margin:0 0 3px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Plan anterior</p><p style="margin:0;color:#94a3b8;font-size:14px;text-decoration:line-through;word-break:break-word;">${oldPlanName}</p></div>
+        ${row('Plan nuevo', `<strong>${plan.name}</strong> · ${cycleFmt(billingCycle)}`)}
+        ${priceRow}
+        <div style="padding:10px 0;border-top:1px solid #e2e8f0;"><p style="margin:0 0 3px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">ID empresa</p><p style="margin:0;color:#64748b;font-size:11px;font-family:monospace,monospace;word-break:break-all;">${tenantId}</p></div>
       </div>
-      <p style="margin:0;font-size:13px;color:#94a3b8;">El cambio fue solicitado por la empresa desde su panel de configuración.</p>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">El cambio fue solicitado por la empresa desde su panel de configuración.</p>
     </div>
-    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center;">
-      <p style="margin:0;font-size:12px;color:#94a3b8;">Este es un correo automático del sistema TiempoYa &mdash; Por favor no respondas a este mensaje.</p>
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 20px;text-align:center;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;">Correo automático · TiempoYa &mdash; No respondas este mensaje.</p>
     </div>
   </div>
 </div></body></html>`,

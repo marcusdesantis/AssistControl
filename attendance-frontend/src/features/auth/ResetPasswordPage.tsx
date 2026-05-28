@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { Clock, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { api } from '@/services/api'
 

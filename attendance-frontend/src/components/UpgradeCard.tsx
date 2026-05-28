@@ -21,7 +21,7 @@ const LOCKED_META: Partial<Record<keyof PlanCapabilities, { label: string; icon:
 
 export default function UpgradeCard({ planName }: Props) {
   const navigate = useNavigate()
-  const { can, capabilities, limit } = usePlan()
+  const { can, capabilities } = usePlan()
 
   // Módulos completamente bloqueados
   const locked = (Object.keys(LOCKED_META) as (keyof PlanCapabilities)[]).filter(k => !can(k))

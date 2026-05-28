@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, UserCheck, UserX, Clock, TrendingUp, Calendar, ArrowRight, Loader2,
-  AlertTriangle, CalendarDays, BarChart2, MessageSquare, ScanLine, Settings,
+  AlertTriangle, CalendarDays, BarChart2, ScanLine, Settings,
 } from 'lucide-react'
 import { useAuthStore }      from '@/store/authStore'
 import UpgradeCard          from '@/components/UpgradeCard'
@@ -114,7 +114,6 @@ export default function DashboardPage() {
       setRecent(sorted.slice(0, 5))
 
       // Checklist
-      const withSchedule = active.filter((e: Employee) => e.scheduleId)
       const withoutSched = active.filter((e: Employee) => !e.scheduleId)
 
       setHasLogo(!!company?.logoBase64)
