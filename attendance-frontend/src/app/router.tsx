@@ -1,4 +1,14 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+
+// Redirige al nginx (dominio base sin puerto SPA) para que svc-landing sirva la página
+function AccountDeletionRedirect() {
+  useEffect(() => {
+    const base = `${window.location.protocol}//${window.location.hostname}`
+    window.location.replace(`${base}/account-deletion`)
+  }, [])
+  return null
+}
 import ErrorPage from '@/components/ErrorPage'
 import LoginPage from '@/features/auth/LoginPage'
 import ChangePasswordPage from '@/features/auth/ChangePasswordPage'
@@ -113,5 +123,6 @@ export const router = createBrowserRouter([
     ],
   },
 
+  { path: '/account-deletion', element: <AccountDeletionRedirect /> },
   { path: '*', element: <Navigate to="/dashboard" replace /> },
 ])
