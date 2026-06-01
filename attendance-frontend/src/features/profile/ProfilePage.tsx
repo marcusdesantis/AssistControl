@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { User, Mail, KeyRound, Eye, EyeOff, Loader2, ShieldCheck, Fingerprint, Scan, Grid3X3, X } from 'lucide-react'
+import { User, Mail, KeyRound, Eye, EyeOff, Loader2, ShieldCheck, Fingerprint, Scan, Grid3X3, X, Trash2, AlertTriangle } from 'lucide-react'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/store/authStore'
 import { isNative } from '@/utils/platform'
@@ -22,6 +22,8 @@ export default function ProfilePage() {
   const { user, setAuth, accessToken, refreshToken, capabilities } = useAuthStore()
 
   const [savingPwd,   setSavingPwd]   = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteSending,   setDeleteSending]   = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew,     setShowNew]     = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -163,6 +165,21 @@ export default function ProfilePage() {
   )
   const { register: regW, handleSubmit: hsW, watch, reset: resetPwd, setError: setErrW, formState: { errors: errW } } = useForm<PasswordForm>()
   const newPassword = watch('newPassword')
+
+  const handleRequestDeletion = async () => {
+    setDeleteSending(true)
+    try {
+      await api.post('/auth/request-account-deletion')
+      setShowDeleteModal(false)
+      // Cerrar sesión inmediatamente
+      useAuthStore.getState().clearAuth()
+      localStorage.setItem('login_notice', 'deletion_requested')
+      window.location.href = '/login'
+    } catch {
+      toast.error('No se pudo enviar la solicitud. Escríbenos a soporte@tiempoya.net')
+      setDeleteSending(false)
+    }
+  }
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? 'U'
 
@@ -373,6 +390,31 @@ export default function ProfilePage() {
         </form>
       </div>
 
+      {/* Eliminar cuenta */}
+      <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-red-100">
+          <Trash2 className="w-4 h-4 text-red-500" />
+          <h2 className="text-sm font-semibold text-red-700">Eliminar cuenta</h2>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-gray-500">
+            Solicita la eliminación permanente de tu cuenta y todos tus datos.{' '}
+            <a
+              href="https://www.tiempoya.net/account-deletion"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-red-500 underline text-sm font-medium">
+              ¿Deseas saber más?
+            </a>
+          </p>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="px-4 py-2 border border-red-300 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors">
+            Eliminar mi cuenta
+          </button>
+        </div>
+      </div>
+
     </div>
 
       {/* ── Modal biométrico ── */}
@@ -485,6 +527,35 @@ export default function ProfilePage() {
                   className="w-full mt-3 text-gray-400 text-sm hover:text-gray-600 text-center">Volver a elegir PIN</button>
               </>
             )}
+          </div>
+        </div>
+      )}
+      {/* ── Modal eliminar cuenta ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-3 mb-5">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">¿Eliminar tu cuenta?</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Se enviará una solicitud de eliminación. Todos tus datos serán borrados de forma permanente en un plazo máximo de 30 días.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button onClick={handleRequestDeletion} disabled={deleteSending}
+                className="w-full py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                {deleteSending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Confirmar solicitud
+              </button>
+              <button onClick={() => setShowDeleteModal(false)} disabled={deleteSending}
+                className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

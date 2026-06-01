@@ -337,7 +337,7 @@ export async function login(dto: LoginDto) {
 
   const tenant = await prisma.tenant.findUnique({
     where:  { id: user.tenantId },
-    select: { isActive: true, pendingApproval: true, timeZone: true, country: true, selfRegistered: true, emailVerified: true, emailVerificationToken: true, onboardingCompleted: true },
+    select: { isActive: true, pendingApproval: true, timeZone: true, country: true, selfRegistered: true, emailVerified: true, emailVerificationToken: true, onboardingCompleted: true, deletionRequestedAt: true },
   })
 
   if (tenant?.selfRegistered && !tenant.emailVerified)
@@ -347,6 +347,8 @@ export async function login(dto: LoginDto) {
     throw { code: 'TENANT_PENDING', message: 'Tu empresa está en proceso de validación. El administrador del sistema la aprobará pronto.' }
   if (!tenant?.isActive)
     throw { code: 'TENANT_INACTIVE', message: 'Tu empresa ha sido desactivada. Contacta al administrador del sistema.' }
+  if (tenant?.deletionRequestedAt)
+    throw { code: 'ACCOUNT_DELETION_PENDING', message: 'Esta cuenta está en proceso de eliminación. Si cambiaste de opinión, contacta a soporte dentro de las 24 horas.', deletionRequestedAt: tenant.deletionRequestedAt }
 
   if (user.lockedUntil && user.lockedUntil > new Date())
     throw { code: 'ACCOUNT_LOCKED', message: 'Cuenta bloqueada temporalmente. Intente más tarde.' }
@@ -400,9 +402,11 @@ export async function refreshToken(token: string) {
   if (!user.isActive)
     throw { code: 'USER_INACTIVE', message: 'Tu usuario ha sido desactivado. Contacta al administrador.' }
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { isActive: true, timeZone: true, country: true } })
+  const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { isActive: true, timeZone: true, country: true, deletionRequestedAt: true } })
   if (!tenant?.isActive)
     throw { code: 'TENANT_INACTIVE', message: 'Tu empresa ha sido desactivada.' }
+  if (tenant?.deletionRequestedAt)
+    throw { code: 'ACCOUNT_DELETION_PENDING', message: 'Esta cuenta está en proceso de eliminación.', deletionRequestedAt: tenant.deletionRequestedAt }
 
   await prisma.refreshToken.update({ where: { id: stored.id }, data: { isRevoked: true } })
 

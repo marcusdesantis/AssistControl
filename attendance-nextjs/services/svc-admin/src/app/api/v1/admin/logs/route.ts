@@ -13,7 +13,7 @@ export const GET = withSuperadmin(async (req) => {
     const tenantDir = path.join(LOGS_BASE, 'tenants', tenantId)
     if (!fs.existsSync(tenantDir)) return apiOk([])
     const files = fs.readdirSync(tenantDir)
-      .filter(f => f.endsWith('.json'))
+      .filter(f => f.endsWith('.json') && f !== '_meta.json')
       .sort()
       .reverse()
       .map(f => ({

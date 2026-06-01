@@ -45,8 +45,9 @@ export default function LoginScreen() {
   // Modales
   const [showBiometricOffer, setShowBiometricOffer] = useState(false)
   const [showBiometricInfo,  setShowBiometricInfo]  = useState(false)
-  const [userInactiveModal,  setUserInactiveModal]  = useState(false)
-  const [mobileNotAllowed,   setMobileNotAllowed]   = useState(false)
+  const [userInactiveModal,   setUserInactiveModal]   = useState(false)
+  const [mobileNotAllowed,    setMobileNotAllowed]    = useState(false)
+  const [deletionPendingModal, setDeletionPendingModal] = useState(false)
   const [pinForgotInfo,      setPinForgotInfo]      = useState(false)
 
   // Guardamos resultado del login y credenciales para completar DESPUÉS del modal
@@ -63,6 +64,9 @@ export default function LoginScreen() {
       } else if (notice === 'mobile_not_allowed') {
         storage.deleteItem('login_notice')
         setMobileNotAllowed(true)
+      } else if (notice === 'deletion_pending') {
+        storage.deleteItem('login_notice')
+        setDeletionPendingModal(true)
       }
     })
 
@@ -157,8 +161,9 @@ export default function LoginScreen() {
       }
     } catch (e: any) {
       const code = e?.response?.data?.code
-      if (code === 'USER_INACTIVE')          setUserInactiveModal(true)
-      else if (code === 'MOBILE_NOT_ALLOWED') setMobileNotAllowed(true)
+      if (code === 'USER_INACTIVE')               setUserInactiveModal(true)
+      else if (code === 'MOBILE_NOT_ALLOWED')      setMobileNotAllowed(true)
+      else if (code === 'ACCOUNT_DELETION_PENDING') setDeletionPendingModal(true)
       else setError(e?.response?.data?.message ?? 'Error al iniciar sesión.')
     } finally { setLoading(false) }
   }
@@ -172,8 +177,9 @@ export default function LoginScreen() {
       await doLogin(creds.username, creds.password)
     } catch (e: any) {
       const code = e?.response?.data?.code
-      if (code === 'USER_INACTIVE')          setUserInactiveModal(true)
-      else if (code === 'MOBILE_NOT_ALLOWED') setMobileNotAllowed(true)
+      if (code === 'USER_INACTIVE')               setUserInactiveModal(true)
+      else if (code === 'MOBILE_NOT_ALLOWED')      setMobileNotAllowed(true)
+      else if (code === 'ACCOUNT_DELETION_PENDING') setDeletionPendingModal(true)
       else {
         setError('Sesión expirada. Ingresa tu usuario y contraseña.')
         biometric.disableBiometric()
@@ -195,8 +201,9 @@ export default function LoginScreen() {
       await doLogin(u, pw)
     } catch (e: any) {
       const code = e?.response?.data?.code
-      if (code === 'USER_INACTIVE')          setUserInactiveModal(true)
-      else if (code === 'MOBILE_NOT_ALLOWED') setMobileNotAllowed(true)
+      if (code === 'USER_INACTIVE')               setUserInactiveModal(true)
+      else if (code === 'MOBILE_NOT_ALLOWED')      setMobileNotAllowed(true)
+      else if (code === 'ACCOUNT_DELETION_PENDING') setDeletionPendingModal(true)
       else { setError('Sesión expirada. Usa usuario y contraseña.'); setPin(''); setMethod('user') }
     } finally { setLoading(false) }
   }
@@ -483,6 +490,24 @@ export default function LoginScreen() {
             <Text style={styles.modalTitle}>Sin acceso a la app</Text>
             <Text style={styles.modalBody}>El plan de tu empresa no incluye acceso móvil.</Text>
             <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#4f46e5' }]} onPress={() => setMobileNotAllowed(false)}>
+              <Text style={styles.modalBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={deletionPendingModal} transparent animationType="fade" onRequestClose={() => setDeletionPendingModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconWrap, { backgroundColor: '#fef2f2' }]}>
+              <Ionicons name="trash-outline" size={36} color="#dc2626" />
+            </View>
+            <Text style={styles.modalTitle}>Cuenta en proceso de eliminación</Text>
+            <Text style={styles.modalBody}>
+              Esta cuenta ha solicitado su eliminación permanente.{'\n\n'}
+              Si cambiaste de opinión, tienes <Text style={{ fontWeight: '700', color: '#dc2626' }}>72 horas</Text> para contactar a soporte y cancelar la solicitud. Pasado ese plazo, la eliminación será irreversible.
+            </Text>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#dc2626' }]} onPress={() => setDeletionPendingModal(false)}>
               <Text style={styles.modalBtnText}>Entendido</Text>
             </TouchableOpacity>
           </View>

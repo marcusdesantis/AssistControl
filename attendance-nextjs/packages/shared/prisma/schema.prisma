@@ -114,6 +114,7 @@ model Tenant {
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime? @updatedAt
   isDeleted                 Boolean   @default(false)
+  deletionRequestedAt       DateTime?
 
   users                     User[]
   employees                 Employee[]
@@ -633,7 +634,8 @@ model Notification {
 // ─── AuditLog ────────────────────────────────────────────────────────────────
 model AuditLog {
   id          String   @id @default(cuid())
-  tenantId    String
+  tenantId    String?
+  tenantName  String?  // Preservado cuando el tenant es eliminado
   userId      String?
   userEmail   String?
   userName    String?
@@ -644,7 +646,7 @@ model AuditLog {
   source      String   @default("web") // "web" | "mobile"
   createdAt   DateTime @default(now())
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, createdAt])
   @@index([tenantId, module])

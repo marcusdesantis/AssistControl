@@ -14,12 +14,13 @@ export const POST = withSuperadmin(async (req) => {
 
   const tenants = await prisma.auditLog.groupBy({
     by: ['tenantId'],
-    where: { createdAt: { lt: cutoff } },
+    where: { createdAt: { lt: cutoff }, tenantId: { not: null } },
   })
 
   let totalProcessed = 0
 
   for (const { tenantId } of tenants) {
+    if (!tenantId) continue
     const logs = await prisma.auditLog.findMany({
       where: { tenantId, createdAt: { lt: cutoff } },
       orderBy: { createdAt: 'asc' },
@@ -38,7 +39,7 @@ export const POST = withSuperadmin(async (req) => {
     fs.writeFileSync(filePath, JSON.stringify([...existing, ...logs], null, 2), 'utf-8')
 
     await prisma.auditLog.deleteMany({
-      where: { tenantId, createdAt: { lt: cutoff } },
+      where: { tenantId: tenantId!, createdAt: { lt: cutoff } },
     })
 
     totalProcessed += logs.length

@@ -459,10 +459,11 @@ export default function SysTenantDetailPage() {
   const [loading,      setLoading]      = useState(true)
   const [toggling,     setToggling]     = useState(false)
   const [compose,      setCompose]      = useState<ComposeMode | null>(null)
-  const [confirmDeact, setConfirmDeact] = useState(false)
-  const [showEdit,     setShowEdit]     = useState(false)
-  const [showDelete,   setShowDelete]   = useState(false)
-  const [showPlan,     setShowPlan]     = useState(false)
+  const [confirmDeact,      setConfirmDeact]      = useState(false)
+  const [showEdit,          setShowEdit]          = useState(false)
+  const [showDelete,        setShowDelete]        = useState(false)
+  const [showPlan,          setShowPlan]          = useState(false)
+  const [cancelingDeletion, setCancelingDeletion] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -602,6 +603,39 @@ export default function SysTenantDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Banner eliminación pendiente */}
+      {tenant.deletionRequestedAt && (
+        <div className="flex items-center justify-between gap-4 bg-red-50 border border-red-200 rounded-xl px-5 py-3.5">
+          <div className="flex items-center gap-3 min-w-0">
+            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-red-700">Cuenta en proceso de eliminación</p>
+              <p className="text-xs text-red-500 mt-0.5">
+                Solicitado el {fmtDate(tenant.deletionRequestedAt)} · Plazo para cancelar: {
+                  new Date(new Date(tenant.deletionRequestedAt).getTime() + 72 * 60 * 60 * 1000)
+                    .toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                }
+              </p>
+            </div>
+          </div>
+          <button
+            disabled={cancelingDeletion}
+            onClick={async () => {
+              setCancelingDeletion(true)
+              try {
+                await sysTenantsService.cancelDeletion(tenant.id)
+                setTenant(t => t ? { ...t, deletionRequestedAt: null } as SysTenantDetail : t)
+                toast.success('Solicitud de eliminación cancelada.')
+              } catch { toast.error('No se pudo cancelar la solicitud.') }
+              finally { setCancelingDeletion(false) }
+            }}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 bg-white border border-red-300 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-50 disabled:opacity-60 transition-colors">
+            {cancelingDeletion ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Cancelar eliminación
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Info */}

@@ -81,11 +81,15 @@ export function withEmployee<TArgs extends unknown[]>(handler: EmployeeHandler<T
       const payload = verifyToken(token)
       if (payload.type !== 'employee') return apiUnauthorized('Token de admin no válido aquí')
       const [tenant, employee] = await Promise.all([
-        prisma.tenant.findUnique({ where: { id: payload.tenantId }, select: { isActive: true } }),
+        prisma.tenant.findUnique({ where: { id: payload.tenantId }, select: { isActive: true, deletionRequestedAt: true } }),
         prisma.employee.findUnique({ where: { id: payload.sub },    select: { status: true } }),
       ])
       if (!tenant?.isActive) return Response.json(
         { success: false, code: 'TENANT_INACTIVE', message: 'Tu cuenta ha sido desactivada. Contacta al administrador del sistema.' },
+        { status: 403 }
+      )
+      if (tenant?.deletionRequestedAt) return Response.json(
+        { success: false, code: 'ACCOUNT_DELETION_PENDING', message: 'Esta cuenta está en proceso de eliminación.' },
         { status: 403 }
       )
       if (employee?.status === 'Inactive') return Response.json(

@@ -8,7 +8,7 @@ const _loginNotice = (() => {
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff, LogIn, AlertCircle, Lock, UserX, ClipboardCheck, Mail,
-         Fingerprint, Scan, Grid3X3 } from 'lucide-react'
+         Fingerprint, Scan, Grid3X3, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { authService } from './authService'
 import { useAuthStore } from '@/store/authStore'
@@ -45,8 +45,12 @@ export default function LoginPage() {
   // Modales de error de login
   const [deactivatedModal,      setDeactivatedModal]      = useState(false)
   const [userDeactivatedModal,  setUserDeactivatedModal]  = useState(_loginNotice === 'user_inactive')
+  const [deletionJustSentModal, setDeletionJustSentModal] = useState(_loginNotice === 'deletion_requested')
   const [pendingModal,          setPendingModal]          = useState(false)
   const [emailNotVerifiedModal, setEmailNotVerifiedModal] = useState(false)
+  const [deletionPendingModal,  setDeletionPendingModal]  = useState(false)
+  const [deletionRequestedAt,   setDeletionRequestedAt]   = useState<string | null>(null)
+  const [supportEmail,          setSupportEmail]          = useState<string | null>(null)
 
   // Modales biométrico
   const [showBioOffer,    setShowBioOffer]    = useState(false)
@@ -55,6 +59,14 @@ export default function LoginPage() {
   const [pendingAuth,     setPendingAuth]     = useState<{ data: any; username: string; password: string } | null>(null)
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>()
+
+  useEffect(() => {
+    const BASE_URL = import.meta.env.VITE_API_URL ?? ''
+    fetch(`${BASE_URL}/api/v1/public/contact`)
+      .then(r => r.json())
+      .then(j => { if (j?.data?.supportEmail) setSupportEmail(j.data.supportEmail) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!isNative) return
@@ -93,10 +105,14 @@ export default function LoginPage() {
   const handleLoginError = useCallback((err: any, fallback?: string) => {
     const code = err?.response?.data?.code ?? err?.response?.data?.errorCode
     const msg  = err?.response?.data?.message
-    if      (code === 'TENANT_INACTIVE')    setDeactivatedModal(true)
-    else if (code === 'USER_INACTIVE')      setUserDeactivatedModal(true)
-    else if (code === 'TENANT_PENDING')     setPendingModal(true)
-    else if (code === 'EMAIL_NOT_VERIFIED') setEmailNotVerifiedModal(true)
+    if      (code === 'TENANT_INACTIVE')       setDeactivatedModal(true)
+    else if (code === 'USER_INACTIVE')         setUserDeactivatedModal(true)
+    else if (code === 'TENANT_PENDING')        setPendingModal(true)
+    else if (code === 'EMAIL_NOT_VERIFIED')    setEmailNotVerifiedModal(true)
+    else if (code === 'ACCOUNT_DELETION_PENDING') {
+      setDeletionRequestedAt(err?.response?.data?.deletionRequestedAt ?? null)
+      setDeletionPendingModal(true)
+    }
     else if (code === 'INVALID_CREDENTIALS') setError(msg ?? 'Credenciales incorrectas.')
     else setError(msg ?? fallback ?? 'No se pudo conectar con el servidor.')
   }, [])
@@ -241,6 +257,73 @@ export default function LoginPage() {
       <button onClick={() => setDeactivatedModal(false)} className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl text-sm transition-colors">Volver al login</button>
     </ModalWrapper>
   )
+
+  if (deletionJustSentModal) return (
+    <ModalWrapper>
+      <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+        <AlertTriangle className="w-7 h-7 text-red-500" />
+      </div>
+      <h2 className="text-xl font-bold text-gray-900 mb-2">Solicitud enviada</h2>
+      <p className="text-gray-500 text-sm leading-relaxed mb-4">
+        Tu solicitud de eliminación de cuenta ha sido recibida. Tu sesión ha sido cerrada en todos los dispositivos.
+      </p>
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 text-sm text-amber-800 leading-relaxed">
+        <p className="font-semibold mb-1">¿Cambiaste de opinión?</p>
+        <p className="text-xs text-amber-700">Tienes <strong>72 horas</strong> para cancelar la solicitud contactando a nuestro equipo de soporte. Pasado ese tiempo, la eliminación será irreversible.</p>
+      </div>
+      {supportEmail && (
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4">
+          <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400 leading-none mb-0.5">Contacto de soporte</p>
+            <p className="text-sm font-semibold text-gray-800 truncate">{supportEmail}</p>
+          </div>
+        </div>
+      )}
+      <button onClick={() => setDeletionJustSentModal(false)} className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+        Cerrar
+      </button>
+    </ModalWrapper>
+  )
+
+  if (deletionPendingModal) {
+    const requested = deletionRequestedAt ? new Date(deletionRequestedAt) : null
+    const deadline  = requested ? new Date(requested.getTime() + 72 * 60 * 60 * 1000) : null
+    const fmtDl     = deadline ? deadline.toLocaleString('es-MX', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : null
+    return (
+      <ModalWrapper>
+        <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <AlertTriangle className="w-7 h-7 text-red-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Cuenta en proceso de eliminación</h2>
+        <p className="text-gray-500 text-sm leading-relaxed mb-4">
+          Se ha solicitado la eliminación permanente de esta cuenta y todos sus datos.
+        </p>
+        {fmtDl && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-center">
+            <p className="text-xs text-amber-700 font-medium">Plazo para cancelar</p>
+            <p className="text-sm font-bold text-amber-800 mt-0.5">{fmtDl}</p>
+            <p className="text-xs text-amber-600 mt-1">Pasado este plazo la eliminación será irreversible.</p>
+          </div>
+        )}
+        <p className="text-gray-500 text-sm leading-relaxed mb-6">
+          Si cambiaste de opinión, comunícate con nuestro equipo de soporte antes del plazo indicado.
+        </p>
+        {supportEmail && (
+          <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4">
+            <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs text-gray-400 leading-none mb-0.5">Contacto de soporte</p>
+              <p className="text-sm font-semibold text-gray-800 truncate">{supportEmail}</p>
+            </div>
+          </div>
+        )}
+        <button onClick={() => setDeletionPendingModal(false)} className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+          Cerrar
+        </button>
+      </ModalWrapper>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">

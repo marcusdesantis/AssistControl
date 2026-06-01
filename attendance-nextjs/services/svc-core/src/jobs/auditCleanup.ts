@@ -47,7 +47,7 @@ async function runCleanup() {
 
   const tenants = await prisma.auditLog.groupBy({
     by: ['tenantId'],
-    where: { createdAt: { lt: cutoff } },
+    where: { createdAt: { lt: cutoff }, tenantId: { not: null } },
   })
 
   if (tenants.length === 0) return
@@ -57,6 +57,7 @@ async function runCleanup() {
   let ok = 0
   let fail = 0
   for (const { tenantId } of tenants) {
+    if (!tenantId) continue
     try {
       await backupAndDeleteTenantLogs(tenantId, cutoff)
       ok++

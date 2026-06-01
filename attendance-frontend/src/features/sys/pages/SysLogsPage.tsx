@@ -5,7 +5,7 @@ import Pagination from '@/components/Pagination'
 import { createTour } from '@/utils/tour'
 import HelpButton from '@/components/HelpButton'
 
-interface TenantRow  { id: string; name: string }
+interface TenantRow  { id: string; name: string; deleted?: boolean; backupFolderId?: string }
 interface BackupFile { month: string; filename: string; sizeKb: number }
 interface AuditLog   { id: string; userName?: string; tenantName?: string; action: string; module: string; detail?: string; ip?: string; source: string; createdAt: string }
 
@@ -161,6 +161,7 @@ const ACTION_LABELS: Record<string, string> = {
   'auth.email_verified': 'Correo verificado',
   'subscription.create': 'Suscripción creada',
   'user.create': 'Usuario creado',
+  'account.deletion_requested': 'Solicitud de eliminación de cuenta',
 }
 
 const MODULE_COLORS: Record<string, string> = {
@@ -271,8 +272,9 @@ function getWeekStart() {
 function today() { return new Date().toISOString().slice(0, 10) }
 
 export default function SysLogsPage() {
-  const [tenants, setTenants]   = useState<TenantRow[]>([])
-  const [selected, setSelected] = useState<TenantRow | null>(null)
+  const [tenants, setTenants]               = useState<TenantRow[]>([])
+  const [deletedTenants, setDeletedTenants] = useState<TenantRow[]>([])
+  const [selected, setSelected]             = useState<TenantRow | null>(null)
   const [tab, setTab]           = useState<Tab>('active')
   const [auditConfig, setAuditConfig] = useState<{ retentionDays: number; mode: string } | null>(null)
   const [regItems,   setRegItems]   = useState<RegistrationEntry[]>([])
@@ -319,10 +321,18 @@ export default function SysLogsPage() {
     sysApi.get('/tenants?page=1&pageSize=200').then(r => {
       const items: TenantRow[] = r.data.data?.items ?? []
       setTenants(items)
-      // Auto-seleccionar la primera empresa
       if (items.length > 0) selectTenant(items[0])
     }).catch(() => {})
     sysApi.get('/audit-config').then(r => setAuditConfig(r.data.data)).catch(() => {})
+    sysApi.get('/logs/deleted-tenants').then(r => {
+      const raw: { id: string | null; name: string }[] = r.data.data ?? []
+      setDeletedTenants(raw.map(d => ({
+        id:             d.id ? `__del__:${d.id}` : `__del__:${d.name}`,
+        name:           d.name,
+        deleted:        true,
+        backupFolderId: d.id ?? undefined,
+      })))
+    }).catch(() => {})
   }, [])
 
   const runTour = () => createTour([
@@ -348,14 +358,15 @@ export default function SysLogsPage() {
     } catch { } finally { setRegLoading(false) }
   }, [search, fromDate, toDate, regSize])
 
-  const loadActive = useCallback(async (tenantId: string, p = 1, size = activeSize) => {
+  const loadActive = useCallback(async (tenantId: string, p = 1, size = activeSize, tenantName?: string) => {
     setActiveLoading(true)
     try {
       const q = new URLSearchParams({ page: String(p), pageSize: String(size) })
-      if (search)   q.set('search', search)
-      if (module)   q.set('module', module)
-      if (fromDate) q.set('from', fromDate)
-      if (toDate)   q.set('to',   toDate)
+      if (search)     q.set('search', search)
+      if (module)     q.set('module', module)
+      if (fromDate)   q.set('from', fromDate)
+      if (toDate)     q.set('to',   toDate)
+      if (tenantName) q.set('tenantName', tenantName)
       const r = await sysApi.get(`/logs/${tenantId}/active?${q}`)
       setActiveLogs(r.data.data.items)
       setActiveTotal(r.data.data.total)
@@ -373,6 +384,10 @@ export default function SysLogsPage() {
     setBkSearch(''); setBkModule(''); setBkFrom(''); setBkTo('')
     if (t.id === REGISTRATIONS_ID) {
       loadRegistrations(1)
+    } else if (t.deleted) {
+      loadActive('__deleted__', 1, activeSize, t.name)
+      const folderId = t.backupFolderId
+      if (folderId) sysApi.get(`/logs?tenantId=${folderId}`).then(r => setFiles(r.data.data)).catch(() => {})
     } else {
       loadActive(t.id, 1)
       sysApi.get(`/logs?tenantId=${t.id}`).then(r => setFiles(r.data.data)).catch(() => {})
@@ -382,6 +397,7 @@ export default function SysLogsPage() {
   useEffect(() => {
     if (!selected) return
     if (selected.id === REGISTRATIONS_ID) loadRegistrations(1)
+    else if (selected.deleted) loadActive('__deleted__', 1, activeSize, selected.name)
     else loadActive(selected.id, 1)
   }, [search, module, fromDate, toDate])
 
@@ -393,10 +409,18 @@ export default function SysLogsPage() {
     setBackupLoading(true); setBackupPage(1)
     setBkSearch(''); setBkModule(''); setBkFrom(''); setBkTo('')
     try {
-      const all = await Promise.all(
-        selectedFiles.map(m => sysApi.get(`/logs/${selected.id}/${m}`).then(r => r.data.data as AuditLog[]))
+      const folderId = selected.backupFolderId ?? selected.id
+      const results = await Promise.all(
+        selectedFiles.map(m =>
+          sysApi.get(`/logs/${folderId}/${m}`)
+            .then(r => (Array.isArray(r.data.data) ? r.data.data : []) as AuditLog[])
+            .catch(() => [] as AuditLog[])
+        )
       )
-      const merged = all.flat().sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      const merged = results
+        .flat()
+        .filter(log => log && log.createdAt)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       setMergedLogs(merged)
       setViewingBackup(true)
     } finally { setBackupLoading(false) }
@@ -439,8 +463,7 @@ export default function SysLogsPage() {
   const filteredMerged = mergedLogs.filter(log => {
     if (bkModule && log.module !== bkModule) return false
     if (bkSearch && !log.userName?.toLowerCase().includes(bkSearch.toLowerCase()) && !log.action.includes(bkSearch)) return false
-    // Comparación por string YYYY-MM-DD para evitar problemas de zona horaria
-    const logDate = log.createdAt.slice(0, 10)
+    const logDate = log.createdAt?.slice(0, 10) ?? ''
     if (bkFrom && logDate < bkFrom) return false
     if (bkTo   && logDate > bkTo)   return false
     return true
@@ -489,6 +512,24 @@ export default function SysLogsPage() {
                   <ChevronRight className="w-3 h-3 text-gray-300 shrink-0 hidden lg:block ml-auto" />
                 </button>
               ))}
+            {deletedTenants.length > 0 && (
+              <>
+                <div className="shrink-0 px-4 py-2 border-t border-gray-100 bg-gray-50 hidden lg:block">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Eliminadas</p>
+                </div>
+                {deletedTenants.map(t => (
+                  <button key={t.id} onClick={() => selectTenant(t)}
+                    className={`shrink-0 lg:shrink text-left px-4 py-3 lg:border-b border-r lg:border-r-0 border-gray-100 hover:bg-gray-50 transition-colors flex items-center gap-2 ${selected?.id === t.id ? 'bg-red-50 lg:border-l-2 lg:border-l-red-400 border-b-2 border-b-red-400' : ''}`}>
+                    <Building2 className="w-3.5 h-3.5 text-red-300 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-500 truncate max-w-[100px] lg:max-w-none">{t.name}</p>
+                      <span className="text-[10px] text-red-400 font-medium">Eliminada</span>
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-gray-300 shrink-0 hidden lg:block" />
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
@@ -515,10 +556,12 @@ export default function SysLogsPage() {
                     className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'active' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                     <Database className="w-3.5 h-3.5" /><span>Activos</span>
                   </button>
-                  <button onClick={() => setTab('backups')}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'backups' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                    <Archive className="w-3.5 h-3.5" /><span>Respaldos ({files.length})</span>
-                  </button>
+                  {(!selected.deleted || selected.backupFolderId) && (
+                    <button onClick={() => setTab('backups')}
+                      className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'backups' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                      <Archive className="w-3.5 h-3.5" /><span>Respaldos ({files.length})</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -595,8 +638,8 @@ export default function SysLogsPage() {
                   totalCount={activeTotal}
                   pageSize={activeSize}
                   pageSizeOptions={PAGE_SIZE_OPTIONS}
-                  onPageChange={p => loadActive(selected.id, p)}
-                  onPageSizeChange={s => loadActive(selected.id, 1, s)}
+                  onPageChange={p => selected.deleted ? loadActive('__deleted__', p, activeSize, selected.name) : loadActive(selected.id, p)}
+                  onPageSizeChange={s => selected.deleted ? loadActive('__deleted__', 1, s, selected.name) : loadActive(selected.id, 1, s)}
                 />
               </>
             )}

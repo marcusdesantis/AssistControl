@@ -27,12 +27,14 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    if (status === 403 && (code === 'TENANT_INACTIVE' || code === 'USER_INACTIVE' || code === 'MOBILE_NOT_ALLOWED')) {
+    if (status === 403 && (code === 'TENANT_INACTIVE' || code === 'USER_INACTIVE' || code === 'MOBILE_NOT_ALLOWED' || code === 'ACCOUNT_DELETION_PENDING')) {
       const { useAuthStore } = await import('@/store/authStore')
       if (code === 'USER_INACTIVE') {
         await storage.setItem('login_notice', 'user_inactive')
       } else if (code === 'MOBILE_NOT_ALLOWED') {
         await storage.setItem('login_notice', 'mobile_not_allowed')
+      } else if (code === 'ACCOUNT_DELETION_PENDING') {
+        await storage.setItem('login_notice', 'deletion_pending')
       }
       await useAuthStore.getState().clearAuth()
     }

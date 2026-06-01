@@ -480,11 +480,16 @@ export default function SubscriptionTab() {
                 <p className="text-xs text-primary-600 mt-1">Inicia sesión con tu cuenta y dirígete a <span className="font-semibold">Configuración → Suscripción</span></p>
               </div>
             </div>
-            <div className="px-6 pb-6">
+            <div className="px-6 pb-6 flex flex-col gap-2">
+              <button
+                onClick={() => { window.open('https://www.tiempoya.net/settings?tab=subscription', '_system') }}
+                className="w-full py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2">
+                <ExternalLink className="w-4 h-4" /> Ir al portal web
+              </button>
               <button
                 onClick={() => setShowNativeWebModal(false)}
-                className="w-full py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors">
-                Entendido
+                className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                Cerrar
               </button>
             </div>
           </div>

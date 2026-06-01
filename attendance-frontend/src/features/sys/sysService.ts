@@ -44,7 +44,7 @@ export const sysMetricsService = {
 export interface SysTenant {
   id: string; name: string; legalName?: string; country: string
   timeZone: string; isActive: boolean; isDeleted: boolean; createdAt: string
-  selfRegistered: boolean; pendingApproval: boolean
+  selfRegistered: boolean; pendingApproval: boolean; deletionRequestedAt?: string | null
   subscription?: { status: string; plan: { name: string }; currentPeriodEnd?: string }
   _count?: { employees: number }
 }
@@ -107,6 +107,10 @@ export const sysTenantsService = {
   },
   approve: async (id: string) => {
     const res = await sysApi.post<ApiResponse<{ ok: boolean }>>(`/tenants/${id}/approve`)
+    return res.data.data!
+  },
+  cancelDeletion: async (id: string) => {
+    const res = await sysApi.post<ApiResponse<SysTenant>>(`/tenants/${id}/cancel-deletion`)
     return res.data.data!
   },
 }

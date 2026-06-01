@@ -1,6 +1,10 @@
 import { prisma, hashPassword, createNotificationWithPush } from '@attendance/shared'
 import { v4 as uuidv4 } from 'uuid'
 import nodemailer from 'nodemailer'
+import fs from 'fs'
+import path from 'path'
+
+const LOGS_BASE = process.env.LOGS_PATH ?? '/app/logs'
 
 // ─── System email (usa SMTP del sistema, no del tenant) ───────────────────────
 
@@ -123,7 +127,7 @@ export async function getTenantDetail(id: string) {
       country: true, timeZone: true, logoUrl: true, isActive: true, isDeleted: true, createdAt: true,
       street: true, betweenStreets: true, city: true, postalCode: true, state: true,
       phone1: true, phone2: true, fax: true, email: true, website: true,
-      selfRegistered: true, pendingApproval: true,
+      selfRegistered: true, pendingApproval: true, deletionRequestedAt: true,
       subscription: {
         select: {
           status: true, billingCycle: true, currentPeriodStart: true, currentPeriodEnd: true,
@@ -137,6 +141,13 @@ export async function getTenantDetail(id: string) {
   })
   if (!tenant) throw { code: 'NOT_FOUND', message: 'Tenant no encontrado.' }
   return tenant
+}
+
+export async function cancelTenantDeletion(id: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { id }, select: { deletionRequestedAt: true } })
+  if (!tenant) throw { code: 'NOT_FOUND', message: 'Tenant no encontrado.' }
+  if (!tenant.deletionRequestedAt) throw { code: 'NOT_PENDING', message: 'Esta empresa no tiene solicitud de eliminación pendiente.' }
+  return prisma.tenant.update({ where: { id }, data: { deletionRequestedAt: null } })
 }
 
 export async function toggleTenantActive(id: string) {
@@ -165,6 +176,12 @@ export async function updateTenant(id: string, data: {
 export async function deleteTenant(id: string) {
   const tenant = await prisma.tenant.findUnique({ where: { id } })
   if (!tenant) throw { code: 'NOT_FOUND', message: 'Empresa no encontrada.' }
+
+  // 0. Preservar nombre en los logs (evita perderlos con SetNull)
+  await prisma.auditLog.updateMany({
+    where: { tenantId: id },
+    data:  { tenantName: tenant.name },
+  })
 
   // 1. RefreshTokens (a través de Users)
   const userIds = (await prisma.user.findMany({ where: { tenantId: id }, select: { id: true } })).map(u => u.id)
@@ -197,6 +214,16 @@ export async function deleteTenant(id: string) {
 
   // 8. Empresa (SupportTicket/SupportMessage/Notification tienen Cascade → se borran solos)
   await prisma.tenant.delete({ where: { id } })
+
+  // 9. Guardar metadatos para poder seguir viendo los logs desde el superadmin
+  try {
+    const metaDir = path.join(LOGS_BASE, 'tenants', id)
+    fs.mkdirSync(metaDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(metaDir, '_meta.json'),
+      JSON.stringify({ tenantId: id, name: tenant.name, deletedAt: new Date().toISOString() }),
+    )
+  } catch { /* non-critical */ }
 }
 
 // ─── Plans ────────────────────────────────────────────────────────────────────
