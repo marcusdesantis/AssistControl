@@ -703,53 +703,60 @@
     </div>
   </footer>
 
-  <!-- ===== BOTÓN FIJO WHATSAPP ===== -->
-  <div id="wa-fixed"
-       class="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 translate-y-2"
-       aria-hidden="true">
-    <a href="https://wa.me/593985158131" target="_blank" rel="noopener noreferrer"
-       class="bg-[#1E3A8A] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-xl hover:bg-[#1e40af] transition-colors whitespace-nowrap">
-      Contáctanos
-    </a>
-    <a href="https://wa.me/593985158131" target="_blank" rel="noopener noreferrer"
-       class="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center shadow-xl hover:bg-[#22c55e] transition-colors"
-       aria-label="Contáctanos por WhatsApp">
-      <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-      </svg>
-    </a>
-  </div>
-
   <script defer>
-    // Hamburger menu
     const btn = document.getElementById('menu-btn');
     const menu = document.getElementById('mobile-menu');
     btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+  </script>
 
-    // Fixed WhatsApp button — visible between sección confianza y footer
-    const waFixed = document.getElementById('wa-fixed');
-    const confianzaSection = document.getElementById('confianza-section');
-    const footerSection = document.getElementById('footer-section');
-
-    function updateWaFixed() {
-      const confianzaRect = confianzaSection.getBoundingClientRect();
-      const footerRect = footerSection.getBoundingClientRect();
-      const entered = confianzaRect.top < window.innerHeight;
-      const footerVisible = footerRect.top < window.innerHeight;
-
-      if (entered && !footerVisible) {
-        waFixed.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
-        waFixed.classList.add('opacity-100', 'translate-y-0');
-        waFixed.setAttribute('aria-hidden', 'false');
-      } else {
-        waFixed.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
-        waFixed.classList.remove('opacity-100', 'translate-y-0');
-        waFixed.setAttribute('aria-hidden', 'true');
-      }
-    }
-
-    window.addEventListener('scroll', updateWaFixed, { passive: true });
-    updateWaFixed();
+  <!-- WhatsApp flotante con popup -->
+  <style>
+    #wa-fab{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+    #wa-btn{width:56px;height:56px;background:#25D366;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:transform .15s}
+    #wa-btn:hover{transform:scale(1.07);background:#1ebe5d}
+    #wa-menu{background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.15);width:288px;overflow:hidden;border:1px solid #f0f0f0;display:none}
+    .wa-head{background:#25D366;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+    .wa-head-info{display:flex;align-items:center;gap:10px}
+    .wa-head-avatar{width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .wa-head p{margin:0;color:#fff}.wa-head .wa-title{font-size:14px;font-weight:600}.wa-head .wa-sub{font-size:11px;opacity:.85}
+    .wa-close{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:18px;line-height:1;padding:2px}
+    .wa-body{padding:12px;display:flex;flex-direction:column;gap:8px}
+    .wa-opt{width:100%;text-align:left;font-size:13px;padding:10px 12px;border-radius:10px;background:#f9f9f9;border:1px solid #eee;cursor:pointer;transition:background .15s}
+    .wa-opt:hover{background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+    .wa-custom{display:flex;gap:8px}
+    .wa-custom input{flex:1;font-size:13px;border:1px solid #e5e5e5;border-radius:10px;padding:8px 12px;outline:none}
+    .wa-custom input:focus{border-color:#86efac;box-shadow:0 0 0 2px #dcfce7}
+    .wa-send{background:#25D366;border:none;border-radius:10px;padding:8px 10px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center}
+    .wa-send:disabled{opacity:.4;cursor:default}.wa-send:not(:disabled):hover{background:#1ebe5d}
+    #wa-overlay{position:fixed;inset:0;z-index:9998;display:none}
+  </style>
+  <div id="wa-overlay" onclick="waClose()"></div>
+  <div id="wa-fab">
+    <div id="wa-menu">
+      <div class="wa-head">
+        <div class="wa-head-info">
+          <div class="wa-head-avatar"><svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.118 1.532 5.843L.053 23.27a.75.75 0 00.917.917l5.427-1.479A11.953 11.953 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.897 0-3.674-.497-5.217-1.367l-.374-.215-3.878 1.055 1.055-3.878-.215-.374A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg></div>
+          <div><p class="wa-title">TiempoYa</p><p class="wa-sub">¿En qué podemos ayudarte?</p></div>
+        </div>
+        <button class="wa-close" onclick="waClose()">✕</button>
+      </div>
+      <div class="wa-body">
+        <button class="wa-opt" onclick="waContact('Tengo problemas para crear mi cuenta')">Tengo problemas para crear mi cuenta</button>
+        <button class="wa-opt" onclick="waContact('Quiero conocer los planes y precios')">Quiero conocer los planes y precios</button>
+        <button class="wa-opt" onclick="waContact('Necesito una demo para mi empresa')">Necesito una demo para mi empresa</button>
+        <div class="wa-custom">
+          <input id="wa-input" placeholder="Escribe tu consulta..." oninput="document.getElementById('wa-send').disabled=!this.value.trim()" onkeydown="if(event.key==='Enter')waContactCustom()">
+          <button id="wa-send" class="wa-send" onclick="waContactCustom()" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <button id="wa-btn" onclick="waToggle()"><svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.118 1.532 5.843L.053 23.27a.75.75 0 00.917.917l5.427-1.479A11.953 11.953 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.897 0-3.674-.497-5.217-1.367l-.374-.215-3.878 1.055 1.055-3.878-.215-.374A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg></button>
+  </div>
+  <script>
+    function waToggle(){var m=document.getElementById('wa-menu'),o=document.getElementById('wa-overlay');var open=m.style.display==='block';m.style.display=open?'none':'block';o.style.display=open?'none':'block'}
+    function waClose(){document.getElementById('wa-menu').style.display='none';document.getElementById('wa-overlay').style.display='none'}
+    function waContact(opt){var d=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?'mobile':'desktop';fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page:'asistencia-laboral',option:opt,device:d})}).catch(function(){});window.open('/api/contact?text='+encodeURIComponent(opt),'_blank');waClose()}
+    function waContactCustom(){var v=document.getElementById('wa-input').value.trim();if(v)waContact(v)}
   </script>
 </body>
 </html>
