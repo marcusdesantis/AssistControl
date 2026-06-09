@@ -3,8 +3,8 @@ import { withPublic, apiOk, prisma, getClientIp, createNotificationWithPush } fr
 const PAGE_LABELS: Record<string, string> = {
   'home':                      'Inicio',
   'control-asistencia':        'Control de Asistencia',
-  'control-personal-limpieza': 'Personal de Limpieza',
-  'asistencia-laboral':        'Asistencia Laboral',
+  'control-personal-limpieza':    'Personal de Limpieza',
+  'control-asistencia-logistica': 'Logística y Multisitio',
   'huella-biometrica':         'Huella Biométrica',
 }
 

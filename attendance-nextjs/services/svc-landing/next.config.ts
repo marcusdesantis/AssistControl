@@ -7,7 +7,7 @@ const config: NextConfig = {
   async rewrites() {
     return [
 { source: '/control-personal-limpieza', destination: '/control-personal-limpieza.html' },
-      { source: '/asistencia-laboral', destination: '/asistencia-laboral.html' },
+      { source: '/control-asistencia-logistica', destination: '/control-asistencia-logistica.html' },
       { source: '/huella-biometrica',  destination: '/huella-biometrica.html'  },
       { source: '/account-deletion',   destination: '/account-deletion.html'   },
     ]
