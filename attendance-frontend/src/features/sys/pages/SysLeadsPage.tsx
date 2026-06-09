@@ -21,6 +21,7 @@ const PAGE_LABELS: Record<string, string> = {
   'control-personal-limpieza':    'Personal de Limpieza',
   'control-asistencia-logistica': 'Logística y Multisitio',
   'huella-biometrica':         'Huella Biométrica',
+  'control-rutas':             'Control de Rutas',
 }
 
 const PAGE_COLORS: Record<string, string> = {
@@ -29,6 +30,7 @@ const PAGE_COLORS: Record<string, string> = {
   'control-personal-limpieza':    'bg-teal-50 text-teal-700 border-teal-200',
   'control-asistencia-logistica': 'bg-orange-50 text-orange-700 border-orange-200',
   'huella-biometrica':         'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'control-rutas':             'bg-rose-50 text-rose-700 border-rose-200',
 }
 
 function fmtDate(iso: string) {

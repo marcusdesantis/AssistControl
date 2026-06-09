@@ -8,7 +8,7 @@ const config: NextConfig = {
     return [
 { source: '/control-personal-limpieza', destination: '/control-personal-limpieza.html' },
       { source: '/control-asistencia-logistica', destination: '/control-asistencia-logistica.html' },
-      { source: '/huella-biometrica',  destination: '/huella-biometrica.html'  },
+      { source: '/control-rutas',       destination: '/control-rutas.html'       },
       { source: '/account-deletion',   destination: '/account-deletion.html'   },
     ]
   },

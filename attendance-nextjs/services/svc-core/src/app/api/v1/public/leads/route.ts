@@ -6,6 +6,7 @@ const PAGE_LABELS: Record<string, string> = {
   'control-personal-limpieza':    'Personal de Limpieza',
   'control-asistencia-logistica': 'Logística y Multisitio',
   'huella-biometrica':         'Huella Biométrica',
+  'control-rutas':             'Control de Rutas',
 }
 
 export const POST = withPublic(async (req: Request) => {
