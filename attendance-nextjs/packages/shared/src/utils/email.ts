@@ -48,7 +48,7 @@ async function getSystemSmtpConfig() {
     user:         settings.smtpUsername,
     password:     settings.smtpPassword,
     fromName:     settings.smtpFromName ?? 'Sistema',
-    fromEmail:    settings.smtpUsername,
+    fromEmail:    settings.smtpFromEmail ?? settings.smtpUsername,
     supportEmail: settings.supportEmail ?? null,
     ccEmails,
   }

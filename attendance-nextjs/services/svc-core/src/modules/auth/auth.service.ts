@@ -206,7 +206,8 @@ export async function registerTenant(dto: RegisterDto) {
       subject: 'Confirma tu correo electrónico — TiempoYa',
       html:    verificationEmailHtml(dto.companyName.trim(), verifyUrl),
     })
-  } catch {
+  } catch (err: any) {
+    console.error('[register] EMAIL ERROR:', err?.code, err?.message, err?.response)
     await prisma.pendingRegistration.delete({ where: { token } })
     throw { code: 'EMAIL_SEND_ERROR', message: 'No se pudo enviar el correo de verificación. Intenta más tarde.' }
   }
