@@ -16,17 +16,19 @@ interface LeadEvent {
 interface ApiResponse { success: boolean; data?: { items: LeadEvent[]; total: number; page: number; pageSize: number } }
 
 const PAGE_LABELS: Record<string, string> = {
-  'home':                'Inicio',
-  'control-asistencia':  'Control de Asistencia',
-  'asistencia-laboral':  'Asistencia Laboral',
-  'huella-biometrica':   'Huella Biométrica',
+  'home':                      'Inicio',
+  'control-asistencia':        'Control de Asistencia',
+  'control-personal-limpieza': 'Personal de Limpieza',
+  'asistencia-laboral':        'Asistencia Laboral',
+  'huella-biometrica':         'Huella Biométrica',
 }
 
 const PAGE_COLORS: Record<string, string> = {
-  'home':                'bg-blue-50 text-blue-700 border-blue-200',
-  'control-asistencia':  'bg-purple-50 text-purple-700 border-purple-200',
-  'asistencia-laboral':  'bg-orange-50 text-orange-700 border-orange-200',
-  'huella-biometrica':   'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'home':                      'bg-blue-50 text-blue-700 border-blue-200',
+  'control-asistencia':        'bg-purple-50 text-purple-700 border-purple-200',
+  'control-personal-limpieza': 'bg-teal-50 text-teal-700 border-teal-200',
+  'asistencia-laboral':        'bg-orange-50 text-orange-700 border-orange-200',
+  'huella-biometrica':         'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
 function fmtDate(iso: string) {

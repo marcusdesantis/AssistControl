@@ -1,10 +1,11 @@
 import { withPublic, apiOk, prisma, getClientIp, createNotificationWithPush } from '@attendance/shared'
 
 const PAGE_LABELS: Record<string, string> = {
-  'home':               'Inicio',
-  'control-asistencia': 'Control de Asistencia',
-  'asistencia-laboral': 'Asistencia Laboral',
-  'huella-biometrica':  'Huella Biométrica',
+  'home':                      'Inicio',
+  'control-asistencia':        'Control de Asistencia',
+  'control-personal-limpieza': 'Personal de Limpieza',
+  'asistencia-laboral':        'Asistencia Laboral',
+  'huella-biometrica':         'Huella Biométrica',
 }
 
 export const POST = withPublic(async (req: Request) => {

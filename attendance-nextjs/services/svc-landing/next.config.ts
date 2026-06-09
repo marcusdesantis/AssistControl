@@ -6,7 +6,7 @@ const config: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, '../..'),
   async rewrites() {
     return [
-      { source: '/control-asistencia', destination: '/control-asistencia.html' },
+{ source: '/control-personal-limpieza', destination: '/control-personal-limpieza.html' },
       { source: '/asistencia-laboral', destination: '/asistencia-laboral.html' },
       { source: '/huella-biometrica',  destination: '/huella-biometrica.html'  },
       { source: '/account-deletion',   destination: '/account-deletion.html'   },
