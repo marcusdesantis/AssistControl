@@ -468,14 +468,14 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest">También te puede interesar</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <a href="/control-asistencia" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
-                Control de asistencia para equipos en campo y sucursales →
+              <a href="/control-personal-limpieza" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
+                Control de asistencia para personal de limpieza →
               </a>
-              <a href="/asistencia-laboral" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
-                Automatiza el control de asistencia laboral sin Excel →
+              <a href="/control-asistencia-logistica" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
+                Control de asistencia para logística y multisitio →
               </a>
-              <a href="/huella-biometrica" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
-                Control de asistencia sin relojes biométricos →
+              <a href="/control-rutas" className="p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all text-sm font-medium text-gray-700 hover:text-primary-600">
+                Control de turnos y horas extra para industria →
               </a>
             </div>
           </div>
