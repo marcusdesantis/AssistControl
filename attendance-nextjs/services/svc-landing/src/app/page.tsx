@@ -98,18 +98,8 @@ const jsonLdFaq = {
     },
     {
       '@type': 'Question',
-      name: '¿Cómo se compara TiempoYa con el control biométrico Atiempo en Ecuador?',
-      acceptedAnswer: { '@type': 'Answer', text: 'A diferencia del control biométrico de Atiempo y de Biometrika, TiempoYa no requiere hardware físico, ofrece plan gratuito, app móvil para iOS y Android, geolocalización GPS y reportes automáticos de nómina. Empresas en Quito, Guayaquil, Cuenca, Ambato, Manta, Loja, Machala y Riobamba ya migraron desde relojes biométricos a TiempoYa sin costo de instalación.' },
-    },
-    {
-      '@type': 'Question',
       name: '¿TiempoYa es un sistema de vigilancia y control biométrico para múltiples sucursales?',
       acceptedAnswer: { '@type': 'Answer', text: 'Sí. TiempoYa centraliza la vigilancia y control biométrico de asistencia de todas tus sucursales desde un solo panel en la nube. Puedes gestionar empleados en Quito, Guayaquil, Cuenca, Ambato, Manta, Loja, Santo Domingo, Machala, Riobamba, Ibarra, Portoviejo y Esmeraldas sin instalar ningún equipo en cada sede.' },
-    },
-    {
-      '@type': 'Question',
-      name: '¿Cuánto cuesta TiempoYa en Ecuador?',
-      acceptedAnswer: { '@type': 'Answer', text: 'TiempoYa tiene plan gratuito para hasta 5 empleados sin tarjeta de crédito. Los planes de pago escalan según el tamaño de la empresa. Disponible para empresas de Quito, Guayaquil, Cuenca, Ambato, Manta, Loja, Machala, Santo Domingo, Riobamba, Ibarra, Portoviejo y Esmeraldas.' },
     },
   ],
 }
@@ -213,7 +203,7 @@ function Features() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16 space-y-3">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-            Control biométrico de asistencia sin hardware — disponible en Quito, Guayaquil, Cuenca, Ambato y Manta
+            Control biométrico de asistencia sin hardware — disponible en Quito, Guayaquil, Cuenca, Ambato, Manta y en todo el Ecuador
           </h2>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto">
             Una plataforma completa de RRHH diseñada para empresas que quieren dejar de perder tiempo con hojas de cálculo y relojes biométricos.
@@ -271,12 +261,11 @@ function HowItWorks() {
 function Stats() {
   return (
     <section className="py-16 px-6 bg-primary-600">
-      <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+      <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center text-white">
         {[
           { value: '100%',        label: 'En la nube, sin hardware'    },
           { value: 'iOS & Android', label: 'App móvil incluida'        },
           { value: '24/7',        label: 'Disponible siempre'          },
-          { value: '12 ciudades', label: 'Cobertura en Ecuador'        },
         ].map(s => (
           <div key={s.label}>
             <div className="text-3xl font-extrabold">{s.value}</div>
@@ -292,9 +281,7 @@ function FAQ() {
   const items = [
     { q: '¿TiempoYa funciona como reloj de asistencia digital en Ecuador?', a: 'Sí. TiempoYa es el reloj de asistencia digital para empresas en Quito, Guayaquil, Cuenca, Ambato, Manta, Loja, Santo Domingo, Machala, Riobamba, Ibarra, Portoviejo y Esmeraldas. Los empleados fichan desde su celular mediante geolocalización GPS o código QR, sin ningún hardware físico.' },
     { q: '¿TiempoYa reemplaza el reloj biométrico con reconocimiento facial?', a: 'Sí. TiempoYa reemplaza el reloj biométrico con reconocimiento facial y los sistemas de control de acceso con huella digital. No requiere instalar ningún dispositivo: el empleado marca desde su propio celular con verificación de ubicación GPS, con mayor precisión y sin costo de hardware.' },
-    { q: '¿Cómo se compara TiempoYa con el control biométrico Atiempo en Ecuador?', a: 'A diferencia del control biométrico de Atiempo y de Biometrika, TiempoYa no requiere hardware físico, ofrece plan gratuito, app móvil para iOS y Android, geolocalización GPS y reportes automáticos de nómina. Empresas en Quito, Guayaquil, Cuenca, Ambato, Manta, Loja, Machala y Riobamba ya migraron desde relojes biométricos a TiempoYa sin costo de instalación.' },
     { q: '¿TiempoYa es un sistema de vigilancia y control biométrico para múltiples sucursales?', a: 'Sí. TiempoYa centraliza la vigilancia y control biométrico de asistencia de todas tus sucursales desde un solo panel en la nube. Puedes gestionar empleados en Quito, Guayaquil, Cuenca, Ambato, Manta, Loja, Santo Domingo, Machala, Riobamba, Ibarra, Portoviejo y Esmeraldas sin instalar ningún equipo en cada sede.' },
-    { q: '¿Cuánto cuesta TiempoYa en Ecuador?', a: 'TiempoYa tiene plan gratuito para hasta 5 empleados sin tarjeta de crédito. Los planes de pago escalan según el tamaño de la empresa. Disponible para empresas de Quito, Guayaquil, Cuenca, Ambato, Manta, Loja, Machala, Santo Domingo, Riobamba, Ibarra, Portoviejo y Esmeraldas.' },
   ]
   return (
     <section className="py-20 px-6 bg-white">
@@ -324,7 +311,7 @@ function CTA() {
     <section className="py-24 px-6 bg-white">
       <div className="max-w-3xl mx-auto text-center space-y-6">
         <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-          Empieza Gratis: Tu Reloj de Asistencia Digital en Minutos
+          Registra en minutos: Tu Reloj de Asistencia Digital en Minutos
         </h2>
         <p className="text-lg text-gray-500">
           Empresas en Quito, Guayaquil, Cuenca, Ambato, Manta, Loja y Machala ya controlan su asistencia con TiempoYa. Empieza gratis, sin compromisos.
@@ -340,57 +327,6 @@ function CTA() {
           </Link>
         </div>
         <p className="text-sm text-gray-400">Sin tarjeta de crédito · Cancela cuando quieras</p>
-      </div>
-    </section>
-  )
-}
-
-function ComparisonTable() {
-  const rows = [
-    { label: 'Sin hardware físico',            tiempoya: true,  atiempo: false, biometrika: false },
-    { label: 'App móvil iOS y Android',        tiempoya: true,  atiempo: null,  biometrika: false },
-    { label: 'Geolocalización GPS',            tiempoya: true,  atiempo: null,  biometrika: false },
-    { label: 'Plan gratuito disponible',        tiempoya: true,  atiempo: false, biometrika: false },
-    { label: 'Reportes de nómina automáticos', tiempoya: true,  atiempo: null,  biometrika: false },
-    { label: 'Configuración en minutos',        tiempoya: true,  atiempo: false, biometrika: false },
-    { label: 'Soporte en español Ecuador',     tiempoya: true,  atiempo: null,  biometrika: false },
-  ]
-  const cell = (val: boolean | null) => {
-    if (val === true)  return <span className="text-green-600 font-bold text-lg">✓</span>
-    if (val === false) return <span className="text-red-500 font-bold text-lg">✗</span>
-    return <span className="text-yellow-500 font-bold text-lg">~</span>
-  }
-  return (
-    <section className="py-20 px-6 bg-white">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12 space-y-3">
-          <p className="text-xs font-bold text-primary-700 uppercase tracking-widest">Comparativa en Ecuador</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-            TiempoYa vs control biométrico Atiempo vs Biometrika
-          </h2>
-          <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-            No todos los sistemas de control biométrico de asistencia son iguales. Conoce por qué empresas en Quito, Guayaquil, Cuenca, Ambato, Manta, Loja y Machala eligen TiempoYa.
-          </p>
-        </div>
-        <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-          <div className="grid grid-cols-4 bg-primary-800 px-6 py-4 text-sm font-semibold text-white">
-            <div>Característica</div>
-            <div className="text-center text-emerald-300">TiempoYa</div>
-            <div className="text-center text-slate-300">Atiempo</div>
-            <div className="text-center text-slate-300">Biometrika</div>
-          </div>
-          {rows.map((r, i) => (
-            <div key={r.label} className={`grid grid-cols-4 px-6 py-3.5 items-center text-sm border-b border-gray-100 ${i % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}>
-              <div className="font-medium text-gray-700">{r.label}</div>
-              <div className="text-center">{cell(r.tiempoya)}</div>
-              <div className="text-center">{cell(r.atiempo)}</div>
-              <div className="text-center">{cell(r.biometrika)}</div>
-            </div>
-          ))}
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-            <p className="text-xs text-gray-400 text-center">✓ incluido &nbsp;|&nbsp; ~ parcial o con costo adicional &nbsp;|&nbsp; ✗ no disponible</p>
-          </div>
-        </div>
       </div>
     </section>
   )
@@ -462,7 +398,6 @@ export default function LandingPage() {
         <Stats />
         <FAQ />
         <CTA />
-        <ComparisonTable />
         <CoverageEcuador />
         <section className="py-12 px-6 bg-gray-50 border-t border-gray-100">
           <div className="max-w-4xl mx-auto text-center space-y-6">

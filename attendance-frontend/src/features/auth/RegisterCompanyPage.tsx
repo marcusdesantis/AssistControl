@@ -168,14 +168,6 @@ export default function RegisterCompanyPage() {
 
           <div className="flex items-center gap-6 text-sm text-gray-400">
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-green-500" />
-              <span>Sin tarjeta de crédito</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-green-500" />
-              <span>Hasta {freePlanLimit ?? 10} empleados gratis</span>
-            </div>
-            <div className="flex items-center gap-1.5">
               <Globe className="w-4 h-4 text-green-500" />
               <span>En español</span>
             </div>
