@@ -7,6 +7,7 @@ const updateSchema = z.object({
   description:   z.string().optional(),
   priceMonthly:  z.number().min(0).optional(),
   priceAnnual:   z.number().min(0).optional(),
+  priceLabel:    z.string().trim().max(40).nullable().optional(),
   maxEmployees:  z.number().int().positive().nullable().optional(),
   features:      z.array(z.string()).optional(),
   capabilities:  z.record(z.object({ enabled: z.boolean(), limit: z.number().int().positive().nullable().optional(), allowed: z.array(z.string()).optional() })).optional(),

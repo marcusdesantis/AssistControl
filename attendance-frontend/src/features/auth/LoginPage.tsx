@@ -28,6 +28,7 @@ export default function LoginPage() {
   useAndroidBack()
   const navigate  = useNavigate()
   const setAuth   = useAuthStore((s) => s.setAuth)
+  const setOnDefaultPlan = useAuthStore((s) => s.setOnDefaultPlan)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   const [method,        setMethod]        = useState<LoginMethod>('user')
@@ -96,10 +97,16 @@ export default function LoginPage() {
       setPinEnabled(false)
     }
 
-    const { user, accessToken, refreshToken, capabilities } = res
+    const { user, accessToken, refreshToken, capabilities, onDefaultPlan } = res
     setAuth(user, accessToken, refreshToken, capabilities)
-    navigate(user.mustChangePassword ? '/change-password' : '/dashboard', { replace: true })
-  }, [setAuth, navigate])
+    setOnDefaultPlan(!!onDefaultPlan)
+    const dest = user.mustChangePassword
+      ? '/change-password'
+      : onDefaultPlan
+      ? '/settings?tab=subscription'
+      : '/dashboard'
+    navigate(dest, { replace: true })
+  }, [setAuth, setOnDefaultPlan, navigate])
 
   // ── Manejo de errores comunes ────────────────────────────────────────────────
   const handleLoginError = useCallback((err: any, fallback?: string) => {

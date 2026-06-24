@@ -406,7 +406,7 @@ function ChangePlanModal({ tenantId, currentPlanId, initDateFrom, initDateTo, ti
                     className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all flex items-center justify-between gap-3 ${planId === p.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
                     <div>
                       <p className={`text-sm font-semibold ${planId === p.id ? 'text-primary-700' : 'text-gray-800'}`}>{p.name}</p>
-                      <p className="text-xs text-gray-400">{p.isFree ? 'Gratis' : `$${p.priceMonthly}/mes`}</p>
+                      <p className="text-xs text-gray-400">{p.priceLabel?.trim() ? p.priceLabel : p.isFree ? 'Gratis' : `$${p.priceMonthly}/mes`}</p>
                     </div>
                     {planId === p.id && <CheckCircle2 className="w-4 h-4 text-primary-600 shrink-0" />}
                   </button>

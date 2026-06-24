@@ -15,6 +15,7 @@ import { authService } from '../auth/authService'
 import { scheduleService } from '../schedules/scheduleService'
 import type { Schedule } from '@/types/schedule'
 import SubscriptionTab from './SubscriptionTab'
+import { billingService } from './billingService'
 
 // ─── Presets SMTP ────────────────────────────────────────────────────────────
 const PROVIDERS = [
@@ -122,6 +123,8 @@ export default function SettingsPage() {
   const [pwdInput,         setPwdInput]         = useState('')
   const [pwdError,         setPwdError]         = useState<string | null>(null)
   const [pwdVerifying,     setPwdVerifying]     = useState(false)
+  // En el plan por defecto las pestañas de correo, envío de registro y checador quedan deshabilitadas
+  const [planIsDefault,    setPlanIsDefault]    = useState(false)
 
   useEffect(() => {
     settingsService.get()
@@ -131,6 +134,15 @@ export default function SettingsPage() {
     scheduleService.getAll()
       .then(scheds => setSchedules(scheds))
       .catch(() => {})
+    billingService.getSubscription()
+      .then(sub => {
+        if (sub?.plan?.isDefault) {
+          setPlanIsDefault(true)
+          setShowPwdModal(false)
+          setActiveTab('subscription')
+        }
+      })
+      .catch(() => {})
     // Si viene desde el checklist con ?tab=checker, abrir el modal de contraseña automáticamente
     if (searchParams.get('tab') === 'checker') {
       setPwdInput('')
@@ -139,7 +151,15 @@ export default function SettingsPage() {
     }
   }, [])
 
+  // Pestañas bloqueadas en el plan por defecto (solo "Suscripción" disponible)
+  const isTabLocked = (key: Tab) => planIsDefault && key !== 'subscription'
+
   const handleTabClick = (key: Tab) => {
+    // En el plan por defecto estas pestañas están deshabilitadas
+    if (isTabLocked(key)) {
+      toast.info('Disponible al adquirir un plan. Revisa "Planes - Suscripción".')
+      return
+    }
     // Al salir de la pestaña checker, bloquearla de nuevo
     if (activeTab === 'checker' && key !== 'checker') {
       setCheckerUnlocked(false)
@@ -373,18 +393,21 @@ export default function SettingsPage() {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setTabDdOpen(false)} />
                   <div className="absolute left-3 right-3 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
-                    {TAB_DEFS.map(({ key, label, Icon }) => (
-                      <button key={key}
+                    {TAB_DEFS.map(({ key, label, Icon }) => {
+                      const locked = isTabLocked(key)
+                      return (
+                      <button key={key} disabled={locked}
                         onClick={() => { handleTabClick(key); setTabDdOpen(false) }}
                         className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors
-                          ${activeTab === key ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                          ${locked ? 'text-gray-300 cursor-not-allowed' : activeTab === key ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
                       >
                         <Icon className="w-4 h-4" />
                         <span className="flex-1">{label}</span>
-                        {key === 'checker' && !checkerUnlocked && <Lock className="w-3 h-3 text-gray-400" />}
-                        {activeTab === key && <Check className="w-3.5 h-3.5 text-primary-600" />}
+                        {(locked || (key === 'checker' && !checkerUnlocked)) && <Lock className="w-3 h-3 text-gray-400" />}
+                        {!locked && activeTab === key && <Check className="w-3.5 h-3.5 text-primary-600" />}
                       </button>
-                    ))}
+                      )
+                    })}
                   </div>
                 </>
               )}
@@ -399,23 +422,29 @@ export default function SettingsPage() {
             { key: 'invitations', label: 'Envío de registro',        Icon: Mail      },
             { key: 'checker',     label: 'Checador',                  Icon: KeyRound  },
             { key: 'subscription',label: 'Planes - Suscripción',      Icon: CreditCard },
-          ] as { key: Tab; label: string; Icon: React.ElementType }[]).map(({ key, label, Icon }) => (
+          ] as { key: Tab; label: string; Icon: React.ElementType }[]).map(({ key, label, Icon }) => {
+            const locked = isTabLocked(key)
+            return (
             <button
               key={key}
+              disabled={locked}
               onClick={() => handleTabClick(key)}
               className={`flex items-center gap-2 px-4 sm:px-6 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
-                activeTab === key
+                locked
+                  ? 'border-transparent text-gray-300 cursor-not-allowed'
+                  : activeTab === key
                   ? 'border-primary-600 text-primary-700 bg-primary-50/50'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               <Icon className="w-4 h-4" />
               {label}
-              {key === 'checker' && !checkerUnlocked && (
+              {(locked || (key === 'checker' && !checkerUnlocked)) && (
                 <Lock className="w-3 h-3 text-gray-400 ml-0.5" />
               )}
             </button>
-          ))}
+            )
+          })}
         </div>
 
         {activeTab === 'subscription' && <SubscriptionTab />}

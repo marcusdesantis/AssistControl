@@ -25,11 +25,12 @@ interface Props {
   hasCheckerKey:    boolean
   hasAttendance:    boolean
   setupCelebrated:  boolean
+  planIsDefault?:   boolean
 }
 
 export default function SetupChecklist({
   hasLogo, hasSchedules, hasCatalog, hasEmployees,
-  hasSmtp, hasCheckerKey, hasAttendance, setupCelebrated,
+  hasSmtp, hasCheckerKey, hasAttendance, setupCelebrated, planIsDefault = false,
 }: Props) {
   const [collapsed,   setCollapsed]   = useState(false)
   const [celebrating, setCelebrating] = useState(false)
@@ -53,7 +54,7 @@ export default function SetupChecklist({
       label:       'Crea un horario de trabajo',
       description: 'Define los horarios de entrada, salida y almuerzo de tus empleados.',
       done:        hasSchedules,
-      locked:      false,
+      locked:      planIsDefault,
       href:        '/schedules',
       cta:         'Ir a Horarios',
     },
@@ -62,7 +63,7 @@ export default function SetupChecklist({
       label:       'Configura el catálogo de organización',
       description: 'Crea al menos un departamento y un cargo para poder registrar empleados.',
       done:        hasCatalog,
-      locked:      false,
+      locked:      planIsDefault,
       href:        '/organization',
       cta:         'Ir a Organización',
     },
@@ -71,7 +72,7 @@ export default function SetupChecklist({
       label:       'Crea y asigna tus empleados',
       description: 'Registra empleados con su departamento, cargo y horario asignado.',
       done:        hasEmployees,
-      locked:      false,
+      locked:      planIsDefault,
       href:        '/employees',
       cta:         'Ir a Empleados',
     },
@@ -80,7 +81,7 @@ export default function SetupChecklist({
       label:       'Configura el correo SMTP',
       description: 'Necesario para enviar invitaciones a empleados y activar el doble factor del checador.',
       done:        hasSmtp,
-      locked:      false,
+      locked:      planIsDefault,
       href:        '/settings?tab=email',
       cta:         'Configurar correo',
       optional:    true,
@@ -90,7 +91,7 @@ export default function SetupChecklist({
       label:       'Configura el checador',
       description: 'Aquí encuentras tu clave de acceso al checador. La necesitas para iniciar el kiosk en cualquier dispositivo.',
       done:        hasCheckerKey,
-      locked:      false,
+      locked:      planIsDefault,
       href:        '/settings?tab=checker',
       cta:         'Configurar checador',
     },
@@ -99,7 +100,7 @@ export default function SetupChecklist({
       label:       'Registra la primera asistencia',
       description: 'Usa el checador o registra manualmente desde Asistencia.',
       done:        hasAttendance,
-      locked:      false,
+      locked:      planIsDefault,
       href:        '/checker',
       cta:         'Ir al Checador',
     },
@@ -107,7 +108,7 @@ export default function SetupChecklist({
 
   const required = steps.filter(s => !s.optional)
   const reqDone  = required.filter(s => s.done).length
-  const allDone  = required.every(s => s.done)
+  const allDone  = !planIsDefault && required.every(s => s.done)
   const pct      = Math.round((reqDone / required.length) * 100)
 
   useEffect(() => {
@@ -174,7 +175,9 @@ export default function SetupChecklist({
           <div>
             <p className="text-sm font-semibold text-primary-900">Primeros pasos</p>
             <p className="text-xs text-primary-600">
-              {reqDone} de {required.length} pasos principales completados
+              {planIsDefault
+                ? 'Adquiere un plan para completar y desbloquear los demás pasos'
+                : `${reqDone} de ${required.length} pasos principales completados`}
             </p>
           </div>
         </div>

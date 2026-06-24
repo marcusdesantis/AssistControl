@@ -58,6 +58,7 @@ export interface LoginResponse {
   expiresAt:    string
   user:         UserInfo
   capabilities: PlanCapabilities
+  onDefaultPlan?: boolean
 }
 
 export interface ApiResponse<T = unknown> {

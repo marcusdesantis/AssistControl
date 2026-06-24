@@ -210,7 +210,9 @@ function PlanCard({
       <p className={`text-xs leading-relaxed mb-5 ${textSub}`}>{plan.description}</p>
 
       <div className="mb-5">
-        {plan.isFree ? (
+        {plan.priceLabel?.trim() ? (
+          <p className={`text-4xl font-black ${textMain}`}>{plan.priceLabel}</p>
+        ) : plan.isFree ? (
           <p className={`text-4xl font-black ${textMain}`}>Gratis</p>
         ) : (
           <div className="flex items-end gap-1.5">
@@ -597,13 +599,15 @@ export default function SubscriptionTab() {
           <p className="text-sm font-medium text-gray-500">Suscripción</p>
           <HelpButton onClick={runTour} />
         </div>
-        {subscription && (
+        {subscription && !subscription.plan.isDefault && (
           <div id="tour-sub-current" className="rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 flex items-start justify-between gap-4">
             <div className="space-y-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Suscripción activa</p>
               <p className="text-xl font-bold text-gray-900">{subscription.plan.name}</p>
               <p className="text-sm text-gray-500">
-                {subscription.plan.isFree
+                {subscription.plan.priceLabel?.trim()
+                  ? subscription.plan.priceLabel
+                  : subscription.plan.isFree
                   ? 'Gratis'
                   : subscription.billingCycle === 'annual' ? 'Facturación anual' : 'Facturación mensual'}
                 {!subscription.plan.isFree && subscription.currentPeriodEnd && ` · Vence ${fmtDate(subscription.currentPeriodEnd)}`}
@@ -664,7 +668,7 @@ export default function SubscriptionTab() {
           </button>
           <div ref={scrollRef} className="sm:overflow-x-auto sm:no-scrollbar sm:scroll-smooth sm:px-9">
             <div className="flex flex-col sm:flex-row sm:items-start gap-4 pb-4 sm:pb-16">
-              {plans.map((plan, i) => {
+              {plans.filter(p => !p.isDefault).map((plan, i) => {
                 const isCurrent        = subscription?.planId === plan.id
                 const isSameCycle      = subscription?.billingCycle === billingCycle
                 const daysLeft         = subscription?.daysUntilExpiry ?? null

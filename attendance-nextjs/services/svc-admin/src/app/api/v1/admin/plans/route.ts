@@ -11,6 +11,7 @@ const createSchema = z.object({
   description:   z.string().default(''),
   priceMonthly:  z.number().min(0),
   priceAnnual:   z.number().min(0).optional(),
+  priceLabel:    z.string().trim().max(40).nullable().optional(),
   maxEmployees:  z.number().int().positive().optional(),
   isFree:        z.boolean().default(false),
   features:      z.array(z.string()).default([]),

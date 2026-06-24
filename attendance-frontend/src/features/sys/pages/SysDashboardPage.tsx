@@ -166,10 +166,9 @@ function PlanDistribution({ plans, total }: { plans: PlanDistItem[]; total: numb
                   <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.bar}`} />
                   <p className={`text-sm font-semibold truncate ${c.text}`}>{p.name}</p>
                 </div>
-                {p.isFree
-                  ? <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-white/70 rounded-full text-gray-500 border border-gray-200 shrink-0">Gratis</span>
-                  : <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-white/70 rounded-full text-gray-500 border border-gray-200 shrink-0">${p.priceMonthly}/mes</span>
-                }
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-white/70 rounded-full text-gray-500 border border-gray-200 shrink-0">
+                  {p.priceLabel?.trim() ? p.priceLabel : p.isFree ? 'Gratis' : `$${p.priceMonthly}/mes`}
+                </span>
               </div>
               <div className="flex items-end justify-between gap-2">
                 <p className="text-2xl font-extrabold text-gray-900">{p.count}</p>

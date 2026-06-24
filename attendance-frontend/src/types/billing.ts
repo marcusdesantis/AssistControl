@@ -4,6 +4,7 @@ export interface Plan {
   description:  string | null
   priceMonthly: number
   priceAnnual:  number | null
+  priceLabel:   string | null
   maxEmployees: number | null
   features:     string[]
   capabilities: import('@/types/auth').PlanCapabilities

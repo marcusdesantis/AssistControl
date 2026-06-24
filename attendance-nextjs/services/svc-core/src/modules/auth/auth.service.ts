@@ -180,7 +180,7 @@ export async function registerTenant(dto: RegisterDto) {
   if (pendingEmail)   throw { code: 'EMAIL_TAKEN',        message: 'El correo electrónico ya tiene un registro pendiente de verificación.' }
   if (pendingCompany) throw { code: 'COMPANY_NAME_TAKEN', message: 'Ya existe un registro pendiente con ese nombre de empresa.' }
 
-  const defaultPlan = await prisma.plan.findFirst({ where: { isDefault: true, isActive: true } })
+  const defaultPlan = await prisma.plan.findFirst({ where: { isDefault: true, isActive: true }, orderBy: { sortOrder: 'asc' } })
   if (!defaultPlan) throw { code: 'NO_DEFAULT_PLAN', message: 'No hay un plan por defecto configurado.' }
 
   const token = uuidv4()
@@ -256,7 +256,7 @@ export async function verifyEmail(token: string) {
     throw { code: 'TOKEN_EXPIRED', message: 'El enlace de verificación ha expirado. Por favor regístrate de nuevo.' }
 
   const [defaultPlan, settings] = await Promise.all([
-    prisma.plan.findFirst({ where: { isDefault: true, isActive: true } }),
+    prisma.plan.findFirst({ where: { isDefault: true, isActive: true }, orderBy: { sortOrder: 'asc' } }),
     prisma.systemSettings.findUnique({ where: { id: 'system' } }),
   ])
   if (!defaultPlan) throw { code: 'NO_DEFAULT_PLAN', message: 'No hay un plan por defecto configurado.' }
@@ -378,7 +378,10 @@ export async function login(dto: LoginDto) {
     data:  { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
   })
 
-  const capabilities = await getTenantCapabilities(user.tenantId).catch(() => DEFAULT_CAPABILITIES)
+  const [capabilities, sub] = await Promise.all([
+    getTenantCapabilities(user.tenantId).catch(() => DEFAULT_CAPABILITIES),
+    prisma.subscription.findUnique({ where: { tenantId: user.tenantId }, select: { plan: { select: { isDefault: true } } } }),
+  ])
 
   return {
     accessToken,
@@ -386,6 +389,7 @@ export async function login(dto: LoginDto) {
     expiresAt:    accessExpiresAt(),
     user: { id: user.id, username: user.username, email: user.email, role: user.role, tenantId: user.tenantId, mustChangePassword: user.mustChangePassword, timeZone: tenant.timeZone, country: tenant.country, onboardingCompleted: tenant.onboardingCompleted },
     capabilities,
+    onDefaultPlan: sub?.plan?.isDefault ?? false,
   }
 }
 

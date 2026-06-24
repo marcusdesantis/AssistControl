@@ -395,6 +395,7 @@ model Plan {
   description   String?
   priceMonthly  Float
   priceAnnual   Float?
+  priceLabel    String?
   maxEmployees  Int?
   features      Json      @default("[]")
   capabilities  Json      @default("{}")

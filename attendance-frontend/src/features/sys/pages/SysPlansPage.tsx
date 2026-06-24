@@ -43,6 +43,7 @@ function PlanModal({ plan, onClose, onSaved }: {
     description:  plan?.description  ?? '',
     priceMonthly: plan?.priceMonthly ?? 0,
     priceAnnual:  plan?.priceAnnual  ?? '',
+    priceLabel:   plan?.priceLabel   ?? '',
     isFree:       plan?.isFree       ?? false,
     sortOrder:    plan?.sortOrder    ?? 0,
     features:     (() => { const f = plan?.features; if (!f) return ''; if (Array.isArray(f)) return (f as string[]).join('\n'); try { const p = JSON.parse(f as unknown as string); return Array.isArray(p) ? p.join('\n') : ''; } catch { return ''; } })(),
@@ -71,6 +72,7 @@ function PlanModal({ plan, onClose, onSaved }: {
         description:  form.description,
         priceMonthly: Number(form.priceMonthly),
         priceAnnual:  form.priceAnnual !== '' ? Number(form.priceAnnual) : undefined,
+        priceLabel:   form.priceLabel.trim() || null,
         maxEmployees: form.capabilities.employees.limit ?? undefined,
         isFree:       form.isFree,
         sortOrder:    Number(form.sortOrder),
@@ -125,6 +127,16 @@ function PlanModal({ plan, onClose, onSaved }: {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500" />
               </div>
             ))}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">
+              Texto de precio
+              <span className="font-normal text-gray-400 ml-1">(opcional — reemplaza el precio mostrado, ej. "Gratis", "Consultar")</span>
+            </label>
+            <input type="text" maxLength={40} value={form.priceLabel} onChange={e => f('priceLabel', e.target.value)}
+              placeholder={form.isFree ? 'Gratis' : `$${form.priceMonthly}`}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500" />
           </div>
 
           <div>
@@ -457,8 +469,9 @@ export default function SysPlansPage() {
               </div>
             </div>
             <div className="text-2xl font-black text-gray-900">
-              {plan.isFree ? 'Gratis' : `$${plan.priceMonthly}`}
-              {!plan.isFree && <span className="text-sm font-normal text-gray-400">/mes</span>}
+              {plan.priceLabel?.trim()
+                ? plan.priceLabel
+                : <>{plan.isFree ? 'Gratis' : `$${plan.priceMonthly}`}{!plan.isFree && <span className="text-sm font-normal text-gray-400">/mes</span>}</>}
             </div>
             {plan.priceAnnual && <p className="text-xs text-gray-400">${plan.priceAnnual}/año</p>}
             {Array.isArray(plan.features) && plan.features.length > 0 && (

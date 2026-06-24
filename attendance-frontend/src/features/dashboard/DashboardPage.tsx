@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, UserCheck, UserX, Clock, TrendingUp, Calendar, ArrowRight, Loader2,
-  AlertTriangle, CalendarDays, BarChart2, ScanLine, Settings,
+  AlertTriangle, CalendarDays, BarChart2, ScanLine, Settings, Lock,
 } from 'lucide-react'
 import { useAuthStore }      from '@/store/authStore'
+import { usePlan }           from '@/hooks/usePlan'
+import type { PlanCapabilities } from '@/types/auth'
 import UpgradeCard          from '@/components/UpgradeCard'
 import OnboardingWizard from '@/components/OnboardingWizard'
 import { billingService }    from '../settings/billingService'
@@ -58,6 +60,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function DashboardPage() {
   const user     = useAuthStore((s) => s.user)
+  const { can }  = usePlan()
   const timeZone = user?.timeZone ?? 'America/Guayaquil'
   const locale   = countryToLocale(user?.country ?? 'EC')
 
@@ -221,11 +224,12 @@ export default function DashboardPage() {
           hasCheckerKey={hasCheckerKey}
           hasAttendance={hasAttendance}
           setupCelebrated={setupCelebrated}
+          planIsDefault={!!sub?.plan?.isDefault}
         />
       )}
 
       {/* Upgrade card — solo cuando el plan tiene features bloqueadas */}
-      {sub !== undefined && sub?.plan?.isFree && (
+      {sub !== undefined && sub?.plan?.isFree && !sub?.plan?.isDefault && (
         <UpgradeCard planName={sub.plan.name} />
       )}
 
@@ -343,28 +347,50 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { to: '/checker',             icon: ScanLine,      label: 'Checador',     desc: 'Kiosk entrada/salida',    color: 'bg-primary-600' },
-              { to: '/attendance',          icon: UserCheck,     label: 'Asistencia',   desc: 'Registros del día',       color: 'bg-green-600'   },
-              { to: '/employees',           icon: Users,         label: 'Empleados',    desc: 'Gestionar empleados',     color: 'bg-slate-600'   },
-              { to: '/schedules',           icon: CalendarDays,  label: 'Horarios',     desc: 'Turnos y jornadas',       color: 'bg-violet-600'  },
-              { to: '/reports',             icon: BarChart2,     label: 'Reportes',     desc: 'PDF y Excel',             color: 'bg-emerald-600' },
-              { to: '/settings?tab=email',  icon: Settings,      label: 'Configuración',desc: 'SMTP · Checador · Planes',color: 'bg-gray-600'    },
-            ].map(({ to, icon: Icon, label, desc, color }) => (
-              <Link
-                key={to}
-                to={to}
-                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all group"
-              >
-                <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center shrink-0`}>
-                  <Icon className="w-4 h-4 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 group-hover:text-primary-700 transition-colors">{label}</p>
-                  <p className="text-xs text-gray-400 truncate">{desc}</p>
-                </div>
-              </Link>
-            ))}
+            {([
+              { to: '/checker',             icon: ScanLine,      label: 'Checador',     desc: 'Kiosk entrada/salida',    color: 'bg-primary-600', capability: 'checker'    },
+              { to: '/attendance',          icon: UserCheck,     label: 'Asistencia',   desc: 'Registros del día',       color: 'bg-green-600',   capability: 'attendance' },
+              { to: '/employees',           icon: Users,         label: 'Empleados',    desc: 'Gestionar empleados',     color: 'bg-slate-600',   capability: 'employees'  },
+              { to: '/schedules',           icon: CalendarDays,  label: 'Horarios',     desc: 'Turnos y jornadas',       color: 'bg-violet-600',  capability: 'schedules'  },
+              { to: '/reports',             icon: BarChart2,     label: 'Reportes',     desc: 'PDF y Excel',             color: 'bg-emerald-600', capability: 'reports'    },
+              { to: '/settings?tab=email',  icon: Settings,      label: 'Configuración',desc: 'SMTP · Checador · Planes',color: 'bg-gray-600',    capability: 'settings'   },
+            ] as { to: string; icon: React.ElementType; label: string; desc: string; color: string; capability: keyof PlanCapabilities }[]).map(({ to, icon: Icon, label, desc, color, capability }) => {
+              const locked = !can(capability)
+              if (locked) {
+                return (
+                  <Link
+                    key={to}
+                    to="/settings?tab=subscription"
+                    title="Disponible en plan superior"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/60 hover:border-gray-200 transition-all group opacity-60"
+                  >
+                    <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center shrink-0 opacity-50`}>
+                      <Icon className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-500 truncate">{label}</p>
+                      <p className="text-xs text-gray-400 truncate">{desc}</p>
+                    </div>
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  </Link>
+                )
+              }
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all group"
+                >
+                  <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center shrink-0`}>
+                    <Icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 group-hover:text-primary-700 transition-colors">{label}</p>
+                    <p className="text-xs text-gray-400 truncate">{desc}</p>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
       </div>

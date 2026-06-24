@@ -83,6 +83,8 @@ export default function Layout() {
           if (s?.wasAutoDowngraded) {
             navigate('/dashboard')
           }
+          // Mantener actualizado si la empresa está en el plan por defecto (lo usa el interceptor de api)
+          useAuthStore.getState().setOnDefaultPlan(!!s?.plan?.isDefault)
           setSub(s)
         })
         .catch(() => {})
@@ -209,7 +211,16 @@ export default function Layout() {
               <p className="text-primary-300 text-xs truncate">{roleLabel[user?.role ?? ''] ?? user?.role}</p>
             </div>
           </button>
-          {isNative ? (
+          {!can('checker') ? (
+            <button
+              onClick={() => { navigate('/settings?tab=subscription'); setSidebarOpen(false) }}
+              title="Disponible en plan superior"
+              className="w-full flex items-center gap-2 px-3 py-2 text-primary-400 hover:text-primary-300 hover:bg-primary-800/50 rounded-lg text-sm transition-colors">
+              <ScanLine className="w-4 h-4 opacity-50" />
+              <span className="flex-1 text-left">Reloj Checador</span>
+              <Lock className="w-3.5 h-3.5 opacity-60 shrink-0" />
+            </button>
+          ) : isNative ? (
             <NavLink to="/checker" onClick={() => setSidebarOpen(false)}
               className="w-full flex items-center gap-2 px-3 py-2 text-primary-200 hover:text-white hover:bg-primary-800 rounded-lg text-sm transition-colors">
               <ScanLine className="w-4 h-4" />
@@ -249,7 +260,7 @@ export default function Layout() {
             <Zap className="w-4 h-4 shrink-0 text-indigo-200" />
             <span className="flex-1 min-w-0">
               <span className="font-bold">{sub.plan.name}</span>
-              <span className="hidden sm:inline text-indigo-200"> · Actualiza tu plan y desbloquea todas las funcionalidades sin límites</span>
+              <span className="hidden sm:inline text-indigo-200"> · Adquiere tu plan y desbloquea todas las funcionalidades sin límites</span>
             </span>
             <button
               onClick={() => navigate('/settings?tab=subscription')}

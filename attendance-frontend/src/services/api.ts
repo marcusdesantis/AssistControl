@@ -59,12 +59,19 @@ api.interceptors.response.use(
 
     // Plan gate — mostrar toast y dejar que el componente maneje el error
     if (error.response?.status === 403 && error.response?.data?.code === 'PLAN_LIMIT') {
-      const msg = error.response.data.message ?? 'Mejora tu plan para acceder.'
-      toast.error('Límite de plan alcanzado', {
-        description: msg,
-        action: { label: 'Ver planes', onClick: () => { window.location.href = '/settings?tab=subscription' } },
-        duration: 6000,
-      })
+      // Solo en el plan por defecto se silencia en /dashboard y /settings (ahí cargan
+      // módulos que ese plan no tiene → ruido). Con cualquier otro plan el toast sí se muestra.
+      const path = window.location.pathname
+      const onGatedRoute = path.startsWith('/dashboard') || path.startsWith('/settings')
+      const suppress = useAuthStore.getState().onDefaultPlan && onGatedRoute
+      if (!suppress) {
+        const msg = error.response.data.message ?? 'Mejora tu plan para acceder.'
+        toast.error('Límite de plan alcanzado', {
+          description: msg,
+          action: { label: 'Ver planes', onClick: () => { window.location.href = '/settings?tab=subscription' } },
+          duration: 6000,
+        })
+      }
       error._handled = true
       return Promise.reject(error)
     }

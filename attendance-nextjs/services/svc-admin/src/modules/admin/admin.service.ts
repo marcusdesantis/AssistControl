@@ -68,7 +68,7 @@ export async function createTenant(data: {
 
   let planId = data.planId
   if (!planId) {
-    const defaultPlan = await prisma.plan.findFirst({ where: { isDefault: true } })
+    const defaultPlan = await prisma.plan.findFirst({ where: { isDefault: true }, orderBy: { sortOrder: 'asc' } })
     if (!defaultPlan) throw { code: 'NO_DEFAULT_PLAN', message: 'No hay un plan por defecto configurado.' }
     planId = defaultPlan.id
   }
@@ -233,14 +233,14 @@ export async function listPlans() {
 }
 
 export async function createPlan(data: {
-  name: string; description: string; priceMonthly: number; priceAnnual?: number
+  name: string; description: string; priceMonthly: number; priceAnnual?: number; priceLabel?: string | null
   maxEmployees?: number; isFree?: boolean; features?: string[]; capabilities?: object; sortOrder?: number
 }) {
   return prisma.plan.create({ data: { ...data, features: data.features ?? [], capabilities: data.capabilities ?? {} } })
 }
 
 export async function updatePlan(id: string, data: Partial<{
-  name: string; description: string; priceMonthly: number; priceAnnual: number
+  name: string; description: string; priceMonthly: number; priceAnnual: number; priceLabel: string | null
   maxEmployees: number; features: string[]; capabilities: object; sortOrder: number; isActive: boolean
 }>) {
   const plan = await prisma.plan.findUnique({ where: { id } })
@@ -648,6 +648,7 @@ export async function getDashboardMetrics() {
     count:        countByPlan.get(p.id) ?? 0,
     isFree:       p.isFree,
     priceMonthly: p.priceMonthly,
+    priceLabel:   p.priceLabel,
     sortOrder:    p.sortOrder ?? 0,
   }))
 

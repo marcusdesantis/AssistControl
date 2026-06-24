@@ -22,7 +22,7 @@ export const sysAuthService = {
 // ─── Metrics ─────────────────────────────────────────────────────────────────
 
 export interface PlanDistItem {
-  planId: string; name: string; count: number; isFree: boolean; priceMonthly: number; sortOrder: number
+  planId: string; name: string; count: number; isFree: boolean; priceMonthly: number; priceLabel?: string | null; sortOrder: number
 }
 
 export interface SysMetrics {
@@ -142,7 +142,7 @@ export interface PlanCapabilities {
 
 export interface SysPlan {
   id: string; name: string; description: string
-  priceMonthly: number; priceAnnual?: number; maxEmployees?: number
+  priceMonthly: number; priceAnnual?: number; priceLabel?: string | null; maxEmployees?: number
   isFree: boolean; isDefault: boolean; isActive: boolean
   features: string[]
   capabilities: PlanCapabilities

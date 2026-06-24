@@ -11,8 +11,10 @@ interface AuthState {
   capabilities:       PlanCapabilities
   tenantDeactivated:  boolean
   userDeactivated:    boolean
+  onDefaultPlan:      boolean
 
   setAuth:               (user: UserInfo, accessToken: string, refreshToken: string, capabilities: PlanCapabilities) => void
+  setOnDefaultPlan:      (onDefaultPlan: boolean) => void
   setCapabilities:       (capabilities: PlanCapabilities) => void
   updateAccessToken:     (accessToken: string) => void
   setOnboardingComplete: () => void
@@ -33,9 +35,13 @@ export const useAuthStore = create<AuthState>()(
       capabilities:      DEFAULT_CAPABILITIES,
       tenantDeactivated: false,
       userDeactivated:   false,
+      onDefaultPlan:     false,
 
       setAuth: (user, accessToken, refreshToken, capabilities) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true, capabilities, tenantDeactivated: false }),
+
+      setOnDefaultPlan: (onDefaultPlan) =>
+        set({ onDefaultPlan }),
 
       setCapabilities: (capabilities) =>
         set({ capabilities }),
@@ -47,7 +53,7 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({ user: state.user ? { ...state.user, onboardingCompleted: true } : null })),
 
       clearAuth: () =>
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, capabilities: DEFAULT_CAPABILITIES }),
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, capabilities: DEFAULT_CAPABILITIES, onDefaultPlan: false }),
 
       setDeactivated: () =>
         set({ tenantDeactivated: true }),
@@ -69,6 +75,7 @@ export const useAuthStore = create<AuthState>()(
         refreshToken:    state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         capabilities:    state.capabilities,
+        onDefaultPlan:   state.onDefaultPlan,
       }),
     }
   )
