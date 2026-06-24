@@ -103,7 +103,8 @@ const jsonLdOrganization = {
 }
 
 export default async function PreciosPage() {
-  const plans = await getPlans()
+  // Ocultar el plan por defecto (igual que en la app y las landings)
+  const plans = (await getPlans()).filter((p) => !p.isDefault)
 
   return (
     <>

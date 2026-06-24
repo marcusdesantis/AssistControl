@@ -117,8 +117,8 @@
   }
 
   .plans-sec{padding:70px 0;border-top:1px solid var(--linea)}
-  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
-  .plan{border:1px solid var(--linea);border-radius:14px;padding:28px 24px;position:relative}
+  .plans{display:flex;gap:16px;margin-top:20px;overflow-x:auto;scroll-snap-type:x mandatory;justify-content:safe center;padding-top:16px;padding-bottom:14px;scrollbar-width:thin}
+  .plan{border:1px solid var(--linea);border-radius:14px;padding:28px 24px;position:relative;flex:0 0 320px;scroll-snap-align:center}
   .plan .ph{font-family:var(--display);font-weight:700;font-size:18px;margin-bottom:5px}
   .plan .psub{font-size:13px;min-height:36px;line-height:1.4}
   .plan .pprice{font-family:var(--display);font-weight:800;font-size:30px;margin:8px 0 2px}
@@ -215,7 +215,7 @@
   <div class="wrap">
     <div class="kicker">Planes</div>
     <h2 class="t">Empieza gratis. Escala cuando lo necesites.</h2>
-    <div class="plans">
+    <div class="plans" id="plansGrid">
       <div class="plan" style="background:var(--hueso-card)">
         <div class="ph" style="color:#ffffff">Básico</div>
         <div class="psub" style="color:var(--texto-mute)">Para empezar a registrar de inmediato.</div>
@@ -335,5 +335,43 @@ function handleReg(){
   })
   .catch(function(){hideLoadingOverlay();genErr("Error de conexion. Verifica tu internet e intenta de nuevo.");});
 }
-</script></body>
+</script><script>
+(function(){
+  var grid=document.getElementById('plansGrid');
+  if(!grid)return;
+  var S={cardBg:'var(--hueso-card)',txt:'#ffffff',mute:'var(--texto-mute)',check:'var(--menta-deep)',popBorder:'var(--menta-deep)',badgeBg:'var(--menta-deep)',badgeColor:'#24459e',ctaStyle:'border:1px solid var(--linea-fuerte);color:#ffffff',wrap:true,arrowBg:'var(--menta-deep)',arrowColor:'#24459e'};
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  var st=document.createElement('style');st.textContent='#plansGrid{scrollbar-width:none;-ms-overflow-style:none}#plansGrid::-webkit-scrollbar{display:none}.plans-wrap{position:relative}.parrow{position:absolute;top:42%;transform:translateY(-50%);width:42px;height:42px;border:none;border-radius:999px;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:22px;font-weight:700;line-height:1;z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.35)}.parrow.show{display:flex}.parrow.prev{left:-4px}.parrow.next{right:-4px}';document.head.appendChild(st);
+  fetch('/api/v1/public/plans',{cache:'no-store'}).then(function(r){return r.json();}).then(function(res){
+    var plans=((res&&res.data)||[]).filter(function(p){return !p.isDefault;});
+    if(!plans.length)return;
+    var mid=Math.floor(plans.length/2);
+    grid.innerHTML=plans.map(function(p,i){
+      var pop=plans.length>1&&i===mid;
+      var price=(p.priceLabel&&p.priceLabel.trim())?esc(p.priceLabel):(p.isFree?'Gratis':'$'+p.priceMonthly+'<small style="color:'+S.mute+'"> /mes</small>');
+      var feats=Array.isArray(p.features)?p.features:[];
+      var lis=feats.map(function(f){return '<li style="color:'+S.mute+'"><span style="color:'+S.check+'">✓</span> '+esc(f)+'</li>';}).join('');
+      var cta=S.wrap?'<a href="#registro" class="pcta" style="'+S.ctaStyle+'"><span onclick="document.getElementById(\'registro\').scrollIntoView({behavior:\'smooth\'})">Elegir plan</span></a>':'<a class="pcta" href="#registro" style="'+S.ctaStyle+'">Elegir plan</a>';
+      return '<div class="plan" style="background:'+S.cardBg+(pop?';border-color:'+S.popBorder:'')+'">'+(pop?'<span class="badge" style="background:'+S.badgeBg+';color:'+S.badgeColor+'">MÁS POPULAR</span>':'')+'<div class="ph" style="color:'+S.txt+'">'+esc(p.name)+'</div><div class="psub" style="color:'+S.mute+'">'+esc(p.description||'')+'</div><div class="pprice" style="color:'+S.txt+'">'+price+'</div>'+(lis?'<ul>'+lis+'</ul>':'')+cta+'</div>';
+    }).join('');
+    setupArrows();
+  }).catch(function(){});
+  function setupArrows(){
+    var wrap=grid.parentNode;
+    if(!(wrap.className&&String(wrap.className).indexOf('plans-wrap')>=0)){
+      var w=document.createElement('div');w.className='plans-wrap';
+      grid.parentNode.insertBefore(w,grid);w.appendChild(grid);wrap=w;
+    }
+    var prev=document.createElement('button');prev.type='button';prev.className='parrow prev';prev.innerHTML='‹';prev.style.background=S.arrowBg;prev.style.color=S.arrowColor;
+    var next=document.createElement('button');next.type='button';next.className='parrow next';next.innerHTML='›';next.style.background=S.arrowBg;next.style.color=S.arrowColor;
+    wrap.appendChild(prev);wrap.appendChild(next);
+    function amt(){var c=grid.querySelector('.plan');return c?c.offsetWidth+16:320;}
+    prev.addEventListener('click',function(){grid.scrollBy({left:-amt(),behavior:'smooth'});});
+    next.addEventListener('click',function(){grid.scrollBy({left:amt(),behavior:'smooth'});});
+    function upd(){var ov=grid.scrollWidth-grid.clientWidth>4;prev.classList.toggle('show',ov&&grid.scrollLeft>4);next.classList.toggle('show',ov&&grid.scrollLeft<grid.scrollWidth-grid.clientWidth-4);}
+    grid.addEventListener('scroll',upd);window.addEventListener('resize',upd);setTimeout(upd,60);
+  }
+})();
+</script>
+</body>
 </html>

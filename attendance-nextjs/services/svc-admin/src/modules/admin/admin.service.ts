@@ -205,6 +205,7 @@ export async function deleteTenant(id: string) {
   await prisma.paymentMethod.deleteMany({ where: { tenantId: id } })
 
   // 6. Catálogos
+  await prisma.holiday.deleteMany({ where: { tenantId: id } })
   await prisma.schedule.deleteMany({ where: { tenantId: id } })
   await prisma.department.deleteMany({ where: { tenantId: id } })
   await prisma.position.deleteMany({ where: { tenantId: id } })

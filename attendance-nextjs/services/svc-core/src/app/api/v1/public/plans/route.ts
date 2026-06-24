@@ -6,7 +6,7 @@ export const GET = withPublic(async () => {
     where: { isActive: true },
     select: {
       id: true, name: true, description: true,
-      priceMonthly: true, priceAnnual: true,
+      priceMonthly: true, priceAnnual: true, priceLabel: true,
       maxEmployees: true, features: true,
       isFree: true, isDefault: true, sortOrder: true,
     },
