@@ -40,7 +40,10 @@ pipeline {
           sh 'docker build --add-host=host.docker.internal:host-gateway -t aiattendance-frontend .'
           sh 'docker stop aiattendance-frontend || true'
           sh 'docker rm aiattendance-frontend || true'
-          sh 'docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-gateway -p 80:80 -p 443:443 -v /etc/letsencrypt:/etc/letsencrypt:ro aiattendance-frontend'
+          // Webroot para el challenge ACME — certbot escribe aquí en el host,
+          // nginx lo sirve en :80 sin redirigir (ver attendance-frontend/nginx.conf)
+          sh 'mkdir -p /var/www/certbot/.well-known/acme-challenge'
+          sh 'docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-gateway -p 80:80 -p 443:443 -v /etc/letsencrypt:/etc/letsencrypt:ro -v /var/www/certbot:/var/www/certbot:ro aiattendance-frontend'
         }
       }
     }

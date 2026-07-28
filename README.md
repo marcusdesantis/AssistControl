@@ -875,17 +875,66 @@ chmod +x ~/backup-db.sh
 
 ## Dominio y SSL
 
-El dominio `tiempoya.net` no está adquirido aún, pero toda la infraestructura ya está preparada para cuando se adquiera:
+Dominio `tiempoya.net` activo, con certificados Let's Encrypt gestionados por Certbot **en el host** (no dentro de ningún contenedor).
 
-- `APP_URL=https://www.tiempoya.net` ya está configurada en el backend
-- `sitemap.xml`, `robots.txt` y los canonicals apuntan a `https://www.tiempoya.net`
-- Las 3 landing pages de conversión y la landing principal ya tienen SEO completo
+| Certificado | Cubre |
+|---|---|
+| `/etc/letsencrypt/live/tiempoya.net/` | `tiempoya.net` + `www.tiempoya.net` |
+| `/etc/letsencrypt/live/ci.tiempoya.net/` | `ci.tiempoya.net` (Jenkins) |
 
-Cuando se adquiera el dominio:
-1. Apuntar DNS `A` a `167.86.87.213`
-2. Instalar Certbot y configurar SSL en nginx
-3. Verificar el sitio en Google Search Console y enviar `sitemap.xml`
-4. Solicitar indexación de las 5 URLs principales en GSC
+El contenedor `aiattendance-frontend` escucha en 80 y 443 y monta dos volúmenes read-only desde el host:
+
+```
+-v /etc/letsencrypt:/etc/letsencrypt:ro     # certificados
+-v /var/www/certbot:/var/www/certbot:ro     # webroot del challenge ACME
+```
+
+### Renovación automática
+
+Los certificados se renuevan **solos**, sin downtime y sin intervención manual. Tres piezas lo hacen posible:
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| `location ^~ /.well-known/acme-challenge/` | `attendance-frontend/nginx.conf` | Sirve el token del challenge en el puerto 80 sin redirigir a https |
+| Deploy hook | `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh` | Tras cada renovación ejecuta `nginx -s reload` dentro del contenedor |
+| Timer de certbot (o `/etc/cron.d/certbot-renew`) | host | Corre `certbot renew` 2×/día; renueva a los ~60 días de vida |
+
+> ⚠️ **Detalle crítico de nginx:** el redirect a https vive dentro de `location / { return 301 ... }`, **no** a nivel de `server`. Un `return` en el contexto `server` se ejecuta en la fase de rewrite, **antes** de elegir el `location`, y redirigiría también el challenge — que es exactamente lo que rompía la renovación y provocó que el certificado expirara en julio 2026. No mover ese `return` de vuelta al nivel de `server`.
+
+### Instalación (una sola vez por servidor)
+
+Después de desplegar el `nginx.conf` que sirve el challenge:
+
+```bash
+cd ~/proyectos/opt/attendance-ia
+sudo bash ops/setup-ssl-autorenew.sh
+```
+
+El script crea el webroot, instala el hook, **verifica que el challenge responda 200 y no 301**, migra los certificados de `standalone` a `webroot`, activa el timer y termina con un `certbot renew --dry-run`. Es idempotente.
+
+### Operación manual (solo si algo falla)
+
+```bash
+# Estado y fechas de expiración
+sudo certbot certificates
+
+# Qué certificado está sirviendo nginx realmente
+echo | openssl s_client -connect www.tiempoya.net:443 -servername www.tiempoya.net 2>/dev/null \
+  | openssl x509 -noout -dates
+
+# Forzar renovación ya (sin downtime, usa webroot)
+sudo certbot renew --force-renewal
+
+# Recargar nginx sin recrear el contenedor
+docker exec aiattendance-frontend nginx -s reload
+```
+
+> Si el certificado en disco está vigente pero el navegador ve uno expirado, nginx tiene el viejo en memoria: basta el `nginx -s reload`. Un deploy de Jenkins también lo resuelve, pero **un deploy nunca renueva un certificado** — solo remonta el que haya en el host.
+
+### Pendiente
+
+- Verificar el sitio en Google Search Console y enviar `sitemap.xml`
+- Solicitar indexación de las 5 URLs principales en GSC
 
 ---
 
