@@ -40,9 +40,11 @@ pipeline {
           sh 'docker build --add-host=host.docker.internal:host-gateway -t aiattendance-frontend .'
           sh 'docker stop aiattendance-frontend || true'
           sh 'docker rm aiattendance-frontend || true'
-          // Webroot para el challenge ACME — certbot escribe aquí en el host,
-          // nginx lo sirve en :80 sin redirigir (ver attendance-frontend/nginx.conf)
-          sh 'mkdir -p /var/www/certbot/.well-known/acme-challenge'
+          // Webroot del challenge ACME: certbot escribe el token en /var/www/certbot
+          // del HOST y nginx lo sirve en :80 sin redirigir.
+          // No se hace mkdir acá: los pasos 'sh' corren DENTRO del contenedor de
+          // Jenkins, así que crearían el directorio en el sitio equivocado. Docker
+          // crea el directorio del host automáticamente al montar el bind.
           sh 'docker run -d --name aiattendance-frontend --add-host=host.docker.internal:host-gateway -p 80:80 -p 443:443 -v /etc/letsencrypt:/etc/letsencrypt:ro -v /var/www/certbot:/var/www/certbot:ro aiattendance-frontend'
         }
       }
