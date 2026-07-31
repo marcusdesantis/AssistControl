@@ -2,6 +2,8 @@ import { useAuthStore } from '@/store/authStore'
 import { mobileService } from '@/services/mobileService'
 import * as biometric from '@/services/biometricService'
 import { storage } from '@/utils/storage'
+import { CONTENT_MAX_WIDTH } from '@/utils/layout'
+import Constants from 'expo-constants'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -290,7 +292,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>TiempoYa v1.0.0</Text>
+        <Text style={styles.version}>TiempoYa v{Constants.expoConfig?.version ?? ''}</Text>
       </ScrollView>
 
       {/* ── Modal biométrico — confirmar contraseña ── */}
@@ -451,7 +453,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe:         { flex: 1, backgroundColor: '#0f172a' },
-  container:    { alignItems: 'center', padding: 24, paddingBottom: 40 },
+  container:    { alignItems: 'center', padding: 24, paddingBottom: 40, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   avatarCircle: {
     width: 88, height: 88, borderRadius: 44, backgroundColor: '#1e3a5f',
     alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 12,

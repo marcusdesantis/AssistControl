@@ -2,6 +2,7 @@ import { mobileService, type AttendanceRecord, type EmployeeMessage, type Employ
 import { useAuthStore } from '@/store/authStore'
 import * as biometric from '@/services/biometricService'
 import { storage } from '@/utils/storage'
+import { CONTENT_MAX_WIDTH } from '@/utils/layout'
 import AttendanceAuthModal, { type AuthMethod } from '@/components/AttendanceAuthModal'
 import ChangeMethodModal, { type AttendanceMethod } from '@/components/ChangeMethodModal'
 import { Ionicons } from '@expo/vector-icons'
@@ -666,7 +667,7 @@ const msgStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   safe:         { flex: 1, backgroundColor: '#0f172a' },
-  scroll:       { padding: 20, paddingBottom: 40 },
+  scroll:       { padding: 20, paddingBottom: 40, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   greeting:     { marginBottom: 20 },
   greetCompany: { fontSize: 12, fontWeight: '600', color: '#3b82f6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
   greetName:    { fontSize: 22, fontWeight: '700', color: '#f1f5f9' },

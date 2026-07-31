@@ -359,7 +359,7 @@ npx cap open ios   # abre Xcode
 
 En Xcode:
 1. Seleccionar target **App** → tab **Signing & Capabilities**
-2. Team: **Soft Potential Ltd (WJ38Y98349)**
+2. Team: **Soft Potential Ltd (WJ38Y98349)** — ⚠️ cuenta anterior; tras la migración a *Abisoft S.A* (`N3NZ647285`) hay que verificar cuál corresponde
 3. Bundle Identifier: `com.abisoft.tiempoya.admin`
 4. Marcar **Automatically manage signing**
 5. **Product → Archive** (genera build firmado)
@@ -408,14 +408,19 @@ npx capacitor-assets generate --ios
 
 ### Notificaciones push iOS — `attendance-frontend`
 
-**Cuenta Apple Developer:** misma que `attendance-mobile` — Soft Potential Ltd (Team `WJ38Y98349`, Apple ID `jeanmarcus_86@hotmail.com`). Ver detalle en sección **"Notificaciones push iOS — Configuración detallada"** de `attendance-mobile`.
+> ⚠️ **Sección sin verificar tras la migración de cuenta Apple (31 jul 2026).** Lo que sigue
+> describe el estado en la cuenta anterior (*Soft Potential Ltd*, Team `WJ38Y98349`). Como
+> `attendance-mobile` migró a *Abisoft S.A* (Team `N3NZ647285`), este proyecto probablemente
+> necesite lo mismo: App ID nuevo y APNs key nueva. **Verificar antes de usar estos datos.**
+
+**Cuenta Apple Developer (obsoleta):** Soft Potential Ltd (Team `WJ38Y98349`, Apple ID `jeanmarcus_86@hotmail.com`). Ver la cuenta vigente en **"Notificaciones push iOS — Configuración detallada"** de `attendance-mobile`.
 
 **App ID en Apple Developer:** `com.abisoft.tiempoya.admin` (Description: `TiempoYa Admin`) con capability **Push Notifications** activada.
 
 **Firebase project: `tiempoya-admin`** (NO `tiempoya-c8cb9` que es de attendance-mobile).
 - App iOS registrada con bundle `com.abisoft.tiempoya.admin`
 - `GoogleService-Info.plist` descargado y colocado en `attendance-frontend/credentials/` (gitignored). Capacitor lo lee desde `ios/App/App/GoogleService-Info.plist` durante el build.
-- APNs Auth Key (`AG9ACUK7YZ` reutilizada de attendance-mobile, es **Team Scoped (All Topics)** → cubre ambas apps) subida a Firebase Console → Cloud Messaging → Apple app configurations, en ambos ambientes (Sandbox + Production).
+- APNs Auth Key `AG9ACUK7YZ` subida a Firebase Console → Cloud Messaging → Apple app configurations, en ambos ambientes (Sandbox + Production). **⚠️ Esa key ya no existe** — pertenecía a la cuenta anterior. La key vigente del team `N3NZ647285` es `NQNDFTPVYR` (también Team Scoped), y habría que resubirla a Firebase si se retoma este proyecto.
 
 **Diferencia con `attendance-mobile`:** acá SÍ se usa Firebase para iOS (no Expo Push). Razón: este proyecto usa Capacitor + el backend ya tiene Firebase Admin SDK (FCM URL `https://fcm.googleapis.com/v1/projects/tiempoya-admin/messages:send`). Los tokens iOS van por FCM, que internamente los enruta a APNs usando el `.p8` que subimos.
 
@@ -468,7 +473,7 @@ App para empleados — marcación de entrada/salida con GPS y notificaciones pus
 **Datos de la app:**
 - Nombre: `TiempoYa`
 - Package Android: `com.abisoft.tiempoya`
-- Bundle iOS: `com.abisoft.tiempoya`
+- Bundle iOS: `com.abisoft.tiempoya.ios` (distinto del de Android — ver nota en "App ID registrado")
 - EAS Project ID: `03665f3e-8e79-489e-9984-5480c7486d79`
 - EAS Owner: `yasmani1997`
 - Icono: `icon.png` (reloj sin texto, 1024×1024, fondo `#0f172a`)
@@ -617,31 +622,44 @@ El backend (`sendExpoPush`) ya está preparado para iOS — Expo Push Service ge
 
 ### Cuenta Apple Developer
 
+> 🔄 **Migración de cuenta (31 jul 2026).** El proyecto pasó de la cuenta *Soft Potential Ltd*
+> (Team `WJ38Y98349`) a *Abisoft S.A*. Los datos de la cuenta anterior ya no sirven: su Apple ID
+> es inaccesible y la APNs Key `AG9ACUK7YZ` no existe en la cuenta actual.
+
 | Dato | Valor |
 |---|---|
-| Empresa | Soft Potential Ltd (Organization) |
-| Team ID | `WJ38Y98349` |
-| Apple ID administrador | `jeanmarcus_86@hotmail.com` |
-| Titular cuenta | Giancarlo Stoppani |
+| Empresa | Abisoft S.A |
+| Team ID | `N3NZ647285` |
+| Apple ID administrador | `informacion@abisoft.it` |
 | Programa | Apple Developer Program ($99/año) |
-| Renovación | 1 mar 2027 |
-| Reset anual dispositivos | 1 mar (hasta 100 devices/año) |
+
+**Cuenta anterior (obsoleta, solo como referencia histórica):** Soft Potential Ltd, Team `WJ38Y98349`, Apple ID `jeanmarcus_86@hotmail.com`, titular Giancarlo Stoppani.
 
 ### App ID registrado
 
-- **Bundle ID:** `com.abisoft.tiempoya`
-- **Description:** `TiempoYa Employee`
+- **Bundle ID:** `com.abisoft.tiempoya.ios`
+- **Description:** `TiempoYa Employee iOS`
 - **Capabilities activadas:** Push Notifications
+
+> ⚠️ **Por qué el bundle iOS lleva sufijo `.ios`.** El original `com.abisoft.tiempoya` quedó
+> registrado en la cuenta anterior. Los bundle IDs son únicos globalmente en todo Apple y **nunca
+> se liberan**, así que desde la cuenta nueva Apple responde *"ya está en uso"* al intentar
+> registrarlo. Por eso se cambió a `com.abisoft.tiempoya.ios` (`app.json` → `ios.bundleIdentifier`).
+> **El `package` de Android NO cambió**: sigue siendo `com.abisoft.tiempoya`, porque Google Play
+> es independiente de Apple.
 
 ### APNs Auth Key (`.p8`)
 
 | Dato | Valor |
 |---|---|
-| Key ID | `AG9ACUK7YZ` |
+| Key ID | `NQNDFTPVYR` |
+| Nombre en Apple | `MedicGet APNs` (compartida con el proyecto Medicget del mismo team) |
 | Tipo | APNs (Sandbox & Production), Team Scoped (All Topics) |
-| Ubicación local del archivo | `attendance-mobile/credentials/AuthKey_AG9ACUK7YZ.p8` |
+| Ubicación local del archivo | `attendance-mobile/credentials/AuthKey_NQNDFTPVYR.p8` |
 | Protección | `.gitignore` ignora `attendance-mobile/credentials/` y `*.p8` globalmente — el archivo **nunca se sube al repo** |
-| Subida a EAS | Sí — asociada al projectId `03665f3e-8e79-489e-9984-5480c7486d79`, bundle `com.abisoft.tiempoya` |
+| Subida a EAS | Sí — asignada al bundle `com.abisoft.tiempoya.ios`, projectId `03665f3e-8e79-489e-9984-5480c7486d79` |
+
+Al ser **Team Scoped (All Topics)**, esta key cubre cualquier bundle del team `N3NZ647285`, incluidos TiempoYa y Medicget. No hace falta una key por app.
 
 > ⚠️ **El `.p8` solo se puede descargar una vez** desde Apple Developer. Si se pierde, hay que crear una nueva key (máx. 2 activas por cuenta). Mantener backup seguro (1Password, disco encriptado, etc.).
 
@@ -649,7 +667,7 @@ El backend (`sendExpoPush`) ya está preparado para iOS — Expo Push Service ge
 
 ```json
 "ios": {
-  "bundleIdentifier": "com.abisoft.tiempoya",
+  "bundleIdentifier": "com.abisoft.tiempoya.ios",
   "supportsTablet": true,
   "config": {
     "usesNonExemptEncryption": false   // evita prompt de App Store sobre regulaciones de cifrado
@@ -677,7 +695,7 @@ iOS NO requiere `GoogleService-Info.plist` ni registrar app iOS en Firebase Cons
 
 **Pasos para habilitar push iOS desde cero (referencia):**
 
-1. **Apple Developer Portal** — Registrar App ID con bundle `com.abisoft.tiempoya` y activar capability Push Notifications
+1. **Apple Developer Portal** — Registrar App ID con bundle `com.abisoft.tiempoya.ios` y activar capability Push Notifications
 2. **Apple Developer Portal** — Crear APNs Auth Key (.p8), guardar Key ID
 3. **EAS** — Subir `.p8` via `eas credentials --platform ios` (lo solicita el primer `eas build` también)
 4. **EAS** — `eas build --platform ios --profile preview`
@@ -721,16 +739,26 @@ eas build --platform ios --profile preview
 | Prompt | Respuesta |
 |---|---|
 | `Do you want to log in to your Apple account?` | Y |
-| `Apple ID` | `jeanmarcus_86@hotmail.com` |
+| `Apple ID` | `informacion@abisoft.it` — **el email, nunca el Team ID** |
 | `Password` + 2FA | (interactivo, no se puede automatizar) |
 | `Generate a new Apple Distribution Certificate?` | Y |
 | `Generate a new Apple Provisioning Profile?` | Y |
 | `Select devices for the ad hoc build` | Espacio para marcar, Enter para confirmar |
 | `Would you like to set up Push Notifications?` | Yes |
 | `Generate a new Apple Push Notifications service key?` | **No** (porque ya tenemos el `.p8`) |
-| `Path to P8 file` | `attendance-mobile/credentials/AuthKey_AG9ACUK7YZ.p8` |
-| `Key ID` | `AG9ACUK7YZ` |
-| `Apple Team ID` | `WJ38Y98349` (pre-rellenado por EAS) |
+| `Path to P8 file` | `./credentials/AuthKey_NQNDFTPVYR.p8` |
+| `Key ID` | `NQNDFTPVYR` |
+| `Apple Team ID` | `N3NZ647285` |
+
+> ⚠️ **Poner el Team ID en el campo `Apple ID` bloquea la cuenta.** Apple cuenta cada intento
+> fallido y tras unos pocos responde `Apple Service Error -20209 — account locked`. A partir de
+> ahí rechaza la contraseña aunque sea correcta, y hay que desbloquear en iforgot.apple.com con
+> un **dispositivo de confianza de esa cuenta** (no sirve cualquier Mac). Pasó el 31 jul 2026.
+
+**Subir la push key sin acceso a Apple:** si la cuenta está bloqueada, se puede registrar la key
+igualmente respondiendo `no` a `Do you want to log in to your Apple account?`. EAS la guarda sin
+validarla (avisa `Unable to validate push key`) y funciona. Lo que **sí** exige login es el build,
+porque el distribution certificate y el provisioning profile se crean en la cuenta de Apple.
 
 Tiempo total: ~5 min de prompts interactivos + ~15-20 min de cola/compilación en EAS (cuenta gratis).
 
@@ -741,7 +769,7 @@ Tiempo total: ~5 min de prompts interactivos + ~15-20 min de cola/compilación e
 # https://appstoreconnect.apple.com → My Apps → "+" → New App
 # - Platform: iOS
 # - Name: TiempoYa
-# - Bundle ID: com.abisoft.tiempoya (del dropdown)
+# - Bundle ID: com.abisoft.tiempoya.ios (del dropdown)
 # - SKU: tiempoya-ios-001
 
 # 2. Build production

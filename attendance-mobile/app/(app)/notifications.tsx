@@ -1,4 +1,5 @@
 import { mobileService, type MobileNotification } from '@/services/mobileService'
+import { CONTENT_MAX_WIDTH } from '@/utils/layout'
 import { emitter } from '@/utils/eventEmitter'
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from 'expo-router'
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   markBtnTextDisabled: { color: '#475569' },
   center:            { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText:         { color: '#475569', fontSize: 14 },
-  list:              { paddingBottom: 32 },
+  list:              { paddingBottom: 32, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   item:              { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   itemUnread:        { backgroundColor: '#0f2444' },
   iconCircle:        { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

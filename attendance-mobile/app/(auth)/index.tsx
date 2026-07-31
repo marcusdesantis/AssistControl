@@ -2,6 +2,7 @@ import { mobileService, type LoginResult } from '@/services/mobileService'
 import * as biometric from '@/services/biometricService'
 import { useAuthStore } from '@/store/authStore'
 import { storage } from '@/utils/storage'
+import { FORM_MAX_WIDTH } from '@/utils/layout'
 import { registerForPushNotifications } from '@/utils/notifications'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
@@ -519,9 +520,9 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   safe:      { flex: 1, backgroundColor: '#0f172a' },
-  container: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
+  container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 32 },
 
-  header:     { alignItems: 'center', marginBottom: 32 },
+  header:     { alignItems: 'center', marginBottom: 32, width: '100%', maxWidth: FORM_MAX_WIDTH },
   loginLogo:  { width: 200, height: 120, marginBottom: 12 },
   subtitle:   { fontSize: 13, color: '#64748b' },
 
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
     width: 4, height: 4, borderRadius: 2, backgroundColor: '#3b82f6',
   },
 
-  formWrap: {},
+  formWrap: { width: '100%', maxWidth: FORM_MAX_WIDTH },
 
   form:     { backgroundColor: '#1e293b', borderRadius: 18, padding: 22, gap: 4 },
   label:    { fontSize: 13, fontWeight: '600', color: '#64748b', marginTop: 10, marginBottom: 4 },
@@ -591,7 +592,7 @@ const styles = StyleSheet.create({
   },
   numText: { color: '#f1f5f9', fontSize: 22, fontWeight: '600' },
 
-  footer: { textAlign: 'center', color: '#334155', fontSize: 11, marginTop: 24 },
+  footer: { textAlign: 'center', color: '#334155', fontSize: 11, marginTop: 24, width: '100%', maxWidth: FORM_MAX_WIDTH },
 
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',

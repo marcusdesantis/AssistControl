@@ -1,4 +1,5 @@
 import { mobileService, type AttendanceRecord } from '@/services/mobileService'
+import { CONTENT_MAX_WIDTH } from '@/utils/layout'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from 'expo-router'
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 10, color: '#64748b', marginTop: 2 },
 
   // List
-  list:       { paddingHorizontal: 14, paddingTop: 0, paddingBottom: 40 },
+  list:       { paddingHorizontal: 14, paddingTop: 0, paddingBottom: 40, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   listEmpty:  { flexGrow: 1 },
   dateHeader: { paddingTop: 8, paddingBottom: 6, paddingHorizontal: 2 },
   dateHeaderText: {
