@@ -502,11 +502,25 @@ Web y Android no se ven afectados porque el CSS está scopeado a la clase `platf
 <false/>
 ```
 
+**Ficha en App Store Connect:** app `TiempoYa Admin`, bundle `com.abisoft.tiempoya.admin.ios`, **App Store ID `6796813373`**, versión `1.1` (creada el 31 jul 2026).
+
+> No confundir con `6796427631`, que es el App Store ID de **TiempoYa** (la app de empleados).
+
+**Firma y subida.** A diferencia de `attendance-mobile`, aquí **no interviene EAS**: Capacitor se
+firma en local, así que hace falta la cuenta Apple en Xcode (Settings → Accounts →
+`informacion@abisoft.it`) y el equipo *Abisoft S.A* seleccionado en el target `App` con
+*Automatically manage signing*. Xcode genera entonces el certificado de distribución y el
+provisioning profile.
+
 **Pendientes para producción:**
-- Crear app `TiempoYa Admin` en App Store Connect (bundle `com.abisoft.tiempoya.admin.ios`)
-- `Product → Archive` en Xcode → Distribute App → TestFlight o Ad Hoc
+- `Product → Archive` en Xcode → Distribute App → App Store Connect (sube directo desde Xcode)
+- Completar la ficha: capturas, descripción, privacidad y notas para el revisor
 - Submit a Apple para revisión (~24h primera vez)
 - Invitar testers por email/link público de TestFlight
+
+> ⚠️ Esta app **permite registro público** ("Regístrate gratis" en el login), así que Apple exige
+> poder eliminar la cuenta desde dentro (Guideline 5.1.1(v)). Ya está implementado en
+> `ProfilePage.tsx`, que llama a `/auth/request-account-deletion`.
 
 ---
 
