@@ -193,7 +193,7 @@ Panel de administración para empresas, supervisores y empleados. Se sirve como 
 - Capacitor plugins: App · Filesystem · Share · SplashScreen · PushNotifications · Preferences · `@aparajita/capacitor-biometric-auth`
 
 **Datos de la app (Capacitor):**
-- App ID: `com.abisoft.tiempoya.admin`
+- App ID: `com.abisoft.tiempoya.admin.ios`
 - Nombre: `TiempoYa Admin`
 - Android: carpeta `android/` generada con `npx cap add android`
 - iOS: carpeta `ios/` generada con `npx cap add ios` (gitignored, regenerable)
@@ -343,7 +343,7 @@ npx cap add ios                    # genera ios/App/ con workspace Xcode
 cp credentials/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
 ```
 
-> El `GoogleService-Info.plist` se descarga de Firebase Console (proyecto `tiempoya-admin` → Settings → iOS app `com.abisoft.tiempoya.admin`) y se guarda en `credentials/` (gitignored). Ver sección **"Notificaciones push iOS (attendance-frontend)"** más abajo.
+> El `GoogleService-Info.plist` se descarga de Firebase Console (proyecto `tiempoya-admin` → Settings → iOS app `com.abisoft.tiempoya.admin.ios`) y se guarda en `credentials/` (gitignored). Ver sección **"Notificaciones push iOS (attendance-frontend)"** más abajo.
 
 **Build para simulador (testing rápido, no necesita signing):**
 ```bash
@@ -357,7 +357,7 @@ xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug \
 
 # Instalar y abrir en simulador
 xcrun simctl install "iPhone 17 Pro" "./build/Build/Products/Debug-iphonesimulator/App.app"
-xcrun simctl launch "iPhone 17 Pro" com.abisoft.tiempoya.admin
+xcrun simctl launch "iPhone 17 Pro" com.abisoft.tiempoya.admin.ios
 ```
 
 Si los cambios JS no aparecen en la app, hacer `npx cap copy ios` antes de recompilar.
@@ -370,8 +370,8 @@ npx cap open ios   # abre Xcode
 
 En Xcode:
 1. Seleccionar target **App** → tab **Signing & Capabilities**
-2. Team: **Soft Potential Ltd (WJ38Y98349)** — ⚠️ cuenta anterior; tras la migración a *Abisoft S.A* (`N3NZ647285`) hay que verificar cuál corresponde
-3. Bundle Identifier: `com.abisoft.tiempoya.admin`
+2. Team: **Abisoft S.A (N3NZ647285)**
+3. Bundle Identifier: `com.abisoft.tiempoya.admin.ios`
 4. Marcar **Automatically manage signing**
 5. **Product → Archive** (genera build firmado)
 6. Una vez listo, **Distribute App → Ad Hoc** (o **App Store Connect** para TestFlight)
@@ -431,25 +431,46 @@ La web no se ve afectada por nada de esto: los cambios viven en `android/`, y el
 - ✅ Reportes PDF/Excel exportables desde mobile vía Share nativo
 - ✅ Comprobantes de pago descargables como PDF con márgenes A4
 - ✅ Checador adaptado para uso en tablet/móvil
-- ✅ **iOS:** App ID `com.abisoft.tiempoya.admin` registrada en Apple Developer, Firebase iOS configurado en proyecto `tiempoya-admin` con APNs Key, build local con Xcode funcional, app corriendo en simulador iPhone + iPad. Pendiente: archive Ad-hoc o TestFlight para validar en dispositivo físico
+- ✅ **iOS:** App ID `com.abisoft.tiempoya.admin.ios` registrada en Apple Developer, Firebase iOS configurado en proyecto `tiempoya-admin` con APNs Key, build local con Xcode funcional, app corriendo en simulador iPhone + iPad. Pendiente: archive Ad-hoc o TestFlight para validar en dispositivo físico
 
 ---
 
 ### Notificaciones push iOS — `attendance-frontend`
 
-> ⚠️ **Sección sin verificar tras la migración de cuenta Apple (31 jul 2026).** Lo que sigue
-> describe el estado en la cuenta anterior (*Soft Potential Ltd*, Team `WJ38Y98349`). Como
-> `attendance-mobile` migró a *Abisoft S.A* (Team `N3NZ647285`), este proyecto probablemente
-> necesite lo mismo: App ID nuevo y APNs key nueva. **Verificar antes de usar estos datos.**
+**Cuenta Apple Developer:** Abisoft S.A (Team `N3NZ647285`, Apple ID `informacion@abisoft.it`) — la misma que `attendance-mobile`.
 
-**Cuenta Apple Developer (obsoleta):** Soft Potential Ltd (Team `WJ38Y98349`, Apple ID `jeanmarcus_86@hotmail.com`). Ver la cuenta vigente en **"Notificaciones push iOS — Configuración detallada"** de `attendance-mobile`.
+**App ID en Apple Developer:** `com.abisoft.tiempoya.admin.ios` (Description: `TiempoYa Admin`) con capability **Push Notifications** activada.
 
-**App ID en Apple Developer:** `com.abisoft.tiempoya.admin` (Description: `TiempoYa Admin`) con capability **Push Notifications** activada.
+> ⚠️ **Por qué el bundle iOS lleva sufijo `.ios`.** El identificador `com.abisoft.tiempoya.admin`
+> (sin sufijo) quedó registrado en la cuenta anterior (*Soft Potential Ltd*) y Apple **nunca libera
+> bundle IDs**, así que desde la cuenta actual responde *"ya está en uso"*. **Android conserva
+> `com.abisoft.tiempoya.admin`**, fijado en `android/app/build.gradle` (`applicationId` +
+> `namespace`); Capacitor sólo lee `appId` de `capacitor.config.ts` al hacer `cap add`, y `cap sync`
+> no reescribe Gradle. Mismo caso que `attendance-mobile`.
 
 **Firebase project: `tiempoya-admin`** (NO `tiempoya-c8cb9` que es de attendance-mobile).
-- App iOS registrada con bundle `com.abisoft.tiempoya.admin`
-- `GoogleService-Info.plist` descargado y colocado en `attendance-frontend/credentials/` (gitignored). Capacitor lo lee desde `ios/App/App/GoogleService-Info.plist` durante el build.
-- APNs Auth Key `AG9ACUK7YZ` subida a Firebase Console → Cloud Messaging → Apple app configurations, en ambos ambientes (Sandbox + Production). **⚠️ Esa key ya no existe** — pertenecía a la cuenta anterior. La key vigente del team `N3NZ647285` es `NQNDFTPVYR` (también Team Scoped), y habría que resubirla a Firebase si se retoma este proyecto.
+- App iOS registrada con bundle `com.abisoft.tiempoya.admin.ios`
+- `GoogleService-Info.plist` en `attendance-frontend/credentials/` (gitignored) y copiado a `ios/App/App/`, donde está referenciado como *resource* del target `App`. También gitignored.
+- APNs Auth Key **`NQNDFTPVYR`** subida a Firebase Console → Cloud Messaging → Apple app configurations. Es *Team Scoped (All Topics)*, así que la misma key sirve para este proyecto y para `attendance-mobile`.
+
+**Obtención del token FCM en iOS.** `@capacitor/push-notifications` **no sirve** para esto: en iOS
+devuelve el token **APNs** en hexadecimal, que el backend (que envía por FCM) no reconoce. Por eso
+`src/utils/pushNotifications.ts` ramifica por plataforma —
+`Capacitor.getPlatform() === 'ios'` usa **`@capacitor-firebase/messaging`**, que devuelve un token FCM
+igual que Android. Android sigue con el plugin original, sin cambios.
+
+Requisitos del proyecto iOS para que esto funcione:
+
+| Requisito | Dónde | Por qué |
+|---|---|---|
+| `FirebaseApp.configure()` | `ios/App/App/AppDelegate.swift` | Sin esto el plugin no obtiene token |
+| `platform :ios, '15.0'` | `ios/App/Podfile` | Lo exige `@aparajita/capacitor-biometric-auth`; Capacitor genera 13.0 y `pod install` falla |
+| `IPHONEOS_DEPLOYMENT_TARGET = 15.0` | `App.xcodeproj` (4 targets) | Coherencia con el Podfile |
+
+> La carpeta `ios/` **se versiona** (igual que `android/`), porque contiene configuración que
+> `cap add ios` no regenera: la inicialización de Firebase, el deployment target, el bundle
+> identifier y las capabilities. Se excluyen sólo `Pods/`, `build/`, `App/public/`, `xcuserdata` y
+> el `GoogleService-Info.plist`.
 
 **Diferencia con `attendance-mobile`:** acá SÍ se usa Firebase para iOS (no Expo Push). Razón: este proyecto usa Capacitor + el backend ya tiene Firebase Admin SDK (FCM URL `https://fcm.googleapis.com/v1/projects/tiempoya-admin/messages:send`). Los tokens iOS van por FCM, que internamente los enruta a APNs usando el `.p8` que subimos.
 
@@ -482,7 +503,7 @@ Web y Android no se ven afectados porque el CSS está scopeado a la clase `platf
 ```
 
 **Pendientes para producción:**
-- Crear app `TiempoYa Admin` en App Store Connect (bundle `com.abisoft.tiempoya.admin`)
+- Crear app `TiempoYa Admin` en App Store Connect (bundle `com.abisoft.tiempoya.admin.ios`)
 - `Product → Archive` en Xcode → Distribute App → TestFlight o Ad Hoc
 - Submit a Apple para revisión (~24h primera vez)
 - Invitar testers por email/link público de TestFlight

@@ -494,7 +494,7 @@ export default function LoginPage() {
           ¿Aún no tienes cuenta?{' '}
           <Link to="/sign-up" className="text-white font-semibold hover:underline">Regístrate gratis</Link>
         </p>
-        <p className="text-center text-primary-300 text-xs mt-3">Sistema de TiempoYa · v1.0</p>
+        <p className="text-center text-primary-300 text-xs mt-3">Sistema de TiempoYa · v{__APP_VERSION__}</p>
       </div>
 
       {/* ── Modal: ofrecer biométrico ── */}
