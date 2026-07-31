@@ -123,6 +123,38 @@ async function initAndroidPush({ onToken, onMessage: onMsg }: PushCallbacks) {
   }
 }
 
+// ── iOS nativo (Capacitor) ────────────────────────────────────────────────────
+// En iOS no sirve @capacitor/push-notifications para obtener el token: siempre
+// devuelve el token APNs en hexadecimal, y el backend envía por FCM, que no lo
+// reconoce. @capacitor-firebase/messaging sí devuelve un token FCM, igual que
+// Android, así que el backend no necesita distinguir plataformas.
+async function initIosPush({ onToken, onMessage: onMsg }: PushCallbacks) {
+  try {
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging')
+
+    const perm = await FirebaseMessaging.requestPermissions()
+    if (perm.receive !== 'granted') return
+
+    const { token } = await FirebaseMessaging.getToken()
+    if (token) onToken(token)
+
+    // El token se rota cuando iOS reinstala o restaura la app
+    await FirebaseMessaging.addListener('tokenReceived', ({ token }) => {
+      if (token) onToken(token)
+    })
+
+    await FirebaseMessaging.addListener('notificationReceived', ({ notification }) => {
+      onMsg({
+        title: notification.title,
+        body:  notification.body,
+        data:  notification.data as Record<string, string> | undefined,
+      })
+    })
+  } catch (e) {
+    console.warn('[push] iOS init error:', e)
+  }
+}
+
 // Brave bloquea FCM — detectar y omitir push web silenciosamente
 async function isBraveBrowser(): Promise<boolean> {
   return !!(navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function'
@@ -133,7 +165,11 @@ async function isBraveBrowser(): Promise<boolean> {
 // ── Entrada pública ───────────────────────────────────────────────────────────
 export async function initPushNotifications(callbacks: PushCallbacks) {
   if (isNative || Capacitor.isNativePlatform()) {
-    await initAndroidPush(callbacks)
+    if (Capacitor.getPlatform() === 'ios') {
+      await initIosPush(callbacks)
+    } else {
+      await initAndroidPush(callbacks)
+    }
   } else if ('Notification' in window && 'serviceWorker' in navigator) {
     if (await isBraveBrowser()) {
       console.info('[push] Brave detectado — push web no compatible con FCM. Usar Chrome o Edge.')
