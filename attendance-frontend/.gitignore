@@ -18,6 +18,26 @@ Thumbs.db
 # Logs
 *.log
 
-# Capacitor — plataformas nativas (generadas, no subir al repo)
-android/
-ios/
+# Capacitor — las plataformas nativas SÍ se versionan (recomendación oficial):
+# contienen configuración que no se puede regenerar (Firebase en AppDelegate,
+# deployment target, bundle identifier, capabilities). Sólo se excluye lo que
+# es generado o sensible.
+
+# Android — dependencias y salidas de compilación
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/app/google-services.json
+
+# iOS — dependencias, salidas de compilación y preferencias personales
+ios/App/Pods/
+ios/App/build/
+ios/App/App/public/
+ios/DerivedData/
+ios/App/*.xcodeproj/xcuserdata/
+ios/App/*.xcworkspace/xcuserdata/
+
+# iOS — credenciales (nunca al repo; hay copia en credentials/)
+ios/App/App/GoogleService-Info.plist

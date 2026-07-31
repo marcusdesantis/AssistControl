@@ -27,7 +27,13 @@ attendance-frontend/android/app/build/
 attendance-frontend/android/.gradle/
 attendance-frontend/android/build/
 attendance-frontend/credentials/
-attendance-frontend/ios/
+# ios/ se versiona (ver attendance-frontend/.gitignore); sólo se excluye
+# lo generado y las credenciales
+attendance-frontend/ios/App/Pods/
+attendance-frontend/ios/App/build/
+attendance-frontend/ios/App/App/public/
+attendance-frontend/ios/DerivedData/
+attendance-frontend/ios/App/App/GoogleService-Info.plist
 
 # ============================================================
 #  React Native / Expo — attendance-mobile

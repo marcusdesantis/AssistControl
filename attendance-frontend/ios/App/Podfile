@@ -1,0 +1,34 @@
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+# 15.0 lo exige @aparajita/capacitor-biometric-auth; el resto de plugins pide 13.0
+platform :ios, '15.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'AparajitaCapacitorBiometricAuth', :path => '../../node_modules/@aparajita/capacitor-biometric-auth'
+  pod 'CapacitorFirebaseMessaging', :path => '../../node_modules/@capacitor-firebase/messaging'
+  pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+  pod 'CapacitorFilesystem', :path => '../../node_modules/@capacitor/filesystem'
+  pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
+  pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
+  pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
+  pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+end
+
+target 'App' do
+  capacitor_pods
+  # FirebaseMessaging llega como dependencia de CapacitorFirebaseMessaging,
+  # que es quien devuelve el token FCM en iOS (el plugin estándar de push sólo
+  # entrega el token APNs, que el backend no sabe usar).
+end
+
+post_install do |installer|
+  assertDeploymentTarget(installer)
+end
