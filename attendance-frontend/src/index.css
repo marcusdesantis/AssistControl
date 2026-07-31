@@ -47,6 +47,20 @@
   body.platform-ios .min-h-screen {
     min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
+
+  /* iOS amplía la página automáticamente al enfocar un campo cuya letra mida
+     menos de 16px, y el zoom se queda puesto al navegar: por eso el dashboard
+     aparecía ampliado y cortado después de escribir en el login. Los campos
+     usan `text-sm` (14px), así que en nativo se fuerzan a 16px.
+
+     Se hace aquí y no con `maximum-scale=1` en el viewport porque ese meta lo
+     comparte la web, donde desactivar el zoom perjudica la accesibilidad. Así
+     el pinch-zoom sigue disponible para quien lo necesite. */
+  body.platform-ios input,
+  body.platform-ios select,
+  body.platform-ios textarea {
+    font-size: 16px;
+  }
 }
 
 @layer utilities {
