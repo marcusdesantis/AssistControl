@@ -198,6 +198,17 @@ Panel de administración para empresas, supervisores y empleados. Se sirve como 
 - Android: carpeta `android/` generada con `npx cap add android`
 - iOS: carpeta `ios/` generada con `npx cap add ios` (gitignored, regenerable)
 
+**Versión actual: 1.1 (versionCode 2)**
+
+| Fecha | versionName | versionCode | Contenido |
+|---|---|---|---|
+| 2026-07-28 | **1.1** | **2** | targetSdk 36 (Android 16) · AGP 8.9.3 + Gradle 8.11.1 · edge-to-edge con insets manejados en `MainActivity` · credenciales de firma fuera de git |
+| — | 1.0 | 1 | Versión anterior en Play Store |
+
+`versionCode` y `versionName` viven en `android/app/build.gradle`. **Se suben solo al generar el `.aab`**, no durante el desarrollo — y al hacerlo se actualiza esta tabla.
+
+**Firma:** las credenciales están en `android/keystore.properties` (gitignorado, ver `.example`); el keystore, respaldado en `attendance-frontend/credentials/`. Antes vivían en `android/gradle.properties`, que **sí se versiona en un repositorio público**.
+
 **Módulos principales:**
 
 | Módulo | Descripción |
@@ -384,6 +395,24 @@ npx capacitor-assets generate --ios
 
 ---
 
+**Android 16 (API 36) y edge-to-edge — app admin**
+
+Migrada a `targetSdk 36` para cumplir la política de Google Play (obligatoria desde el 30 ago 2026). Se mantuvo **Capacitor 6**: a diferencia de Expo, Capacitor no impone el SDK — `android/variables.gradle` es del proyecto — así que bastó subir la cadena de build, sin tocar los 8 plugins ni el `minSdk 22`.
+
+| Cambio | Dónde |
+|---|---|
+| compile/targetSdk 35 → 36 | `android/variables.gradle` |
+| AGP 8.2.1 → 8.9.3 (mínimo que compila contra SDK 36) | `android/build.gradle` |
+| Gradle 8.7 → 8.11.1 (lo exige AGP 8.9) | `gradle/wrapper/gradle-wrapper.properties` |
+| Eliminado `windowOptOutEdgeToEdgeEnforcement` | `app/src/main/res/values/styles.xml` |
+| Insets aplicados a la WebView | `MainActivity.java` |
+
+> ⚠️ **En Android los insets NO se resuelven con CSS.** Su WebView solo mapea `env(safe-area-inset-*)` al *display cutout* (el notch), nunca a la barra de estado ni a la de navegación: con edge-to-edge esos valores llegan en **cero**. Por eso `MainActivity.java` usa `ViewCompat.setOnApplyWindowInsetsListener` y aplica el padding real al contenedor de la WebView, contemplando también el teclado (IME). En **iOS sí funciona por CSS** (`body.platform-ios`) porque WKWebView expone el área segura completa — de ahí que las dos plataformas se resuelvan distinto.
+
+La web no se ve afectada por nada de esto: los cambios viven en `android/`, y el CSS de safe-area está scopeado a una clase que solo se añade en plataforma nativa.
+
+---
+
 **Características específicas para Android:**
 
 | Feature | Descripción |
@@ -460,10 +489,10 @@ Web y Android no se ven afectados porque el CSS está scopeado a la clase `platf
 App para empleados — marcación de entrada/salida con GPS y notificaciones push.
 
 **Stack:**
-- Expo 52 · React Native 0.76 · TypeScript
-- Expo Router · Zustand · Axios
+- Expo 54 · React Native 0.81 · TypeScript
+- Expo Router 6 · Zustand · Axios
 - Expo Location · Expo Notifications · Expo Secure Store
-- EAS Build (Expo Application Services) para compilación en la nube
+- Compilación **local con Gradle** (`gradlew bundleRelease`). EAS Build sigue disponible pero ya no es el camino habitual
 
 **Datos de la app:**
 - Nombre: `TiempoYa`
@@ -672,6 +701,29 @@ Token iOS    (ExponentPushToken[yyy]) → Expo → APNs → dispositivo (directo
 ```
 
 iOS NO requiere `GoogleService-Info.plist` ni registrar app iOS en Firebase Console.
+
+---
+
+---
+
+### Android 16 (API 36) y edge-to-edge — `attendance-mobile`
+
+Google Play exige apuntar a API 36 o superior **a partir del 30 ago 2026**. La app se migró de Expo SDK 53 (API 35) a **SDK 54 · RN 0.81 · targetSdk 36**.
+
+Los dos temas van juntos: hasta Android 15 se podía renunciar a edge-to-edge con `windowOptOutEdgeToEdgeEnforcement`, pero **Android 16 eliminó ese escape**. Con API 36 la app se dibuja siempre bajo las barras del sistema, así que hay que manejar los insets sí o sí.
+
+| Cambio | Dónde | Por qué |
+|---|---|---|
+| `SafeAreaProvider` en el root | `app/_layout.tsx` | Faltaba. Sin él `SafeAreaView` y `useSafeAreaInsets` devuelven cero de forma intermitente — era la causa de que la barra de botones tapara el menú "en ocasiones" |
+| Tab bar `height: 62 + insets.bottom` | `app/(app)/_layout.tsx` | La altura fija ignoraba la barra de navegación del sistema |
+| `statusBarTranslucent` + `navigationBarTranslucent` en los 13 `<Modal>` | varias pantallas | Sin ellos la ventana del modal no cubre las barras y deja franjas sobre el overlay |
+| `edgeToEdgeEnabled: true` | `app.json` | Obligatorio en API 36 |
+| Se elimina `android:statusBarColor` del tema | `plugins/withEdgeToEdgeStyles.js` | Obsoleto en API 35+, sin efecto con edge-to-edge y reportado por Play Console |
+| `windowLightStatusBar/NavigationBar = false` | mismo plugin | Sin color de fondo, los iconos se dibujan sobre el contenido oscuro de la app y deben ser claros |
+
+**Sobre el aviso "APIs obsoletas para pantalla de borde a borde":** Play Console lo seguirá mostrando. Las llamadas a `setStatusBarColor` / `setNavigationBarColor` / `LAYOUT_IN_DISPLAY_CUTOUT_MODE_*` viven dentro de `react-native` (`WindowUtil.kt`, marcadas `@Suppress("DEPRECATION")`), `react-native-screens` y Material Components, que las conservan a propósito para Android 10–14. El escaneo de Play es estático sobre el bytecode, así que las detecta aunque en Android 15+ sean no-ops. **Es una advertencia, no un bloqueo** — se resolverá cuando esas librerías las eliminen. Lo que sí dependía del proyecto (`android:statusBarColor` en `styles.xml`) ya está corregido.
+
+**Firma de release:** el keystore y las credenciales se movieron a `attendance-mobile/credentials/` (gitignorado) porque `expo prebuild --clean` borra `android/` entera y se los llevaba por delante. `plugins/withReleaseSigning.js` reinyecta el `signingConfigs.release` en cada prebuild. El `versionCode` pasó a `app.json`: antes vivía solo en `android/app/build.gradle` y el prebuild lo reseteaba a 1, lo que hacía que Play Store rechazara el AAB. Detalle completo en `attendance-mobile/README.md`.
 
 ---
 
@@ -1168,7 +1220,7 @@ Obtener en: Firebase Console → Configuración del proyecto → Cuentas de serv
 |---|---|
 | Backend | Next.js 15, Prisma 5, PostgreSQL 16 |
 | Frontend | React 18, Vite, Tailwind CSS |
-| Móvil | Expo 52, React Native 0.76 |
+| Móvil | Expo 54, React Native 0.81 |
 | Infraestructura | Docker, Nginx, pnpm workspaces |
 | Auth | JWT, bcryptjs |
 | Pagos | Payphone |

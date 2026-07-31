@@ -2,12 +2,15 @@ import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
 
-// Configurar cómo se muestran las notificaciones cuando la app está en primer plano
+// Configurar cómo se muestran las notificaciones cuando la app está en primer plano.
+// shouldShowBanner + shouldShowList reemplazan al antiguo shouldShowAlert, que
+// dejó de tener efecto en expo-notifications 0.32 (Expo SDK 54).
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge:  false,
+    shouldShowBanner: true,
+    shouldShowList:   true,
+    shouldPlaySound:  true,
+    shouldSetBadge:   false,
   }),
 })
 

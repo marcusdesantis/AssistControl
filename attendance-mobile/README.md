@@ -23,40 +23,105 @@ Copy-Item "$env:TEMP\ninja_new\ninja.exe" `
     "$env:LOCALAPPDATA\Android\Sdk\cmake\3.22.1\bin\ninja.exe" -Force
 ```
 
-### 3. Mover react-native-reanimated a ruta corta
+### 3. react-native-reanimated en ruta corta — ya no hace falta
 
-react-native-reanimated tiene fuentes C++ en rutas profundas que exceden el límite de Windows. Ejecutar desde la raíz del proyecto:
-
-```powershell
-$mobile = (Get-Location).Path
-$rnrSrc = "$mobile\node_modules\react-native-reanimated"
-
-robocopy $rnrSrc "C:\rn" /E /NFL /NDL /NJH /NJS /R:0 /W:0
-New-Item -ItemType Junction -Path "C:\rn\node_modules" -Target "$mobile\node_modules" | Out-Null
-
-New-Item -ItemType Directory -Force "C:\mt" | Out-Null
-robocopy "C:\mt" $rnrSrc /MIR /NFL /NDL /NJH /NJS /R:0 /W:0 | Out-Null
-[System.IO.Directory]::Delete($rnrSrc)
-[System.IO.Directory]::Delete("C:\mt")
-New-Item -ItemType Junction -Path $rnrSrc -Target "C:\rn" | Out-Null
-```
-
-> El archivo `react-native.config.js` ya está en el repo con la configuración necesaria.
+> **Obsoleto desde Expo SDK 54.** Reanimated 4 reorganizó sus fuentes C++ y el
+> junction a `C:\rn` dejó de ser necesario. Peor: al actualizar quedaba
+> apuntando a la versión vieja (3.17.5) y Gradle veía el módulo nativo
+> duplicado. `react-native.config.js` ya no lleva el override.
+>
+> Si un build local vuelve a fallar por rutas largas, confirmar primero que el
+> paso 1 (`LongPathsEnabled`) esté aplicado.
 
 ---
 
-## Actualizar versión antes de cada release
+## Firma de release (keystore)
 
-En `android/app/build.gradle`:
-```groovy
-versionCode 9        // +1 en cada subida al Play Store
-versionName "1.2.0"
-```
+> ⚠️ **`credentials/tiempoya-release.keystore` es irreemplazable.** Firma el
+> package `com.abisoft.tiempoya`. Si se pierde, Google Play no vuelve a aceptar
+> una actualización de la app: habría que publicarla como app nueva y perder a
+> todos los usuarios. La carpeta `credentials/` está gitignorada, así que **no
+> hay copia en el repositorio** — mantén un respaldo externo (gestor de
+> contraseñas o disco cifrado).
 
-En `app.json`:
+La firma se aplica sola en cada `prebuild` mediante `plugins/withReleaseSigning.js`,
+que inyecta el `signingConfigs.release` en `android/app/build.gradle` y las
+propiedades en `android/gradle.properties`.
+
+Las credenciales viven en `credentials/signing.json` (gitignorado):
+
 ```json
-"version": "1.2.0"
+{
+  "KEYSTORE_FILE": "../../credentials/tiempoya-release.keystore",
+  "KEYSTORE_PASSWORD": "...",
+  "KEY_ALIAS": "tiempoya",
+  "KEY_PASSWORD": "..."
+}
 ```
+
+Tanto el keystore como las credenciales están **fuera de `android/`** a propósito:
+`expo prebuild --clean` borra esa carpeta entera, y antes se llevaba por delante
+el keystore y las contraseñas.
+
+Si `signing.json` no existe, el build no falla — firma con `debug.keystore`,
+que sirve para pruebas pero **Play Store lo rechaza**.
+
+---
+
+## Versionado
+
+### Versión actual: **1.2.0 (versionCode 9)**
+
+| Fecha | versionName | versionCode | Contenido |
+|---|---|---|---|
+| 2026-07-28 | **1.2.0** | **9** | Expo SDK 54 · RN 0.81 · targetSdk 36 (Android 16) · edge-to-edge e insets corregidos · botón de marcaje bloqueado durante la carga |
+| — | 1.1.0 | 8 | Versión anterior en Play Store |
+
+Ambos valores viven en `app.json`. Antes `versionCode` estaba solo en
+`android/app/build.gradle`, y `prebuild --clean` lo reseteaba a 1 — Play Store
+rechaza cualquier AAB con un `versionCode` menor o igual al ya publicado.
+
+```json
+"version": "1.2.0",                 // versionName
+"android": { "versionCode": 9 }     // +1 en cada subida a Play Store
+```
+
+> **Se suben solo en el momento de generar el `.aab`**, no antes. Trabajar en
+> `main` con la versión ya publicada evita confundir qué está en la tienda.
+
+**Al generar un `.aab` nuevo, siempre:**
+
+1. Subir `versionCode` (+1) y `version` en `app.json`.
+2. `npx expo prebuild --platform android` (sin `--clean`, para conservar la caché nativa).
+3. `cd android && ./gradlew bundleRelease`
+4. **Actualizar la tabla de arriba con la versión nueva** — es la referencia de qué hay publicado.
+
+No editar `android/app/build.gradle` a mano: se regenera en cada prebuild.
+
+---
+
+## Android 16 (API 36) y edge-to-edge
+
+Migrado de Expo SDK 53 a **SDK 54 · RN 0.81 · targetSdk 36** para cumplir la
+política de Google Play (obligatoria desde el 30 ago 2026).
+
+Android 16 eliminó el opt-out de edge-to-edge, así que la app se dibuja siempre
+bajo las barras del sistema. Lo que eso implicó:
+
+- `SafeAreaProvider` en `app/_layout.tsx` — **faltaba**, y sin él los insets
+  llegan en cero de forma intermitente (por eso el menú se tapaba "a veces").
+- Tab bar con `height: 62 + insets.bottom` en vez de altura fija.
+- `statusBarTranslucent` + `navigationBarTranslucent` en todos los `<Modal>`.
+- `plugins/withEdgeToEdgeStyles.js` quita `android:statusBarColor` del tema
+  (obsoleto en API 35+) y fuerza iconos claros en las barras.
+
+Al tocar cualquier pantalla, verificar que el contenido no quede bajo la barra
+de estado ni bajo la de navegación.
+
+> El aviso de Play Console sobre **APIs obsoletas de borde a borde** seguirá
+> apareciendo: las llamadas están dentro de `react-native` y
+> `react-native-screens`, que las mantienen para Android 10–14. Es una
+> advertencia, no un bloqueo.
 
 ---
 

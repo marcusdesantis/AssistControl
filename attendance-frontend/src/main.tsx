@@ -26,10 +26,12 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>
 )
 
-// Marcar plataforma iOS en el body para CSS condicional (safe-area-inset solo en iOS)
-if (Capacitor.getPlatform() === 'ios') {
-  document.body.classList.add('platform-ios')
-}
+// Marcar la plataforma nativa en el body para CSS condicional (safe-area-inset).
+// En web getPlatform() devuelve 'web' y no se añade ninguna clase, así que el
+// navegador queda intacto.
+const platform = Capacitor.getPlatform()
+if (platform === 'ios')     document.body.classList.add('platform-ios')
+if (platform === 'android') document.body.classList.add('platform-android')
 
 // Ocultar splash cuando React haya montado la app
 if (Capacitor.isNativePlatform()) {

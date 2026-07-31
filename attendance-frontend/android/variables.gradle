@@ -1,7 +1,10 @@
 ext {
     minSdkVersion = 22
-    compileSdkVersion = 35
-    targetSdkVersion = 35
+    // Android 16 (API 36) — exigido por Google Play desde el 30 ago 2026.
+    // Ojo: con targetSdk 36 el sistema fuerza edge-to-edge y deja de respetar
+    // windowOptOutEdgeToEdgeEnforcement (ver styles.xml).
+    compileSdkVersion = 36
+    targetSdkVersion = 36
     androidxActivityVersion = '1.8.0'
     androidxAppCompatVersion = '1.6.1'
     androidxCoordinatorLayoutVersion = '1.2.0'

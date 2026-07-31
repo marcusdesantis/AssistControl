@@ -2,6 +2,7 @@ import { type AuthMethod } from '@/components/AttendanceAuthModal'
 import { type BiometricType } from '@/services/biometricService'
 import { Ionicons } from '@expo/vector-icons'
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export type AttendanceMethod = AuthMethod | 'checker'
 
@@ -54,6 +55,7 @@ const ALL_OPTIONS: MethodOption[] = [
 export default function ChangeMethodModal({
   visible, currentMethod, bioEnabled, pinEnabled, bioType, onSelect, onCancel,
 }: Props) {
+  const insets  = useSafeAreaInsets()
   const options = ALL_OPTIONS.filter(o => {
     if (o.method === 'biometric') return bioEnabled
     if (o.method === 'pin')       return pinEnabled
@@ -61,9 +63,11 @@ export default function ChangeMethodModal({
   })
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <View style={s.overlay}>
-        <View style={s.sheet}>
+        {/* El sheet se ancla al borde físico de la pantalla: sin el inset inferior
+            la barra de navegación del sistema tapa el final del contenido. */}
+        <View style={[s.sheet, { paddingBottom: 36 + insets.bottom }]}>
 
           {/* Handle */}
           <View style={s.handle} />

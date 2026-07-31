@@ -5,6 +5,20 @@ configurations.all {
     exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
 }
 
+// Credenciales de firma: android/keystore.properties (gitignorado).
+// Antes vivían en android/gradle.properties, que sí se versiona — y este
+// repositorio es público. Si el archivo no existe, el release se firma con la
+// clave de debug: sirve para probar, pero Play Store lo rechaza.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+def hasReleaseSigning = keystoreProperties.containsKey('KEYSTORE_FILE')
+if (!hasReleaseSigning) {
+    logger.warn('[signing] sin android/keystore.properties — el release se firmará con debug.keystore')
+}
+
 android {
     namespace "com.abisoft.tiempoya.admin"
     compileSdk rootProject.ext.compileSdkVersion
@@ -12,8 +26,8 @@ android {
         applicationId "com.abisoft.tiempoya.admin"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -23,17 +37,17 @@ android {
     }
     signingConfigs {
         release {
-            if (project.hasProperty('KEYSTORE_FILE')) {
-                storeFile file(KEYSTORE_FILE)
-                storePassword KEYSTORE_PASSWORD
-                keyAlias KEY_ALIAS
-                keyPassword KEY_PASSWORD
+            if (hasReleaseSigning) {
+                storeFile file(keystoreProperties['KEYSTORE_FILE'])
+                storePassword keystoreProperties['KEYSTORE_PASSWORD']
+                keyAlias keystoreProperties['KEY_ALIAS']
+                keyPassword keystoreProperties['KEY_PASSWORD']
             }
         }
     }
     buildTypes {
         release {
-            signingConfig project.hasProperty('KEYSTORE_FILE') ? signingConfigs.release : signingConfigs.debug
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -49,6 +63,8 @@ repositories {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    // Usado directamente en MainActivity para aplicar los window insets (edge-to-edge)
+    implementation "androidx.core:core:$androidxCoreVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')

@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 const TYPE_COLOR: Record<string, string> = {
   info:    '#3b82f6',
@@ -123,7 +122,7 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <View style={styles.safe}>
       {/* Subheader */}
       <View style={styles.subheader}>
         <Text style={styles.subCount}>
@@ -163,7 +162,7 @@ export default function NotificationsScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 
