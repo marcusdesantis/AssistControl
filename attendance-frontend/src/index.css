@@ -17,6 +17,35 @@
   body.platform-ios {
     padding-top:    env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+    /* El padding deja a la vista una franja del body bajo la barra de estado.
+       Sin color propio se pintaba blanca, y en las pantallas de login destacaba
+       como una banda clara sobre el fondo azul. El gris del dashboard es el
+       caso más común, así que es el valor por defecto. */
+    background-color: theme('colors.gray.50');
+  }
+
+  /* Las pantallas de autenticación usan un degradado azul a pantalla completa
+     (from-primary-900). Ahí la franja debe seguir ese color, no el del
+     dashboard. `:has()` evita tener que tocar las seis pantallas de auth; en
+     iOS anterior a 15.4 no se aplica y simplemente se ve el gris. */
+  body.platform-ios:has(.from-primary-900) {
+    background-color: theme('colors.primary.900');
+  }
+
+  /* `min-h-screen` son 100vh, y en iOS eso da dos problemas:
+
+     1. El padding de safe-area del body se SUMA a esos 100vh, así que el
+        contenido acaba midiendo más que la pantalla y se desborda.
+     2. WKWebView no recalcula `vh` cuando aparece el teclado: sigue valiendo la
+        pantalla entera aunque el teclado tape la mitad, de modo que un layout
+        centrado (`items-center`) empuja la tarjeta fuera de la vista — que es
+        lo que pasaba al tocar un campo del login.
+
+     `dvh` sí sigue al viewport visible, y restando los insets el contenedor
+     ocupa exactamente el espacio libre. En iOS anterior a 15.4 la regla se
+     descarta por unidad desconocida y queda el comportamiento anterior. */
+  body.platform-ios .min-h-screen {
+    min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 }
 
