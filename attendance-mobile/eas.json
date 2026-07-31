@@ -16,6 +16,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "informacion@abisoft.it",
+        "ascAppId": "6796427631",
+        "appleTeamId": "N3NZ647285"
+      }
+    }
   }
 }
