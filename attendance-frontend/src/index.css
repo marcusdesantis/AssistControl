@@ -48,6 +48,14 @@
     min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
+  /* Mismo caso con `h-screen`, que usa el layout del panel (barra lateral +
+     contenido). Al pedir 100vh dentro de un body con padding, el total
+     superaba la pantalla y el final de la barra lateral quedaba cortado por
+     abajo: en iPad se veía "Reloj Checador" partido contra el borde. */
+  body.platform-ios .h-screen {
+    height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
   /* iOS amplía la página automáticamente al enfocar un campo cuya letra mida
      menos de 16px, y el zoom se queda puesto al navegar: por eso el dashboard
      aparecía ampliado y cortado después de escribir en el login. Los campos
@@ -60,6 +68,20 @@
   body.platform-ios select,
   body.platform-ios textarea {
     font-size: 16px;
+  }
+
+  /* En móvil la barra lateral es un panel `fixed`, y los elementos fijos se
+     posicionan respecto al viewport ignorando el padding del body. Por eso el
+     logo se metía bajo la Dynamic Island y "Reloj Checador" quedaba pegado al
+     home indicator. Necesita sus propios insets.
+
+     Sólo por debajo de `lg`: a partir de ahí Tailwind la cambia a `relative`
+     (lg:relative), vuelve al flujo normal y el padding del body ya la cubre. */
+  @media (max-width: 1023px) {
+    body.platform-ios aside {
+      padding-top:    env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
 }
 
