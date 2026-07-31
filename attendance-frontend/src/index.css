@@ -5,8 +5,15 @@
 @layer base {
   * { box-sizing: border-box; }
   body { @apply antialiased text-gray-900; }
-  /* Solo iOS necesita compensar el notch / Dynamic Island arriba y la home indicator abajo.
-     Android y web no se ven afectados. */
+  /* iOS: compensa el notch / Dynamic Island arriba y la home indicator abajo.
+     WKWebView expone el área segura completa vía env(safe-area-inset-*).
+
+     Android NO se maneja acá: su WebView solo mapea env(safe-area-inset-*) al
+     display cutout, no a las barras del sistema, así que con edge-to-edge los
+     valores llegan en cero. El ajuste se hace en MainActivity.java con
+     ViewCompat.setOnApplyWindowInsetsListener.
+
+     La web no se ve afectada: la clase solo se añade en plataforma nativa. */
   body.platform-ios {
     padding-top:    env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);

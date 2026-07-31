@@ -12,9 +12,10 @@ import {
   TextInput, TouchableOpacity, View, Modal,
   ActivityIndicator, KeyboardAvoidingView,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets()
   const { fullName, employeeCode, email, username, clearAuth } = useAuthStore()
 
   const [biometricAvailable, setBiometricAvailable] = useState(false)
@@ -200,7 +201,7 @@ export default function ProfileScreen() {
   )
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <View style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{fullName?.charAt(0).toUpperCase() ?? '?'}</Text>
@@ -296,9 +297,9 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* ── Modal biométrico — confirmar contraseña ── */}
-      <Modal visible={showPasswordModal} transparent animationType="slide" onRequestClose={() => setShowPasswordModal(false)}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={showPasswordModal} transparent animationType="slide" onRequestClose={() => setShowPasswordModal(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { paddingBottom: 40 + insets.bottom }]}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIconWrap}>
                 <Ionicons name={biometricIcon} size={30} color="#3b82f6" />
@@ -345,9 +346,9 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* ── Modal PIN setup ── */}
-      <Modal visible={showPinModal} transparent animationType="slide" onRequestClose={() => { setShowPinModal(false); resetPinModal() }}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={showPinModal} transparent animationType="slide" onRequestClose={() => { setShowPinModal(false); resetPinModal() }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { paddingBottom: 40 + insets.bottom }]}>
 
             {/* Paso 1: contraseña */}
             {pinStep === 'password' && (
@@ -447,7 +448,7 @@ export default function ProfileScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </View>
   )
 }
 

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export type AuthMethod = 'biometric' | 'pin'
 type Mode = 'select' | 'pin'
@@ -104,11 +105,14 @@ export default function AttendanceAuthModal({ visible, action, initialMode, onSu
 
   // Mostrar tabs solo en selección manual (primera vez / al cambiar)
   const showTabs = bioEnabled && pinEnabled && !initialMode
+  const insets   = useSafeAreaInsets()
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <View style={s.overlay}>
-        <View style={s.sheet}>
+        {/* El sheet llega al borde físico: sin el inset inferior la barra de
+            navegación del sistema tapa el final del contenido. */}
+        <View style={[s.sheet, { paddingBottom: 32 + insets.bottom }]}>
           {/* Header */}
           <View style={s.header}>
             <Text style={s.title}>Confirma tu {actionLabel}</Text>

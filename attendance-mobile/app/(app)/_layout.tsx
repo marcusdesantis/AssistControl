@@ -7,6 +7,7 @@ import * as Notifications from 'expo-notifications'
 import { Redirect, Tabs, router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // ─── Bell header button ───────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ function NotifModal({ notif, onDismiss, onMarkRead }: {
   const label = TYPE_LABEL[notif.type] ?? notif.type
 
   return (
-    <Modal visible animationType="fade" transparent onRequestClose={onDismiss}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible animationType="fade" transparent onRequestClose={onDismiss}>
       <View style={modal.overlay}>
         <View style={modal.card}>
           <View style={[modal.iconWrap, { backgroundColor: color + '22' }]}>
@@ -142,7 +143,8 @@ const hdr = StyleSheet.create({
 const POLL_INTERVAL_MS = 60_000
 
 export default function AppLayout() {
-  const token = useAuthStore((s) => s.token)
+  const token  = useAuthStore((s) => s.token)
+  const insets = useSafeAreaInsets()
 
   const intervalRef    = useRef<ReturnType<typeof setInterval> | null>(null)
   const appStateRef    = useRef(AppState.currentState)
@@ -251,11 +253,16 @@ export default function AppLayout() {
         screenOptions={{
           tabBarActiveTintColor:   '#3b82f6',
           tabBarInactiveTintColor: '#64748b',
+          // La altura crece con el inset inferior del sistema (barra de botones
+          // o gesture bar). Con una altura fija el menú queda por debajo de la
+          // barra de navegación y los botones del teléfono lo tapan — y con
+          // edge-to-edge obligatorio en Android 16 pasaría siempre.
           tabBarStyle: {
             backgroundColor: '#1e293b',
             borderTopColor:  '#334155',
-            paddingBottom:   8,
-            height:          62,
+            paddingTop:      6,
+            paddingBottom:   8 + insets.bottom,
+            height:          62 + insets.bottom,
           },
           tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
           headerStyle:      { backgroundColor: '#0f172a' },

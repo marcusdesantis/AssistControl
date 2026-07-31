@@ -2,7 +2,7 @@
   "expo": {
     "name": "TiempoYa",
     "slug": "attendance-mobile",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./icon.png",
     "userInterfaceStyle": "automatic",
@@ -37,6 +37,8 @@
     },
     "android": {
       "package": "com.abisoft.tiempoya",
+      "versionCode": 9,
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
         "backgroundColor": "#ffffff"
@@ -68,10 +70,14 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "2.0.21"
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
           }
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning",
+      "./plugins/withEdgeToEdgeStyles"
     ],
     "scheme": "attendance",
     "extra": {

@@ -247,11 +247,14 @@ export default function LoginScreen() {
   const biometricIcon  = biometricType === 'facial' ? 'scan-outline' : 'finger-print-outline'
   const biometricLabel = biometricType === 'facial' ? 'Huella/Face ID' : 'huella digital'
 
-  const methods: { key: LoginMethod; icon: any; label: string; show: boolean }[] = [
+  // La anotación va en el literal, no en el resultado del filter: si no,
+  // TypeScript infiere key como string y no como LoginMethod.
+  const allMethods: { key: LoginMethod; icon: any; label: string; show: boolean }[] = [
     { key: 'user',      icon: 'person-outline',  label: 'Usuario', show: true },
     { key: 'biometric', icon: biometricIcon,      label: biometricType === 'facial' ? 'Huella/Face ID' : 'Huella', show: biometricAvailable && biometricEnabled },
     { key: 'pin',       icon: 'keypad-outline',   label: 'PIN',     show: pinEnabled },
-  ].filter(m => m.show)
+  ]
+  const methods = allMethods.filter(m => m.show)
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -399,7 +402,7 @@ export default function LoginScreen() {
       </KeyboardAvoidingView>
 
       {/* ── Modal: ofrecer biométrico tras login ── */}
-      <Modal visible={showBiometricOffer} transparent animationType="fade" onRequestClose={handleDeclineBiometric}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={showBiometricOffer} transparent animationType="fade" onRequestClose={handleDeclineBiometric}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={[styles.modalIconWrap, { backgroundColor: '#1e3a5f' }]}>
@@ -424,7 +427,7 @@ export default function LoginScreen() {
       </Modal>
 
       {/* ── Modal: info tras rechazar biométrico ── */}
-      <Modal visible={showBiometricInfo} transparent animationType="fade" onRequestClose={handleBiometricInfoClose}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={showBiometricInfo} transparent animationType="fade" onRequestClose={handleBiometricInfoClose}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={[styles.modalIconWrap, { backgroundColor: '#1e293b' }]}>
@@ -442,7 +445,7 @@ export default function LoginScreen() {
       </Modal>
 
       {/* ── Modal: olvidé mi PIN ── */}
-      <Modal visible={pinForgotInfo} transparent animationType="fade" onRequestClose={() => setPinForgotInfo(false)}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={pinForgotInfo} transparent animationType="fade" onRequestClose={() => setPinForgotInfo(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={[styles.modalIconWrap, { backgroundColor: '#1e3a5f' }]}>
@@ -466,7 +469,7 @@ export default function LoginScreen() {
       </Modal>
 
       {/* ── Modal: usuario desactivado ── */}
-      <Modal visible={userInactiveModal} transparent animationType="fade" onRequestClose={() => setUserInactiveModal(false)}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={userInactiveModal} transparent animationType="fade" onRequestClose={() => setUserInactiveModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalIconWrap}>
@@ -482,7 +485,7 @@ export default function LoginScreen() {
       </Modal>
 
       {/* ── Modal: sin acceso móvil ── */}
-      <Modal visible={mobileNotAllowed} transparent animationType="fade" onRequestClose={() => setMobileNotAllowed(false)}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={mobileNotAllowed} transparent animationType="fade" onRequestClose={() => setMobileNotAllowed(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={[styles.modalIconWrap, { backgroundColor: '#1e1b4b' }]}>
@@ -497,7 +500,7 @@ export default function LoginScreen() {
         </View>
       </Modal>
 
-      <Modal visible={deletionPendingModal} transparent animationType="fade" onRequestClose={() => setDeletionPendingModal(false)}>
+      <Modal statusBarTranslucent navigationBarTranslucent visible={deletionPendingModal} transparent animationType="fade" onRequestClose={() => setDeletionPendingModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={[styles.modalIconWrap, { backgroundColor: '#fef2f2' }]}>

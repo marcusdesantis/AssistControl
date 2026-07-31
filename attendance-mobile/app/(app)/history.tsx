@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 const PAGE_SIZE = 10
 
@@ -305,7 +304,7 @@ export default function HistoryScreen() {
   )
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <View style={styles.safe}>
       <FlatList
         data={loading ? [] : items}
         keyExtractor={(item, i) =>
@@ -347,7 +346,7 @@ export default function HistoryScreen() {
           ) : null
         }
       />
-    </SafeAreaView>
+    </View>
   )
 }
 

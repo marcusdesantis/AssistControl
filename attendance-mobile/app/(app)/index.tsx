@@ -23,7 +23,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 function formatTime(iso: string | null): string {
   if (!iso) return '--:--'
@@ -76,7 +75,7 @@ function MessageModal({
   }
 
   return (
-    <Modal visible animationType="fade" transparent onRequestClose={onClose}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible animationType="fade" transparent onRequestClose={onClose}>
       <View style={msgStyles.overlay}>
         <View style={msgStyles.card}>
           {/* Header */}
@@ -139,6 +138,9 @@ export default function HomeScreen() {
   const [status,      setStatus]      = useState<EmployeeStatus | null>(null)
   const [loading,     setLoading]     = useState(true)
   const [acting,      setActing]      = useState(false)
+  // Cubre la ventana entre el tap y el inicio real del registro (permisos + GPS),
+  // durante la cual 'acting' todavía es false y el botón seguiría siendo pulsable.
+  const [preparing,   setPreparing]   = useState(false)
   const [errorMsg,    setErrorMsg]    = useState<string | null>(null)
   // PIN step (siempre requerido)
   const [pinStep,     setPinStep]     = useState(false)
@@ -243,11 +245,13 @@ export default function HomeScreen() {
   }
 
   const doCheckOut = async () => {
-    const loc = await ensureLocation()
-    if (!loc) return
+    // 'acting' se activa ANTES de pedir el GPS: si se activara después, el botón
+    // quedaría pulsable durante toda la espera de la ubicación.
     setActing(true)
     setErrorMsg(null)
     try {
+      const loc = await ensureLocation()
+      if (!loc) return
       const result = await mobileService.checkOut(loc.latitude, loc.longitude)
       await loadStatus()
       if (result.pendingMessages?.length > 0) setPendingMsgs(result.pendingMessages)
@@ -302,30 +306,37 @@ export default function HomeScreen() {
 
   // Paso 1: verificar GPS — decide flujo según preferencia guardada
   const handleCheckIn = async () => {
-    const loc = await ensureLocation()
-    if (!loc) return
-    setErrorMsg(null)
+    // Guarda contra doble tap: el GPS puede tardar segundos en responder.
+    if (preparing || acting || loading || !status) return
+    setPreparing(true)
+    try {
+      const loc = await ensureLocation()
+      if (!loc) return
+      setErrorMsg(null)
 
-    if (preferredMethod === 'checker') {
-      setPinStep(true)
-      return
-    }
+      if (preferredMethod === 'checker') {
+        setPinStep(true)
+        return
+      }
 
-    const hasBioOrPin = await hasAuthMethod()
+      const hasBioOrPin = await hasAuthMethod()
 
-    // Primera vez sin método elegido → mostrar selector con las 3 opciones
-    if (preferredMethod === null && hasBioOrPin) {
-      setPending({ lat: loc.latitude, lon: loc.longitude })
-      setPendingAction('checkin')
-      setChangeMethodModal(true)
-      return
-    }
+      // Primera vez sin método elegido → mostrar selector con las 3 opciones
+      if (preferredMethod === null && hasBioOrPin) {
+        setPending({ lat: loc.latitude, lon: loc.longitude })
+        setPendingAction('checkin')
+        setChangeMethodModal(true)
+        return
+      }
 
-    if (hasBioOrPin) {
-      setPending({ lat: loc.latitude, lon: loc.longitude })
-      setAuthModal('checkin')
-    } else {
-      setPinStep(true)
+      if (hasBioOrPin) {
+        setPending({ lat: loc.latitude, lon: loc.longitude })
+        setAuthModal('checkin')
+      } else {
+        setPinStep(true)
+      }
+    } finally {
+      setPreparing(false)
     }
   }
 
@@ -362,20 +373,27 @@ export default function HomeScreen() {
   }
 
   const handleCheckOut = async () => {
-    if (preferredMethod === 'checker') {
-      // checker → Alert confirm directo
-    } else {
-      const hasBioOrPin = await hasAuthMethod()
-      if (hasBioOrPin) {
-        // Primera vez sin método → mostrar selector con las 3 opciones
-        if (preferredMethod === null) {
-          setPendingAction('checkout')
-          setChangeMethodModal(true)
+    // Misma guarda que en handleCheckIn: evita disparar dos flujos con doble tap.
+    if (preparing || acting || loading || !status) return
+    setPreparing(true)
+    try {
+      if (preferredMethod === 'checker') {
+        // checker → Alert confirm directo
+      } else {
+        const hasBioOrPin = await hasAuthMethod()
+        if (hasBioOrPin) {
+          // Primera vez sin método → mostrar selector con las 3 opciones
+          if (preferredMethod === null) {
+            setPendingAction('checkout')
+            setChangeMethodModal(true)
+            return
+          }
+          setAuthModal('checkout')
           return
         }
-        setAuthModal('checkout')
-        return
       }
+    } finally {
+      setPreparing(false)
     }
     if (Platform.OS === 'web') {
       if (window.confirm('¿Deseas registrar tu salida ahora?')) doCheckOut()
@@ -390,7 +408,7 @@ export default function HomeScreen() {
   const today = status?.today
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <View style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadStatus} tintColor="#3b82f6" />}
@@ -520,15 +538,43 @@ export default function HomeScreen() {
 
         {/* Botón de acción */}
         {!pinStep && !otpStep && (
-          acting ? (
+          (acting || preparing) ? (
             <View style={[styles.actionBtn, { backgroundColor: '#334155' }]}>
               <View style={styles.actionLeft}>
                 <ActivityIndicator color="#fff" size="small" />
                 <Text style={styles.actionLabel}>Procesando…</Text>
               </View>
             </View>
-          ) : status?.isCheckedIn ? (
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#b71c1c' }]} onPress={handleCheckOut} activeOpacity={0.85}>
+          ) : !status ? (
+            // Sin estado todavía (cargando o falló la carga). Nunca mostrar un botón
+            // activo acá: no sabemos si el empleado ya registró su entrada hoy, y
+            // pulsarlo crearía un registro duplicado.
+            loading ? (
+              <View style={[styles.actionBtn, styles.actionBtnIdle]}>
+                <View style={styles.actionLeft}>
+                  <ActivityIndicator color="#94a3b8" size="small" />
+                  <Text style={styles.actionIdleLabel}>Cargando…</Text>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.actionBtnIdle]}
+                onPress={loadStatus}
+                activeOpacity={0.85}
+              >
+                <View style={styles.actionLeft}>
+                  <Ionicons name="refresh-outline" size={24} color="#94a3b8" />
+                  <Text style={styles.actionIdleLabel}>Reintentar</Text>
+                </View>
+              </TouchableOpacity>
+            )
+          ) : status.isCheckedIn ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: '#b71c1c' }, loading && styles.btnDisabled]}
+              onPress={handleCheckOut}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
               <View style={styles.actionLeft}>
                 <Ionicons name="pause-circle-outline" size={26} color="#fff" />
                 <Text style={styles.actionLabel}>Salida</Text>
@@ -537,7 +583,12 @@ export default function HomeScreen() {
               <Text style={styles.actionTime}>{nowTime}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#1a7a3c' }]} onPress={handleCheckIn} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: '#1a7a3c' }, loading && styles.btnDisabled]}
+              onPress={handleCheckIn}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
               <View style={styles.actionLeft}>
                 <Ionicons name="play-circle-outline" size={26} color="#fff" />
                 <Text style={styles.actionLabel}>Entrada</Text>
@@ -611,7 +662,7 @@ export default function HomeScreen() {
       />
 
       {/* Modal: GPS requerido */}
-      <Modal
+      <Modal statusBarTranslucent navigationBarTranslucent
         visible={gpsBlocked !== null}
         transparent
         animationType="fade"
@@ -641,7 +692,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -707,6 +758,9 @@ const styles = StyleSheet.create({
   },
   actionLeft:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   actionLabel:   { fontSize: 18, fontWeight: '700', color: '#fff' },
+  // Estado neutro: la app aún no sabe si toca Entrada o Salida
+  actionBtnIdle:   { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', elevation: 0, shadowOpacity: 0 },
+  actionIdleLabel: { fontSize: 17, fontWeight: '600', color: '#94a3b8' },
   actionDivider: { width: 1, height: 26, backgroundColor: 'rgba(255,255,255,0.5)', marginHorizontal: 16 },
   actionTime:    { fontSize: 18, fontWeight: '700', color: '#fff' },
   btnDisabled:   { opacity: 0.6 },
